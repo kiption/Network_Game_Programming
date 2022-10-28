@@ -105,7 +105,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	XMFLOAT3 xmf3Scale(5.0f, 2.0f, 5.0f);
 	XMFLOAT3 xmf3Pos(0.0, 0.0f, 0.0);
 	XMFLOAT4 xmf4Color(0.0f, 0.2f, 0.0f, 0.0f);
-	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("Assets/Image/Terrain/terrain7.raw"), 1025, 1025, 8, 8, xmf3Scale, xmf4Color);
+	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("Assets/Image/Terrain/terrain2.raw"), 513, 513, 8, 8, xmf3Scale, xmf4Color);
 
 	m_pTerrain->SetPosition(xmf3Pos);
 	m_pTerrain->SetMaterial(pMaterial);
