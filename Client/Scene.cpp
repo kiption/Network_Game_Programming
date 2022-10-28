@@ -19,7 +19,7 @@ void CScene::BuildDefaultLightsAndMaterials()
 	m_pLights = new LIGHT[m_nLights];
 	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
 
-	m_xmf4GlobalAmbient = XMFLOAT4(0.5f, 0.2f, 0.4f, 1.0f);
+	m_xmf4GlobalAmbient = XMFLOAT4(0.2f, 0.2f, 0.4f, 1.0f);
 
 	m_pLights[0].m_nType = DIRECTIONAL_LIGHT;
 	m_pLights[0].m_fRange = 500.0;
@@ -114,14 +114,15 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_nGameObjects = 3;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
-	CGameObjcet* pTreeModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/tree.bin");
+	CGameObjcet* pTreeModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/NEBOOM.bin");
 
 	CObstacleObject* pTree = NULL;
 	pTree = new CObstacleObject();
 	pTree->SetChild(pTreeModel, true);
 	pTree->OnInitialize();
-	pTree->SetScale(5.0, 8.0, 5.0);
-	pTree->SetPosition(386.7, 5.0, 732.1);
+	pTree->SetScale(5.0, 5.0, 10.0);
+	pTree->SetPosition(386.7, -15.0, 732.1);
+	pTree->Rotate(0, 90.f, 0.f);
 	m_ppGameObjects[0] = pTree;
 
 	CGameObjcet* pPlayerCars = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/PoliceCar.bin");
