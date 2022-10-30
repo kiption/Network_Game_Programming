@@ -230,19 +230,6 @@ void CGameObjcet::UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandLis
 	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 16, &xmf4x4World, 0);
 }
 
-
-int CObstacleObject::PickObjectByRayIntersection(XMVECTOR& xmvPickPosition, XMMATRIX& xmmtxView, float* pfHitDistance)
-{
-	int nIntersected = 0;
-
-	XMVECTOR xmvPickRayOrigin, xmvPickRayDirection;
-	GenerateRayForPicking(xmvPickPosition, xmmtxView, xmvPickRayOrigin, xmvPickRayDirection);
-
-
-	return(nIntersected);
-}
-
-
 void CGameObjcet::ReleaseShaderVariables()
 {
 }
@@ -777,7 +764,7 @@ CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 		}
 	}
 
-	oobb = BoundingOrientedBox(XMFLOAT3(GetPosition().x, GetPosition().y+50.0, GetPosition().z), XMFLOAT3(8000.0, 10.0, 8000.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	m_Boobb = BoundingOrientedBox(XMFLOAT3(GetPosition().x, GetPosition().y+50.0, GetPosition().z), XMFLOAT3(8000.0, 10.0, 8000.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 }
 
 CHeightMapTerrain::~CHeightMapTerrain(void)
@@ -811,30 +798,10 @@ void CObstacleObject::OnInitialize()
 
 void CObstacleObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
-	if (m_pMainRotorFrame)
-	{
-		XMMATRIX xmmtxRotate = XMMatrixRotationY(XMConvertToRadians(360.0f * 2.0f) * fTimeElapsed);
-		m_pMainRotorFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pMainRotorFrame->m_xmf4x4Transform);
-	}
-	if (m_pTailRotorFrame)
-	{
-		XMMATRIX xmmtxRotate = XMMatrixRotationY(XMConvertToRadians(360.0f * 4.0f) * fTimeElapsed);
-		m_pTailRotorFrame->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_pTailRotorFrame->m_xmf4x4Transform);
-	}
-
-	oobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(30.0, 50.0, 30.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-
+	
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(30.0, 50.0, 30.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 	CGameObjcet::Animate(fTimeElapsed, pxmf4x4Parent);
 
-}
-void CObstacleObject::GenerateRayForPicking(XMVECTOR& xmvPickPosition, XMMATRIX& xmmtxView, XMVECTOR& xmvPickRayOrigin, XMVECTOR& xmvPickRayDirection)
-{
-	XMMATRIX xmmtxToModel = XMMatrixInverse(NULL, XMLoadFloat4x4(&m_xmf4x4World) * xmmtxView);
-
-	XMFLOAT3 xmf3CameraOrigin(0.0f, 0.0f, 0.0f);
-	xmvPickRayOrigin = XMVector3TransformCoord(XMLoadFloat3(&xmf3CameraOrigin), xmmtxToModel);
-	xmvPickRayDirection = XMVector3TransformCoord(xmvPickPosition, xmmtxToModel);
-	xmvPickRayDirection = XMVector3Normalize(xmvPickRayDirection - xmvPickRayOrigin);
 }
 
 CBulletObject::CBulletObject(float fEffectiveRange)
@@ -854,8 +821,7 @@ void CBulletObject::SetFirePosition(XMFLOAT3 xmf3FirePosition)
 
 void CBulletObject::Reset()
 {
-	m_pLockedObject = NULL;
-	m_fElapsedTimeAfterFire = 0;
+
 	m_fMovingDistance = 0;
 	m_fRotationAngle = 0.0f;
 	m_bActive = false;
@@ -863,8 +829,6 @@ void CBulletObject::Reset()
 
 void CBulletObject::Animate(float fElapsedTime)
 {
-	m_fElapsedTimeAfterFire += fElapsedTime;
-
 	float fDistance = m_fMovingSpeed * fElapsedTime;
 	XMFLOAT4X4 mtxRotate = Matrix4x4::RotationYawPitchRoll(0.0f, m_fRotationSpeed * fElapsedTime, 0.0f);
 	m_xmf4x4World = Matrix4x4::Multiply(mtxRotate, m_xmf4x4Transform);
@@ -873,8 +837,8 @@ void CBulletObject::Animate(float fElapsedTime)
 	xmf3Position = Vector3::Add(xmf3Position, xmf3Movement);
 	SetPosition(xmf3Position);
 	m_fMovingDistance += fDistance;
-	oobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(5.0, 5.0, 10.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-	if ((m_fMovingDistance > m_fBulletEffectiveRange) || (m_fElapsedTimeAfterFire > m_fLockingTime)) Reset();
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(5.0, 5.0, 10.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	if ((m_fMovingDistance > m_fBulletEffectiveRange) ) Reset();
 }
 
 
@@ -882,8 +846,8 @@ void CGameObjcet::UpdateBoundingBox()
 {
 	if (m_pMesh)
 	{
-		m_pMesh->oobb.Transform(oobb, XMLoadFloat4x4(&m_xmf4x4World));
-		XMStoreFloat4(&oobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&oobb.Orientation)));
+		m_pMesh->oobb.Transform(m_Boobb, XMLoadFloat4x4(&m_xmf4x4World));
+		XMStoreFloat4(&m_Boobb.Orientation, XMQuaternionNormalize(XMLoadFloat4(&m_Boobb.Orientation)));
 	}
 }
 

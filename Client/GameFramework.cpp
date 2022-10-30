@@ -326,18 +326,12 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 				case VK_F3:
 					m_pCamera = m_pPlayer->ChangeCamera((DWORD)(wParam - VK_F1 + 1), m_GameTimer.GetTimeElapsed());
 					break;
-				case VK_F4:
-					m_pCamera = m_pPlayer->ChangeCamera((FIRST_PERSON_CAMERA), m_GameTimer.GetTimeElapsed());
-					break;
 				case VK_F9:
 					ChangeSwapChainState();
 					break;
-				case VK_END:
-					m_pPlayer->m_gunbarrelControl =!m_pPlayer->m_gunbarrelControl;
-					break;
 				case VK_DELETE:
 					((CMyPlayer*)m_pPlayer)->FireBullet(m_pAnermyObject);
-					m_pAnermyObject = NULL;
+
 					break;
 				default:
 					break;
@@ -426,7 +420,7 @@ void CGameFramework::BuildObjects()
 	pPlayer->SetPosition(XMFLOAT3(250.0, 0.0f, 850.0f));
 	m_pScene->m_pPlayer = m_pPlayer = pPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
-	m_pPlayer->setTerrain(m_pScene->m_pTerrain);
+	m_pPlayer->SetTerrain(m_pScene->m_pTerrain);
 
 	m_pd3dCommandList->Close();
 	ID3D12CommandList *ppd3dCommandLists[] = { m_pd3dCommandList };

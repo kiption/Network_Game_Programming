@@ -179,16 +179,14 @@ public:
 	static void PrintFrameInfo(CGameObjcet* pGameObject, CGameObjcet* pParent);
 public:
 
-
 	float m_fMovingSpeed = 0.0f;
-	float m_fMovingRange = 0.0f;
 	float m_fRotationSpeed = 0.0f;
 	XMFLOAT3 m_xmf3RotationAxis = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	XMFLOAT3 m_xmf3MovingDirection = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	void SetRotationSpeed(float fSpeed) { m_fRotationSpeed = fSpeed; }
 	void SetMovingSpeed(float fSpeed) { m_fMovingSpeed = fSpeed; }
 public:
-	BoundingOrientedBox			oobb = BoundingOrientedBox();
+	BoundingOrientedBox			m_Boobb = BoundingOrientedBox();
 	void UpdateBoundingBox();
 };
 
@@ -197,8 +195,6 @@ class CPlayerObject : public CGameObjcet
 public:
 	CPlayerObject();
 	virtual ~CPlayerObject();
-	CGameObjcet* m_pMainRotorFrame = NULL;
-	CGameObjcet* m_pTailRotorFrame = NULL;
 
 public:
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
@@ -211,12 +207,7 @@ class CObstacleObject :public CGameObjcet
 public:
 	CObstacleObject() {};
 	virtual ~CObstacleObject() {};
-	void GenerateRayForPicking(XMVECTOR& xmvPickPosition, XMMATRIX& xmmtxView, XMVECTOR& xmvPickRayOrigin, XMVECTOR& xmvPickRayDirection);
-	int PickObjectByRayIntersection(XMVECTOR& xmvPickPosition, XMMATRIX& xmmtxView, float* pfHitDistance);
-	CGameObjcet* m_pMainRotorFrame = NULL;
-	CGameObjcet* m_pTailRotorFrame = NULL;
-
-
+	
 public:
 	virtual void OnInitialize();
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
@@ -288,10 +279,8 @@ public:
 	float						m_fRotationAngle = 0.0f;
 	XMFLOAT3					m_xmf3FirePosition = XMFLOAT3(0.0f, 0.0f, 1.0f);
 
-	float						m_fElapsedTimeAfterFire = 0.0f;
-	float						m_fLockingDelayTime = 0.3f;
-	float						m_fLockingTime = 5.0f;
-	CGameObjcet* m_pLockedObject = NULL;
+	//float						m_fElapsedTimeAfterFire = 0.0f;
+
 	CCamera* m_pCamera = NULL;
 
 	void SetFirePosition(XMFLOAT3 xmf3FirePosition);

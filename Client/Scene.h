@@ -68,21 +68,17 @@ public:
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 	void ReleaseUploadBuffers();
 	void CheckObjectByBulletCollisions();
-	void CheckObjectByPlayerCollisions(float fTimeElapsed);
-	void PickingToPlayer();
-	CPlayer* m_pPlayer = NULL;
+	void CheckWallByPlayerCollisions(float fTimeElapsed);
 
 public:
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
-
 	CGameObjcet** m_ppGameObjects = NULL;
 	int							m_nGameObjects=0;
 
-	LIGHT* m_pLights = NULL;
 	int							m_nLights = 0;
+	LIGHT						*m_pLights = NULL;
+	LIGHTS						*m_pcbMappedLights = NULL;
 	ID3D12Resource*				m_pd3dcbLights = NULL;
-	LIGHTS*						m_pcbMappedLights = NULL;
-
 	XMFLOAT4					m_xmf4GlobalAmbient;
 
 	float						m_fSavePosition = 0.0;
@@ -91,14 +87,14 @@ public:
 	float						m_fElapsedTime = 0.0f;
 	bool						m_bCollisionCheck = false;
 
+	CPlayer*					m_pPlayer = NULL;
 	CCamera*					m_pCamera = NULL;
 	CHeightMapTerrain*			m_pTerrain = NULL;
-	CMyPlayer*					m_pHelicopterPlayer = NULL;
 	CBulletObject*				pBulletObject = NULL;
 	CShader*					m_pShader = NULL;
 
 protected:
-	CTerrainShader* terrainShader;
-	CShader** m_ppShaderObjcet;
+	CTerrainShader* m_pTerrainShader=NULL;
+	CShader** m_ppShaderObjcet=NULL;
 
 };

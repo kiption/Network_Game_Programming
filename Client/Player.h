@@ -23,7 +23,7 @@ protected:
 	float           			m_fFriction;
 
 	LPVOID						m_pCameraUpdatedContext;
-	CGameObjcet* m_pHO = NULL;
+
 public:
 
 	XMFLOAT3					m_xmf3Velocity;
@@ -44,7 +44,7 @@ public:
 	virtual XMFLOAT3 GetRightVector() { return(m_xmf3Right); }
 	
 
-	void setTerrain(LPVOID pPlayerUpdatedContext);
+	void SetTerrain(LPVOID pPlayerUpdatedContext);
 	void SetFriction(float fFriction) { m_fFriction = fFriction; }
 	void SetGravity(const XMFLOAT3& xmf3Gravity) { m_xmf3Gravity = xmf3Gravity; }
 	void SetMaxVelocityXZ(float fMaxVelocity) { m_fMaxVelocityXZ = fMaxVelocity; }
@@ -81,10 +81,6 @@ public:
 	virtual CCamera *ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed) { return(NULL); }
 	virtual void OnPrepareRender();
 	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera = NULL);
-
-	bool							m_gunbarrelControl = false;
-	bool  m_turn = false;
-	bool  m_Bulletturn;
 };
 
 #define BULLETS					50
@@ -99,6 +95,14 @@ public:
 	float							m_fBulletEffectiveRange = 300.0f;
 	CBulletObject*					pBulletObject = NULL;
 	CPlayerObject*					m_pPlayerObejct = NULL;
+
+public:
+	float m_fPos = 0.0;
+	bool m_bWheelAnimation = false;
+	CGameObjcet* m_Body;
+	CGameObjcet* m_WheelBacks;
+	CGameObjcet* m_WheelFront_Left;
+	CGameObjcet* m_WheelFront_Right;
 private:
 	virtual void OnInitialize();
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4 *pxmf4x4Parent = NULL);

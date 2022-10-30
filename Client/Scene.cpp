@@ -286,20 +286,15 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 	return(false);
 }
 
-void CScene::PickingToPlayer()
-{
-
-
-}
 void CScene::CheckObjectByBulletCollisions()
 {
 
 }
 
-void CScene::CheckObjectByPlayerCollisions(float fTimeElapsed)
+void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 {
 
-	if (m_pTerrain->oobb.Intersects(m_pPlayer->oobb))
+	if (m_pTerrain->m_Boobb.Intersects(m_pPlayer->m_Boobb))
 	{
 		if (m_pPlayer->m_xmf3Position.z > 1200.0 && m_pPlayer->m_xmf3Position.z < 2100.0
 			&& m_pPlayer->m_xmf3Position.x > 200.0 && m_pPlayer->m_xmf3Position.x < 5500.0)
@@ -352,9 +347,9 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 	}
 
-	CheckObjectByPlayerCollisions(m_fElapsedTime);
+	CheckWallByPlayerCollisions(m_fElapsedTime);
 	CheckObjectByBulletCollisions();
-	PickingToPlayer();
+
 }
 
 void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
