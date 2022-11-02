@@ -42,7 +42,7 @@ void CScene::BuildDefaultLightsAndMaterials()
 	m_pLights[1].m_xmf3Position = XMFLOAT3(0.0f, 30.0f, 1.0f);
 	m_pLights[1].m_xmf3Direction = XMFLOAT3(0.0f, 0.0f, 1.0f);
 	m_pLights[1].m_xmf3Attenuation = XMFLOAT3(1.0f, 0.01f, 0.0001f);
-	m_pLights[1].m_fFalloff =5.0f;
+	m_pLights[1].m_fFalloff = 5.0f;
 	m_pLights[1].m_fPhi = (float)cos(XMConvertToRadians(32.0f));
 	m_pLights[1].m_fTheta = (float)cos(XMConvertToRadians(20.0f));
 	m_pLights[1].m_bEnable = true;
@@ -116,14 +116,14 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	CGameObjcet* pTreeModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/NEBOOM.bin");
 
-	CObstacleObject* pTree = NULL;
-	pTree = new CObstacleObject();
-	pTree->SetChild(pTreeModel, true);
-	pTree->OnInitialize();
-	pTree->SetScale(5.0, 5.0, 10.0);
-	pTree->SetPosition(386.7, -15.0, 732.1);
-	pTree->Rotate(0, 90.f, 0.f);
-	m_ppGameObjects[0] = pTree;
+	CObstacleObject* pBoom = NULL;
+	pBoom = new CObstacleObject();
+	pBoom->SetChild(pTreeModel, true);
+	pBoom->OnInitialize();
+	pBoom->SetScale(5.0, 5.0, 10.0);
+	pBoom->SetPosition(386.7, -15.0, 732.1);
+	pBoom->Rotate(0, 90.f, 0.f);
+	m_ppGameObjects[0] = pBoom;
 
 	CGameObjcet* pPlayerCars = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/PoliceCar.bin");
 
@@ -285,10 +285,32 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 {
 	return(false);
 }
-
+bool test = false;
 void CScene::CheckObjectByBulletCollisions()
 {
+	
+	if (m_ppGameObjects[0]->m_Boobb.Intersects(m_pPlayer->m_Boobb))
+	{
+		test = true;
+	}
 
+	if (test == true)
+	{
+		m_ppGameObjects[0]->m_xmf4x4Transform._42 -= 1.0f;
+		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 <-55.0)
+		{
+			test = false;
+		}
+	}
+	if (test == false)
+	{
+		m_ppGameObjects[0]->m_xmf4x4Transform._42 += 1.0f;
+		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 >-15.1)
+		{
+			m_ppGameObjects[0]->m_xmf4x4Transform._42 -= 1.0f;
+			
+		}
+	}
 }
 
 void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)

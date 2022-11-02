@@ -330,8 +330,7 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 					ChangeSwapChainState();
 					break;
 				case VK_DELETE:
-					((CMyPlayer*)m_pPlayer)->FireBullet(m_pAnermyObject);
-
+					((CMyPlayer*)m_pPlayer)->FireBullet(NULL);
 					break;
 				default:
 					break;
@@ -456,6 +455,12 @@ void CGameFramework::ProcessInput()
 		if (pKeysBuffer[VK_DOWN] & 0xF0) {
 			dwDirection |= DIR_BACKWARD;
 		}
+		if (pKeysBuffer[VK_RIGHT] & 0xF0) {
+			dwDirection |= DIR_RIGHT;
+		}
+		if (pKeysBuffer[VK_LEFT] & 0xF0) {
+			dwDirection |= DIR_LEFT;
+		}
 		if (pKeysBuffer[VK_RSHIFT] & 0xF0) dwDirection |= DIR_DOWN;
 	
 		float cxDelta = 0.0f, cyDelta = 0.0f;
@@ -473,15 +478,24 @@ void CGameFramework::ProcessInput()
 		{
 			if (cxDelta || cyDelta)
 			{
-				if (pKeysBuffer[VK_RBUTTON] & 0xF0)
-					m_pPlayer->Rotate(cyDelta, 0.0f, -cxDelta);
-				else {
-					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
-					
-				}
+				
 			}
 			if (dwDirection) {
-				m_pPlayer->Move(dwDirection, 13.0f, false);
+				m_pPlayer->Move(dwDirection, 5.0f, false);
+				if (pKeysBuffer[VK_RIGHT] & 0xF0) {
+					dwDirection |= DIR_BACKWARD;
+					m_pPlayer->Rotate(0.0, +2.3f, 0.0);
+					m_pPlayer->Move(DIR_BACKWARD, 3.5f, false);
+				}
+				else if (pKeysBuffer[VK_LEFT] & 0xF0) {
+					dwDirection |= DIR_BACKWARD;
+					m_pPlayer->Rotate(0.0, -2.3, 0.0f);
+					m_pPlayer->Move(DIR_BACKWARD, 3.5f, false);
+				}
+				if (pKeysBuffer[VK_SHIFT] & 0xF0)
+					m_pPlayer->Move(dwDirection, 13.0f, false);
+
+				
 			}			
 		}
 	}

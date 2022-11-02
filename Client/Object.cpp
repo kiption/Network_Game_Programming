@@ -799,7 +799,7 @@ void CObstacleObject::OnInitialize()
 void CObstacleObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
 	
-	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(30.0, 50.0, 30.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(10.0, 10.0, 10.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 	CGameObjcet::Animate(fTimeElapsed, pxmf4x4Parent);
 
 }

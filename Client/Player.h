@@ -99,8 +99,8 @@ public:
 public:
 	float m_fPos = 0.0;
 	bool m_bWheelAnimation = false;
-	CGameObjcet* m_Body;
-	CGameObjcet* m_WheelBacks;
+	CGameObjcet* m_WheelBack_Left;
+	CGameObjcet* m_WheelBack_Right;
 	CGameObjcet* m_WheelFront_Left;
 	CGameObjcet* m_WheelFront_Right;
 private:

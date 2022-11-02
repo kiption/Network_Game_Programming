@@ -41,11 +41,6 @@ public:
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	LRESULT OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	
-
-
-private:
-	float rotateL = 0.0f;
-	float rotateR = 0.0f;
 private:
 	HINSTANCE					m_hInstance;
 	HWND						m_hWnd; 
@@ -88,7 +83,6 @@ private:
 	CScene						*m_pScene = NULL;
 	
 	CCamera						*m_pCamera = NULL;
-	CGameObjcet			*m_pAnermyObject = NULL;
 	POINT						m_ptOldCursorPos;
 
 	_TCHAR						m_pszFrameRate[70];

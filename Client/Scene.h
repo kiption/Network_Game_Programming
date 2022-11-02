@@ -82,7 +82,7 @@ public:
 	XMFLOAT4					m_xmf4GlobalAmbient;
 
 	float						m_fSavePosition = 0.0;
-	float						m_fCollisionRange = 200.0;
+	float						m_fCollisionRange = 100.0;
 	float						m_fCollisionVelocity = 2.5;
 	float						m_fElapsedTime = 0.0f;
 	bool						m_bCollisionCheck = false;

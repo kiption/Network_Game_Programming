@@ -96,7 +96,6 @@ void CPlayer::Rotate(float x, float y, float z)
 	
 	if (nCurrentCameraMode == THIRD_PERSON_CAMERA)
 	{
-
 		if (y != 0.0f)
 		{
 			XMMATRIX xmmtxRotate = XMMatrixRotationAxis(XMLoadFloat3(&m_xmf3Up), XMConvertToRadians(y));
@@ -236,7 +235,7 @@ CMyPlayer::CMyPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCo
 
 	}
 
-	CGameObjcet* pGameObject = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/SUV.bin");
+	CGameObjcet* pGameObject = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/race.bin");
 	SetChild(pGameObject, true);
 	OnInitialize();
 	pGameObject->Rotate(0.0f, 0.0f, 0.0f);
@@ -254,23 +253,28 @@ CMyPlayer::~CMyPlayer()
 
 void CMyPlayer::OnInitialize()
 {
-	m_Body = FindFrame("SUV");
-	m_WheelBacks = FindFrame("SUV_BackWheels");
-	m_WheelFront_Left = FindFrame("SUV_FrontLeftWheel");
-	m_WheelFront_Right = FindFrame("SUV_FrontRightWheel");
-	m_fPos = m_WheelBacks->m_xmf4x4Transform._42;
+	m_WheelBack_Left = FindFrame("wheel_backLeft");
+	m_WheelBack_Right = FindFrame("wheel_backRight");
+	m_WheelFront_Left = FindFrame("wheel_frontLeft");
+	m_WheelFront_Right = FindFrame("wheel_frontRight");
+	m_fPos = m_WheelBack_Right->m_xmf4x4Transform._42;
 }
 
 void CMyPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
-	if (m_WheelBacks)
+	if (m_WheelBack_Left)
 	{
 		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
-		m_WheelBacks->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelBacks->m_xmf4x4Transform);
+		m_WheelBack_Left->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelBack_Left->m_xmf4x4Transform);
+	}
+	if (m_WheelBack_Right)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
+		m_WheelBack_Right->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelBack_Right->m_xmf4x4Transform);
 	}
 	if (m_WheelFront_Left)
 	{
-		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 8.0) * fTimeElapsed);
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
 		m_WheelFront_Left->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelFront_Left->m_xmf4x4Transform);
 	}
 	if (m_WheelFront_Right)
@@ -281,18 +285,23 @@ void CMyPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 	if (m_bWheelAnimation == false)
 	{
-		m_Body->m_xmf4x4Transform._42 += 0.008f;
-		m_WheelBacks->m_xmf4x4Transform._42 += 0.003f;
-		if (m_WheelBacks->m_xmf4x4Transform._42 > m_fPos + 0.008f)
+		m_WheelBack_Left->m_xmf4x4Transform._42 += 0.008f;
+		m_WheelBack_Right->m_xmf4x4Transform._42 += 0.008f;
+		m_WheelFront_Left->m_xmf4x4Transform._42 += 0.008f;
+		m_WheelFront_Right->m_xmf4x4Transform._42 += 0.008f;
+
+		if (m_WheelBack_Right->m_xmf4x4Transform._42 > m_fPos + 0.03f)
 		{
 			m_bWheelAnimation = true;
 		}
 	}
 	if (m_bWheelAnimation == true)
 	{
-		m_Body->m_xmf4x4Transform._42 -= 0.008f;
-		m_WheelBacks->m_xmf4x4Transform._42 -= 0.003f;
-		if (m_WheelBacks->m_xmf4x4Transform._42 < m_fPos - 0.008f)
+		m_WheelBack_Left->m_xmf4x4Transform._42 -= 0.008f;
+		m_WheelBack_Right->m_xmf4x4Transform._42 -= 0.008f;
+		m_WheelFront_Left->m_xmf4x4Transform._42 -= 0.008f;
+		m_WheelFront_Right->m_xmf4x4Transform._42 -= 0.008f;
+		if (m_WheelBack_Right->m_xmf4x4Transform._42 < m_fPos - 0.01f)
 		{
 			m_bWheelAnimation = false;
 		}
@@ -301,7 +310,7 @@ void CMyPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	{
 		if (m_ppBullets[i]->m_bActive) {
 			m_ppBullets[i]->Animate(fTimeElapsed);
-			m_ppBullets[i]->Rotate(0.0, 10.0, 0.0);
+			m_ppBullets[i]->Rotate(0.0, 90.0, 0.0);
 		}
 	}
 
@@ -350,7 +359,7 @@ void CMyPlayer::FireBullet(CGameObjcet* pLockedObject)
 		pBulletObject->SetFirePosition(xmf3FirePosition);
 		pBulletObject->SetMovingDirection(GetLookVector());
 		pBulletObject->Rotate(90.0f, 0.0, 0.0);
-		pBulletObject->SetScale(500.3, 500.3, 500.3);
+		pBulletObject->SetScale(300.3, 300.3, 250.3);
 		pBulletObject->SetActive(true);
 	}
 }
@@ -367,8 +376,8 @@ CCamera* CMyPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 		SetMaxVelocityXZ(20.5f);
 		SetMaxVelocityY(2000.0f);
 		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
-		m_pCamera->SetTimeLag(0.0f);
-		m_pCamera->SetOffset(XMFLOAT3(-0.0f, 20.0f, -75.0f));
+		m_pCamera->SetTimeLag(0.8f);
+		m_pCamera->SetOffset(XMFLOAT3(-0.0f, 20.0f, -65.0f));
 		m_pCamera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
 		m_pCamera->GenerateProjectionMatrix(1.01f, 6000.0f, ASPECT_RATIO, 60.0f);
 		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
