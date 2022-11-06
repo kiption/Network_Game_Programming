@@ -185,6 +185,10 @@ public:
 	XMFLOAT3 m_xmf3MovingDirection = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	void SetRotationSpeed(float fSpeed) { m_fRotationSpeed = fSpeed; }
 	void SetMovingSpeed(float fSpeed) { m_fMovingSpeed = fSpeed; }
+
+	bool						m_bObjectCollideCheck = false;
+	bool						m_bObjectRising = false;
+
 public:
 	BoundingOrientedBox			m_Boobb = BoundingOrientedBox();
 	void UpdateBoundingBox();

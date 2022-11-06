@@ -416,7 +416,7 @@ void CGameFramework::BuildObjects()
 	if (m_pScene) m_pScene->BuildObjects(m_pd3dDevice, m_pd3dCommandList);
 
 	CMyPlayer*pPlayer = new CMyPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
-	pPlayer->SetPosition(XMFLOAT3(250.0, 0.0f, 850.0f));
+	pPlayer->SetPosition(XMFLOAT3(245.0f, 0.0f, 290.0f));
 	m_pScene->m_pPlayer = m_pPlayer = pPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 	m_pPlayer->SetTerrain(m_pScene->m_pTerrain);

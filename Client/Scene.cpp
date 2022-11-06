@@ -74,10 +74,16 @@ void CScene::BuildDefaultLightsAndMaterials()
 	m_pLights[3].m_bEnable = true;
 
 }
+random_device CoordRd;
+default_random_engine CoordDre(CoordRd());
 
+uniform_real_distribution<> uidx(200.0, 1000.0);
+uniform_real_distribution<> uidy(190.0, 195.0);
+uniform_real_distribution<> uidz(200.0, 2300.0);
+uniform_real_distribution<> uid(0.0, 10.0);
+uniform_real_distribution<> RandomBoxCorX(330.0f, 810.0f);
+uniform_real_distribution<> RandomBoxCorZ(799.0f, 805.0f);
 
-uniform_real_distribution<> uidx(200.0, 1000.0); uniform_real_distribution<> uidz(200.0, 2300.0);
-uniform_real_distribution<> uidy(190.0, 195.0); uniform_real_distribution<> uid(0.0, 10.0);
 void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList)
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
@@ -103,18 +109,18 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pMaterial->SetMaterialColors(pMaterialColors);
 
 	XMFLOAT3 xmf3Scale(5.0f, 2.0f, 5.0f);
-	XMFLOAT3 xmf3Pos(0.0, 0.0f, 0.0);
+	XMFLOAT3 xmf3Pos(0.0f, 0.0f, 0.0f);
 	XMFLOAT4 xmf4Color(0.0f, 0.2f, 0.0f, 0.0f);
 	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("Assets/Image/Terrain/terrain2.raw"), 513, 513, 8, 8, xmf3Scale, xmf4Color);
 
+	m_pTerrain->Rotate(0.0f, 0.0f, 0.0f);
 	m_pTerrain->SetPosition(xmf3Pos);
 	m_pTerrain->SetMaterial(pMaterial);
-	m_pTerrain->Rotate(0.0, 0.0, 0.0);
 
-	m_nGameObjects = 3;
+	m_nGameObjects = 5;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
-	CGameObjcet* pTreeModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/NEBOOM.bin");
+	/*CGameObjcet* pTreeModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/NEBOOM.bin");
 
 	CObstacleObject* pBoom = NULL;
 	pBoom = new CObstacleObject();
@@ -123,25 +129,54 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pBoom->SetScale(5.0, 5.0, 10.0);
 	pBoom->SetPosition(386.7, -15.0, 732.1);
 	pBoom->Rotate(0, 90.f, 0.f);
-	m_ppGameObjects[0] = pBoom;
+	m_ppGameObjects[0] = pBoom;*/
 
-	CGameObjcet* pPlayerCars = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/PoliceCar.bin");
+	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race2.bin");
 
 	CPlayerObject* P2 = NULL;
 	P2 = new CPlayerObject();
-	P2->SetChild(pPlayerCars, true);
+	P2->SetChild(pPlayerCars2, true);
 	P2->OnInitialize();
-	P2->SetScale(5.0, 5.0, 7.0);
-	P2->SetPosition(200.0, 2.0, 900.1);
-	m_ppGameObjects[1] = P2;
+	P2->SetScale(10.0f, 10.0f, 10.0f);
+	P2->SetPosition(195.0f, 2.0, 320.0f);
+	m_ppGameObjects[0] = P2;
 
+	CGameObjcet* pPlayerCars3 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race3.bin");
 	CPlayerObject* P3 = NULL;
 	P3 = new CPlayerObject();
-	P3->SetChild(pPlayerCars, true);
+	P3->SetChild(pPlayerCars3, true);
 	P3->OnInitialize();
-	P3->SetScale(5.0, 5.0, 7.0);
-	P3->SetPosition(230.0, 2.0, 950.0);
-	m_ppGameObjects[2] = P3;
+	P3->SetScale(10.0f, 10.0f, 10.0f);
+	P3->SetPosition(265.0, 2.0, 430.0f);
+	m_ppGameObjects[1] = P3;
+
+	CGameObjcet* pBoxModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Mystery_box.bin");
+	CObstacleObject* pBox1 = NULL;
+	pBox1 = new CObstacleObject();
+	pBox1->SetChild(pBoxModel, true);
+	pBox1->OnInitialize();
+	pBox1->SetScale(80.0f, 80.0f, 80.0f);
+	pBox1->SetPosition(288.0f, 10.0f, 799.0f);
+	pBox1->Rotate(45.0f, 0.0f, 0.0f);
+	m_ppGameObjects[2] = pBox1;
+
+	CObstacleObject* pBox2 = NULL;
+	pBox2 = new CObstacleObject();
+	pBox2->SetChild(pBoxModel, true);
+	pBox2->OnInitialize();
+	pBox2->SetScale(80.0f, 80.0f, 80.0f);
+	pBox2->SetPosition(309.0f, 10.0f, 752.0f);
+	pBox2->Rotate(45.0f, 0.0f, 0.0f);
+	m_ppGameObjects[3] = pBox2;
+
+	CObstacleObject* pBox3 = NULL;
+	pBox3 = new CObstacleObject();
+	pBox3->SetChild(pBoxModel, true);
+	pBox3->OnInitialize();
+	pBox3->SetScale(80.0f, 80.0f, 80.0f);
+	pBox3->SetPosition(330.0f, 10.0f, 705.0f);
+	pBox3->Rotate(45.0f, 0.0f, 0.0f);
+	m_ppGameObjects[4] = pBox3;
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -285,30 +320,37 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 {
 	return(false);
 }
-bool test = false;
+random_device ItemVal;
+default_random_engine ItemRanVal(ItemVal());
+uniform_int_distribution<>PresentItemVal(1, 3);
+
 void CScene::CheckObjectByBulletCollisions()
 {
-	
-	if (m_ppGameObjects[0]->m_Boobb.Intersects(m_pPlayer->m_Boobb))
-	{
-		test = true;
-	}
+	for (int i = 2; i < m_nGameObjects; ++i) {
+		m_ppGameObjects[i]->SetRotationSpeed(2.0f);
+		m_ppGameObjects[i]->Rotate(0, m_ppGameObjects[i]->m_fRotationSpeed, 0);
 
-	if (test == true)
-	{
-		m_ppGameObjects[0]->m_xmf4x4Transform._42 -= 1.0f;
-		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 <-55.0)
-		{
-			test = false;
+		if (m_ppGameObjects[i]->m_Boobb.Intersects(m_pPlayer->m_Boobb)) {
+			m_ppGameObjects[i]->m_bObjectCollideCheck = true;
 		}
-	}
-	if (test == false)
-	{
-		m_ppGameObjects[0]->m_xmf4x4Transform._42 += 1.0f;
-		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 >-15.1)
-		{
-			m_ppGameObjects[0]->m_xmf4x4Transform._42 -= 1.0f;
-			
+		if (m_ppGameObjects[i]->m_bObjectCollideCheck) {
+			m_ppGameObjects[i]->m_xmf4x4Transform._42 -= 0.5f;
+			if (m_ppGameObjects[i]->m_xmf4x4Transform._42 < -100.0) {
+				m_ppGameObjects[i]->m_bObjectCollideCheck = false;
+				m_ppGameObjects[i]->m_bObjectRising = true;
+				int RandomItemVal = PresentItemVal(ItemRanVal);
+				m_pPlayer->m_iItemVal = RandomItemVal;
+			}
+		}
+
+		else {
+			if (m_ppGameObjects[i]->m_bObjectRising) {
+				m_ppGameObjects[i]->m_xmf4x4Transform._42 += 1.5f;
+			}
+			if (m_ppGameObjects[i]->m_xmf4x4Transform._42 >= 10.0f) {
+				m_ppGameObjects[i]->m_xmf4x4Transform._42 = 10.0f;
+				m_ppGameObjects[i]->m_bObjectRising = false;
+			}
 		}
 	}
 }
@@ -338,6 +380,24 @@ void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 	}
 }
 
+void CScene::MissileProcess()
+{
+	cout << "Get Missile" << endl;
+	m_pPlayer->m_iItemVal = 0;
+}
+
+void CScene::TrapProcess()
+{
+	cout << "Get Trap" << endl;
+	m_pPlayer->m_iItemVal = 0;
+}
+
+void CScene::BoosterProcess()
+{
+	cout << "Get Booster" << endl;
+	m_pPlayer->m_iItemVal = 0;
+}
+
 void CScene::AnimateObjects(float fTimeElapsed)
 {
 
@@ -354,24 +414,32 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		XMStoreFloat3(&offset, XMVectorAdd(XMLoadFloat3(&m_pPlayer->GetPosition()), XMLoadFloat3(&offset)));
 
 		XMFLOAT3 offsetp2 = XMFLOAT3(0, 20, 50);
-		m_pLights[2].m_xmf3Position.z = m_ppGameObjects[1]->GetPosition().z;
-		m_pLights[2].m_xmf3Position.y = m_ppGameObjects[1]->GetPosition().y + 10.0;
-		m_pLights[2].m_xmf3Position.x = m_ppGameObjects[1]->GetPosition().x;
-		m_pLights[2].m_xmf3Direction = m_ppGameObjects[1]->GetLook();
-		XMStoreFloat3(&offset, XMVectorAdd(XMLoadFloat3(&m_ppGameObjects[1]->GetPosition()), XMLoadFloat3(&offset)));
+		m_pLights[2].m_xmf3Position.z = m_ppGameObjects[0]->GetPosition().z;
+		m_pLights[2].m_xmf3Position.y = m_ppGameObjects[0]->GetPosition().y + 10.0;
+		m_pLights[2].m_xmf3Position.x = m_ppGameObjects[0]->GetPosition().x;
+		m_pLights[2].m_xmf3Direction = m_ppGameObjects[0]->GetLook();
+		XMStoreFloat3(&offset, XMVectorAdd(XMLoadFloat3(&m_ppGameObjects[0]->GetPosition()), XMLoadFloat3(&offset)));
 
 		XMFLOAT3 offsetp3 = XMFLOAT3(0, 20, 50);
-		m_pLights[3].m_xmf3Position.z = m_ppGameObjects[2]->GetPosition().z;
-		m_pLights[3].m_xmf3Position.y = m_ppGameObjects[2]->GetPosition().y + 10.0;
-		m_pLights[3].m_xmf3Position.x = m_ppGameObjects[2]->GetPosition().x;
-		m_pLights[3].m_xmf3Direction = m_ppGameObjects[2]->GetLook();
-		XMStoreFloat3(&offset, XMVectorAdd(XMLoadFloat3(&m_ppGameObjects[2]->GetPosition()), XMLoadFloat3(&offset)));
+		m_pLights[3].m_xmf3Position.z = m_ppGameObjects[1]->GetPosition().z;
+		m_pLights[3].m_xmf3Position.y = m_ppGameObjects[1]->GetPosition().y + 10.0;
+		m_pLights[3].m_xmf3Position.x = m_ppGameObjects[1]->GetPosition().x;
+		m_pLights[3].m_xmf3Direction = m_ppGameObjects[1]->GetLook();
+		XMStoreFloat3(&offset, XMVectorAdd(XMLoadFloat3(&m_ppGameObjects[1]->GetPosition()), XMLoadFloat3(&offset)));
 
 	}
 
 	CheckWallByPlayerCollisions(m_fElapsedTime);
 	CheckObjectByBulletCollisions();
-
+	if (m_pPlayer->m_iItemVal == 1) {
+		MissileProcess();
+	}
+	else if (m_pPlayer->m_iItemVal == 2) {
+		TrapProcess();
+	}
+	else if (m_pPlayer->m_iItemVal == 3) {
+		BoosterProcess();
+	}
 }
 
 void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)

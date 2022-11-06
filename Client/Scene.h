@@ -70,6 +70,9 @@ public:
 	void CheckObjectByBulletCollisions();
 	void CheckWallByPlayerCollisions(float fTimeElapsed);
 
+	void MissileProcess();
+	void TrapProcess();
+	void BoosterProcess();
 public:
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
 	CGameObjcet** m_ppGameObjects = NULL;
@@ -86,6 +89,11 @@ public:
 	float						m_fCollisionVelocity = 2.5;
 	float						m_fElapsedTime = 0.0f;
 	bool						m_bCollisionCheck = false;
+
+	float						m_fBoxCoordinateX;
+	float						m_fBoxCoordinateZ;
+	
+	bool						m_bObjectCollideCheck = false;
 
 	CPlayer*					m_pPlayer = NULL;
 	CCamera*					m_pCamera = NULL;

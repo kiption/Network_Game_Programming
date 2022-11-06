@@ -34,7 +34,7 @@ public:
 	CCamera						*m_pCamera = NULL;
 	LPVOID						m_pPlayerUpdatedContext;
 	XMFLOAT3					m_xmf3Position;
-
+	int							m_iItemVal = 0;
 	
 	CPlayer();
 	virtual ~CPlayer();
@@ -103,6 +103,8 @@ public:
 	CGameObjcet* m_WheelBack_Right;
 	CGameObjcet* m_WheelFront_Left;
 	CGameObjcet* m_WheelFront_Right;
+
+	
 private:
 	virtual void OnInitialize();
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4 *pxmf4x4Parent = NULL);
