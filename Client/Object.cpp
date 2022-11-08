@@ -776,6 +776,9 @@ CHeightMapTerrain::~CHeightMapTerrain(void)
 // 
 CPlayerObject::CPlayerObject()
 {
+	m_xmf4x4World = Matrix4x4::Identity();
+	m_xmf4x4Transform = Matrix4x4::Identity();
+	
 }
 
 CPlayerObject::~CPlayerObject()
@@ -851,3 +854,37 @@ void CGameObjcet::UpdateBoundingBox()
 	}
 }
 
+CTrapObject::CTrapObject()
+{
+}
+
+CTrapObject::~CTrapObject()
+{
+}
+
+void CTrapObject::Animate(float fElapsedTime)
+{
+	m_xmf4x4Transform = m_xmf4x4World;
+	float fDistance = m_fMovingSpeed * fElapsedTime;
+	XMFLOAT3 xmf3Movement = Vector3::ScalarProduct(m_xmf3MovingDirection, fDistance, false);
+	XMFLOAT3 xmf3Position = GetPosition();
+	xmf3Position.y = -30.0;
+	xmf3Position = Vector3::Add(xmf3Position, xmf3Movement);
+	SetCreateTrapPosition(xmf3Position);
+	m_fMovingDistance += fDistance;
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(5.0, 5.0, 10.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	if ((m_fMovingDistance > m_fCreateTrapRange))SetMovingSpeed(00.0f);;
+
+
+}
+
+void CTrapObject::SetCreateTrapPosition(XMFLOAT3 xmf3CreateTrapPosition)
+{
+	m_xmf3CreateTrapPosition = xmf3CreateTrapPosition;
+	SetPosition(m_xmf3CreateTrapPosition);
+}
+
+void CTrapObject::Reset()
+{
+	m_bActive = false;
+}

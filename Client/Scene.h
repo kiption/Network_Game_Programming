@@ -105,7 +105,9 @@ public:
 
 public:
 	bool m_bMissileActive = false;
-	int m_iMissileCount = BULLETS;
+	bool m_bTrapActive = false;
+	bool m_bBoosterActive = false;
+	//int m_iMissileCount = BULLETS;
 
 protected:
 	CTerrainShader* m_pTerrainShader=NULL;

@@ -291,3 +291,20 @@ public:
 	void Reset();
 };
 
+class CTrapObject : public CGameObjcet
+{
+public:
+	CTrapObject();
+	virtual ~CTrapObject();
+
+public:
+	virtual void Animate(float fElapsedTime);
+	void SetCreateTrapPosition(XMFLOAT3 xmf3CreateTrapPosition);
+	void Reset();
+
+public:
+	float						m_fCreateTrapRange = 40.0f;
+	float						m_fMovingDistance = 0.0f;
+	XMFLOAT3					m_xmf3CreateTrapPosition = XMFLOAT3(0.0f, 0.0f, 1.0f);
+};
+

@@ -235,13 +235,24 @@ CMyPlayer::CMyPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCo
 
 	}
 
+	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/NEBOOM.bin");
+
+	m_pTrapObject = new CTrapObject();
+	m_pTrapObject->SetChild(pTrapModel, true);
+	m_pTrapObject->SetRotationSpeed(90.0f);
+	m_pTrapObject->SetMovingSpeed(20.0f);
+	m_pTrapObject->SetActive(false);
+
+
+	
 	CGameObjcet* pGameObject = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/race.bin");
+
 	SetChild(pGameObject, true);
 	OnInitialize();
 	pGameObject->Rotate(0.0f, 0.0f, 0.0f);
-	pGameObject->SetScale(10.0f, 10.0, 10.0);
+	pGameObject->SetScale(6.0f, 6.0, 6.0);
 	pGameObject->SetPosition(0.0, -1.0, 0.0);
-
+	m_pPlayerObejct = (CPlayerObject*)pGameObject;
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -249,6 +260,7 @@ CMyPlayer::CMyPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCo
 CMyPlayer::~CMyPlayer()
 {
 	for (int i = 0; i < BULLETS; i++) if (m_ppBullets[i]) delete m_ppBullets[i];
+	if (m_pTrapObject) delete m_pTrapObject;
 }
 
 void CMyPlayer::OnInitialize()
@@ -285,33 +297,31 @@ void CMyPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 
 	if (m_bWheelAnimation == false)
 	{
-		m_WheelBack_Left->m_xmf4x4Transform._42 += 0.008f;
-		m_WheelBack_Right->m_xmf4x4Transform._42 += 0.008f;
-		m_WheelFront_Left->m_xmf4x4Transform._42 += 0.008f;
-		m_WheelFront_Right->m_xmf4x4Transform._42 += 0.008f;
-
-		if (m_WheelBack_Right->m_xmf4x4Transform._42 > m_fPos + 0.03f)
-		{
-			m_bWheelAnimation = true;
-		}
+		m_WheelBack_Left->m_xmf4x4Transform._42 += 0.008f;m_WheelBack_Right->m_xmf4x4Transform._42 += 0.008f;m_WheelFront_Left->m_xmf4x4Transform._42 += 0.008f;m_WheelFront_Right->m_xmf4x4Transform._42 += 0.008f;
+		if (m_WheelBack_Right->m_xmf4x4Transform._42 > m_fPos + 0.03f) m_bWheelAnimation = true;
 	}
 	if (m_bWheelAnimation == true)
 	{
-		m_WheelBack_Left->m_xmf4x4Transform._42 -= 0.008f;
-		m_WheelBack_Right->m_xmf4x4Transform._42 -= 0.008f;
-		m_WheelFront_Left->m_xmf4x4Transform._42 -= 0.008f;
-		m_WheelFront_Right->m_xmf4x4Transform._42 -= 0.008f;
-		if (m_WheelBack_Right->m_xmf4x4Transform._42 < m_fPos - 0.01f)
-		{
-			m_bWheelAnimation = false;
-		}
+		m_WheelBack_Left->m_xmf4x4Transform._42 -= 0.008f;m_WheelBack_Right->m_xmf4x4Transform._42 -= 0.008f;m_WheelFront_Left->m_xmf4x4Transform._42 -= 0.008f;m_WheelFront_Right->m_xmf4x4Transform._42 -= 0.008f;
+		if (m_WheelBack_Right->m_xmf4x4Transform._42 < m_fPos - 0.01f) m_bWheelAnimation = false;
 	}
+
 	for (int i = 0; i < BULLETS; i++)
 	{
 		if (m_ppBullets[i]->m_bActive) {
 			m_ppBullets[i]->Animate(fTimeElapsed);
 			m_ppBullets[i]->Rotate(0.0, 90.0, 0.0);
 		}
+	}
+
+	if (m_pTrapObject->m_bActive) 
+	{
+		m_pTrapObject->Animate(fTimeElapsed);
+	}
+
+	if (m_bbsAct == true)
+	{
+		m_pCamera->m_xmf3Position.z -= 1.5f;
 	}
 
 	CPlayer::Animate(fTimeElapsed, pxmf4x4Parent);
@@ -328,10 +338,11 @@ void CMyPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCam
 	OnPrepareRender();
 	CGameObjcet::Render(pd3dCommandList, pCamera);
 	for (int i = 0; i < BULLETS; i++) if (m_ppBullets[i]->m_bActive) m_ppBullets[i]->Render(pd3dCommandList, pCamera);
+	if (m_pTrapObject->m_bActive) m_pTrapObject->Render(pd3dCommandList, pCamera);
 }
 
 
-void CMyPlayer::FireBullet(CGameObjcet* pLockedObject)
+void CMyPlayer::MissileMode(CGameObjcet* pLockedObject)
 {
 
 	CBulletObject* pBulletObject = NULL;
@@ -361,6 +372,28 @@ void CMyPlayer::FireBullet(CGameObjcet* pLockedObject)
 		pBulletObject->SetScale(300.3, 300.3, 250.3);
 		pBulletObject->SetActive(true);
 	}
+}
+
+void CMyPlayer::TrapMode()
+{
+	XMFLOAT3 PlayerPos = GetLook();
+	XMFLOAT3 CameraPos = m_pCamera->GetLookVector();
+	XMFLOAT3 TotalLookVector = Vector3::Normalize(Vector3::Add(PlayerPos, CameraPos));
+	XMFLOAT3 xmf3Position = GetPosition();
+	XMFLOAT3 xmf3Direction = TotalLookVector;
+	XMFLOAT3 xmf3FirePosition = Vector3::Add(xmf3Position, Vector3::ScalarProduct(xmf3Direction, 6.0f, true));
+	m_pTrapObject->m_xmf4x4Transform = m_xmf4x4World;
+	m_pTrapObject->SetCreateTrapPosition(xmf3FirePosition);
+	m_pTrapObject->SetMovingDirection(GetLookVector());
+	m_pTrapObject->Rotate(0.0f, 0.0, 0.0);
+	m_pTrapObject->SetScale(8.3,8.3,8.3);
+	m_pTrapObject->SetActive(true);
+	
+}
+
+void CMyPlayer::BoosterMode()
+{
+	m_bbsAct = true;
 }
 
 CCamera* CMyPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)

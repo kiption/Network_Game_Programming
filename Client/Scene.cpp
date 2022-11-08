@@ -294,9 +294,9 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case VK_SPACE:
-
-			if (m_bMissileActive == true) { ((CMyPlayer*)m_pPlayer)->FireBullet(NULL); }
-		
+			if (m_bMissileActive == true) { ((CMyPlayer*)m_pPlayer)->MissileMode(NULL); }
+			if (m_bBoosterActive == true) { ((CMyPlayer*)m_pPlayer)->BoosterMode(); }
+		if (m_bTrapActive == true){ ((CMyPlayer*)m_pPlayer)->TrapMode(); }
 			break;
 		default:
 			break;
@@ -372,31 +372,39 @@ void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 		}
 	}
 
-	if (m_pPlayer->m_iItemVal == 1) {
-		
+	if (m_pPlayer->m_iItemVal == 1) 
+	{
+		m_bMissileActive = true;
+		m_bTrapActive = false;
 		MissileProcess();
 	}
-	else if (m_pPlayer->m_iItemVal == 2) {
+	else if (m_pPlayer->m_iItemVal == 2) 
+	{
+		m_bTrapActive = true;
+		m_bMissileActive = false;
 		TrapProcess();
 	}
-	else if (m_pPlayer->m_iItemVal == 3) {
+	else if (m_pPlayer->m_iItemVal == 3) 
+	{
+		m_bBoosterActive = true;
+		m_bMissileActive = false;
+		m_bTrapActive = false;
 		BoosterProcess();
 	}
 }
 
 void CScene::MissileProcess()
-{
+{ 
 	cout << "Get Missile" << endl;
 	m_pPlayer->m_iItemVal = 0;
-	if (m_iMissileCount != 0) m_bMissileActive = true;
-	if (m_iMissileCount == 0) { m_bMissileActive = false; m_iMissileCount = BULLETS; }
-	if (m_bMissileActive == false) { m_iMissileCount = BULLETS; }
+	
 }
 
 void CScene::TrapProcess()
 {
 	cout << "Get Trap" << endl;
 	m_pPlayer->m_iItemVal = 0;
+
 }
 
 void CScene::BoosterProcess()
@@ -439,7 +447,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	CheckWallByPlayerCollisions(m_fElapsedTime);
 	CheckPlayerByRandomBoxCollisions();
 
-	
+
 }
 
 void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)

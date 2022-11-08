@@ -94,7 +94,9 @@ public:
 public:
 	float							m_fBulletEffectiveRange = 300.0f;
 	CBulletObject*					pBulletObject = NULL;
+	CTrapObject*					m_pTrapObject = NULL;
 	CPlayerObject*					m_pPlayerObejct = NULL;
+	CBulletObject* m_ppBullets[BULLETS];
 
 public:
 	float m_fPos = 0.0;
@@ -113,11 +115,13 @@ private:
 public:
 	virtual CCamera *ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
 	virtual void OnPrepareRender();
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
 public:
-	CBulletObject* m_ppBullets[BULLETS];
-	void FireBullet(CGameObjcet* pLockedObject);
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	void MissileMode(CGameObjcet* pLockedObject);
+	void TrapMode();
+	void BoosterMode();
+	bool m_bbsAct = false;
 };
 
 
