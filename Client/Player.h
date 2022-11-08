@@ -83,7 +83,7 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera = NULL);
 };
 
-#define BULLETS					50
+#define BULLETS					6
 
 class CMyPlayer : public CPlayer
 {

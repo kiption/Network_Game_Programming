@@ -120,17 +120,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_nGameObjects = 5;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
-	/*CGameObjcet* pTreeModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/NEBOOM.bin");
-
-	CObstacleObject* pBoom = NULL;
-	pBoom = new CObstacleObject();
-	pBoom->SetChild(pTreeModel, true);
-	pBoom->OnInitialize();
-	pBoom->SetScale(5.0, 5.0, 10.0);
-	pBoom->SetPosition(386.7, -15.0, 732.1);
-	pBoom->Rotate(0, 90.f, 0.f);
-	m_ppGameObjects[0] = pBoom;*/
-
 	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race2.bin");
 
 	CPlayerObject* P2 = NULL;
@@ -151,6 +140,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_ppGameObjects[1] = P3;
 
 	CGameObjcet* pBoxModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Mystery_box.bin");
+
 	CObstacleObject* pBox1 = NULL;
 	pBox1 = new CObstacleObject();
 	pBox1->SetChild(pBoxModel, true);
@@ -304,7 +294,9 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		switch (wParam)
 		{
 		case VK_SPACE:
-			((CMyPlayer*)m_pPlayer)->FireBullet(NULL);
+
+			if (m_bMissileActive == true) { ((CMyPlayer*)m_pPlayer)->FireBullet(NULL); }
+		
 			break;
 		default:
 			break;
@@ -324,7 +316,7 @@ random_device ItemVal;
 default_random_engine ItemRanVal(ItemVal());
 uniform_int_distribution<>PresentItemVal(1, 3);
 
-void CScene::CheckObjectByBulletCollisions()
+void CScene::CheckPlayerByRandomBoxCollisions()
 {
 	for (int i = 2; i < m_nGameObjects; ++i) {
 		m_ppGameObjects[i]->SetRotationSpeed(2.0f);
@@ -364,6 +356,7 @@ void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 			&& m_pPlayer->m_xmf3Position.x > 200.0 && m_pPlayer->m_xmf3Position.x < 5500.0)
 		{
 			m_bCollisionCheck = true;
+			m_pPlayer->m_iItemVal = PresentItemVal(ItemRanVal);
 			m_fSavePosition = m_pPlayer->m_xmf3Position.z;
 		}
 	}
@@ -378,12 +371,26 @@ void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 
 		}
 	}
+
+	if (m_pPlayer->m_iItemVal == 1) {
+		
+		MissileProcess();
+	}
+	else if (m_pPlayer->m_iItemVal == 2) {
+		TrapProcess();
+	}
+	else if (m_pPlayer->m_iItemVal == 3) {
+		BoosterProcess();
+	}
 }
 
 void CScene::MissileProcess()
 {
 	cout << "Get Missile" << endl;
 	m_pPlayer->m_iItemVal = 0;
+	if (m_iMissileCount != 0) m_bMissileActive = true;
+	if (m_iMissileCount == 0) { m_bMissileActive = false; m_iMissileCount = BULLETS; }
+	if (m_bMissileActive == false) { m_iMissileCount = BULLETS; }
 }
 
 void CScene::TrapProcess()
@@ -430,16 +437,9 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	}
 
 	CheckWallByPlayerCollisions(m_fElapsedTime);
-	CheckObjectByBulletCollisions();
-	if (m_pPlayer->m_iItemVal == 1) {
-		MissileProcess();
-	}
-	else if (m_pPlayer->m_iItemVal == 2) {
-		TrapProcess();
-	}
-	else if (m_pPlayer->m_iItemVal == 3) {
-		BoosterProcess();
-	}
+	CheckPlayerByRandomBoxCollisions();
+
+	
 }
 
 void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)

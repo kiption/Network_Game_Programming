@@ -67,15 +67,18 @@ public:
 	void AnimateObjects(float fTimeElapsed);
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 	void ReleaseUploadBuffers();
-	void CheckObjectByBulletCollisions();
+	void CheckPlayerByRandomBoxCollisions();
 	void CheckWallByPlayerCollisions(float fTimeElapsed);
 
 	void MissileProcess();
 	void TrapProcess();
 	void BoosterProcess();
 public:
-	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
-	CGameObjcet** m_ppGameObjects = NULL;
+	float						m_fElapsedTime = 0.0f;
+	
+	ID3D12RootSignature			*m_pd3dGraphicsRootSignature = NULL;
+	
+	CGameObjcet					**m_ppGameObjects = NULL;
 	int							m_nGameObjects=0;
 
 	int							m_nLights = 0;
@@ -87,7 +90,6 @@ public:
 	float						m_fSavePosition = 0.0;
 	float						m_fCollisionRange = 100.0;
 	float						m_fCollisionVelocity = 2.5;
-	float						m_fElapsedTime = 0.0f;
 	bool						m_bCollisionCheck = false;
 
 	float						m_fBoxCoordinateX;
@@ -100,6 +102,10 @@ public:
 	CHeightMapTerrain*			m_pTerrain = NULL;
 	CBulletObject*				pBulletObject = NULL;
 	CShader*					m_pShader = NULL;
+
+public:
+	bool m_bMissileActive = false;
+	int m_iMissileCount = BULLETS;
 
 protected:
 	CTerrainShader* m_pTerrainShader=NULL;

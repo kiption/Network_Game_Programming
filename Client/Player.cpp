@@ -339,7 +339,6 @@ void CMyPlayer::FireBullet(CGameObjcet* pLockedObject)
 	{
 		if (!m_ppBullets[i]->m_bActive)
 		{
-
 			pBulletObject = m_ppBullets[i];
 			break;
 		}
