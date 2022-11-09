@@ -792,6 +792,7 @@ void CPlayerObject::OnInitialize()
 void CPlayerObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
 	CGameObjcet::Animate(fTimeElapsed, pxmf4x4Parent);
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(10.0, 10.0, 10.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 }
 
 
@@ -802,8 +803,8 @@ void CObstacleObject::OnInitialize()
 void CObstacleObject::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 {
 	
-	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(10.0, 10.0, 10.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 	CGameObjcet::Animate(fTimeElapsed, pxmf4x4Parent);
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(4.0, 4.0, 6.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 
 }
 
@@ -840,7 +841,7 @@ void CBulletObject::Animate(float fElapsedTime)
 	xmf3Position = Vector3::Add(xmf3Position, xmf3Movement);
 	SetPosition(xmf3Position);
 	m_fMovingDistance += fDistance;
-	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(5.0, 5.0, 10.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 	if ((m_fMovingDistance > m_fBulletEffectiveRange) ) Reset();
 }
 
@@ -872,8 +873,8 @@ void CTrapObject::Animate(float fElapsedTime)
 	xmf3Position = Vector3::Add(xmf3Position, xmf3Movement);
 	SetCreateTrapPosition(xmf3Position);
 	m_fMovingDistance += fDistance;
-	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(5.0, 5.0, 10.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-	if ((m_fMovingDistance > m_fCreateTrapRange))SetMovingSpeed(00.0f);;
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(6.0, 6.0, 6.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	if ((m_fMovingDistance > m_fCreateTrapRange)) SetMovingSpeed(00.0f);;
 
 
 }

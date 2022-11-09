@@ -1,13 +1,39 @@
 //-----------------------------------------------------------------------------
 // File: CGameFramework.cpp
 //-----------------------------------------------------------------------------
-
+#include "Common/Common.h"
+#include "Common/protocol.h"
 #include "stdafx.h"
 #include "GameFramework.h"
 
+char* SERVERIP = (char*)"127.0.0.1";
 
 CGameFramework::CGameFramework()
 {
+	// Server
+	wcout.imbue(locale("korean"));
+	WSADATA WSAData;
+	WSAStartup(MAKEWORD(2, 0), &WSAData);
+
+	// 家南 积己
+	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+
+	// connect()
+	struct sockaddr_in serveraddr;
+	memset(&serveraddr, 0, sizeof(serveraddr));
+	serveraddr.sin_family = AF_INET;
+	inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
+	serveraddr.sin_port = htons(SERVER_PORT);
+	connect(sock, reinterpret_cast<sockaddr*>(&SERVERIP), sizeof(SERVERIP));
+	
+	C2LS_LOGIN_PACKET login_packet;
+	login_packet.size = sizeof(C2LS_LOGIN_PACKET);
+	login_packet.type = CS_LOGIN;
+	strcpy_s(login_packet.name, "Player");
+
+	//Sendpacket
+	//Recvpacket
+
 	m_pdxgiFactory = NULL;
 	m_pdxgiSwapChain = NULL;
 	m_pd3dDevice = NULL;
@@ -35,7 +61,7 @@ CGameFramework::CGameFramework()
 	m_pScene = NULL;
 	m_pPlayer = NULL;
 
-	_tcscpy_s(m_pszFrameRate, _T("NetWorkeGameProgramming-TermProject ("));
+	_tcscpy_s(m_pszFrameRate, _T("4 TermProject ( "));
 }
 
 CGameFramework::~CGameFramework()

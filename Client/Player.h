@@ -92,7 +92,7 @@ public:
 	virtual ~CMyPlayer();
 
 public:
-	float							m_fBulletEffectiveRange = 300.0f;
+	float							m_fBulletEffectiveRange = 600.0f;
 	CBulletObject*					pBulletObject = NULL;
 	CTrapObject*					m_pTrapObject = NULL;
 	CPlayerObject*					m_pPlayerObejct = NULL;

@@ -19,10 +19,12 @@
 #include <wrl.h>
 #include <shellapi.h>
 #include <iostream>
-
 #include <fstream>
 #include <vector>
 #include <random>
+
+//Server
+#include <stdio.h>
 
 using namespace std;
 

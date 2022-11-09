@@ -124,14 +124,22 @@ public:
 	CMaterial**						m_ppMaterials = NULL;
 	int								m_nMaterials = 0;
 
-
 	XMFLOAT4X4						m_xmf4x4Transform;
 	XMFLOAT4X4						m_xmf4x4Position;
 	XMFLOAT4X4						m_xmf4x4World;
 
+	CPlayer* m_pPlayer = NULL;
+	CCamera* m_pCamera = NULL;
+	CShader* m_pShader = NULL;
+
 	CGameObjcet* m_pParent = NULL;
 	CGameObjcet* m_pChild = NULL;
 	CGameObjcet* m_pSibling = NULL;
+
+	float m_fMovingSpeed = 0.0f;
+	float m_fRotationSpeed = 0.0f;
+	XMFLOAT3 m_xmf3RotationAxis = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	XMFLOAT3 m_xmf3MovingDirection = XMFLOAT3(0.0f, 1.0f, 0.0f);
 
 	virtual void SetMesh(CMesh* pMesh);
 	virtual void SetShader(CShader* pShader);
@@ -151,47 +159,38 @@ public:
 	virtual void ReleaseShaderVariables();
 	virtual void ReleaseUploadBuffers();
 
-	void SetScale(float x, float y, float z);
+	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
+
 	XMFLOAT3 GetPosition();
 	XMFLOAT3 GetLook();
 	XMFLOAT3 GetUp();
 	XMFLOAT3 GetRight();
-	float x, y, z;
+
 	void Rotate(float fPitch, float fYaw, float fRoll);
 	void Rotate(XMFLOAT3* pxmf3Axis, float fAngle);
 	void Rotate(XMFLOAT4* pxmf4Quaternion);
+	void SetScale(float x, float y, float z);
 	virtual void SetRotationAxis(XMFLOAT3& xmf3RotationAxis);
-	CGameObjcet* GetParent() { return(m_pParent); }
-	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
-	CGameObjcet* FindFrame(char* pstrFrameName);
-
-	UINT GetMeshType() { return((m_pMesh) ? m_pMesh->GetType() : 0); }
-	CPlayer* m_pPlayer = NULL;
-	CCamera* m_pCamera = NULL;
-	CShader* m_pShader = NULL;
-public:
-	static MATERIALSLOADINFO* LoadMaterialsInfoFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
-	static CMeshLoadInfo* LoadMeshInfoFromFile(FILE* pInFile);
-
-	static CGameObjcet* LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, FILE* pInFile);
-	static CGameObjcet* LoadGeometryFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pstrFileName);
-
-	static void PrintFrameInfo(CGameObjcet* pGameObject, CGameObjcet* pParent);
-public:
-
-	float m_fMovingSpeed = 0.0f;
-	float m_fRotationSpeed = 0.0f;
-	XMFLOAT3 m_xmf3RotationAxis = XMFLOAT3(1.0f, 0.0f, 0.0f);
-	XMFLOAT3 m_xmf3MovingDirection = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	void SetRotationSpeed(float fSpeed) { m_fRotationSpeed = fSpeed; }
 	void SetMovingSpeed(float fSpeed) { m_fMovingSpeed = fSpeed; }
 
-	bool						m_bObjectCollideCheck = false;
-	bool						m_bObjectRising = false;
+	CGameObjcet* GetParent() { return(m_pParent); }
+	CGameObjcet* FindFrame(char* pstrFrameName);
+	UINT GetMeshType() { return((m_pMesh) ? m_pMesh->GetType() : 0); }
+
+public:
+	static MATERIALSLOADINFO* LoadMaterialsInfoFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
+	static CMeshLoadInfo* LoadMeshInfoFromFile(FILE* pInFile);
+	static CGameObjcet* LoadFrameHierarchyFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, FILE* pInFile);
+	static CGameObjcet* LoadGeometryFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, char* pstrFileName);
+	static void PrintFrameInfo(CGameObjcet* pGameObject, CGameObjcet* pParent);
 
 public:
 	BoundingOrientedBox			m_Boobb = BoundingOrientedBox();
 	void UpdateBoundingBox();
+
+	bool						m_bObjectCollideCheck = false;
+	bool						m_bObjectRising = false;
 };
 
 class CPlayerObject : public CGameObjcet
@@ -215,6 +214,8 @@ public:
 public:
 	virtual void OnInitialize();
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
+
+
 };
 
 class CTerrainObject : public CGameObjcet
@@ -282,10 +283,6 @@ public:
 	float						m_fMovingDistance = 0.0f;
 	float						m_fRotationAngle = 0.0f;
 	XMFLOAT3					m_xmf3FirePosition = XMFLOAT3(0.0f, 0.0f, 1.0f);
-
-	//float						m_fElapsedTimeAfterFire = 0.0f;
-
-	CCamera* m_pCamera = NULL;
 
 	void SetFirePosition(XMFLOAT3 xmf3FirePosition);
 	void Reset();

@@ -67,11 +67,15 @@ public:
 	void AnimateObjects(float fTimeElapsed);
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 	void ReleaseUploadBuffers();
+
+public:
 	void CheckPlayerByRandomBoxCollisions();
 	void CheckWallByPlayerCollisions(float fTimeElapsed);
-
+	void CheckPlayerByPlayerCollisions(float fTimeElapsed);
 	void MissileProcess();
+	void CheckMissileByPlayerCollisions(float fTimeElapsed);
 	void TrapProcess();
+	void CheckTrapByPlayerCollisions(float fTimeElapsed);
 	void BoosterProcess();
 public:
 	float						m_fElapsedTime = 0.0f;
@@ -87,6 +91,12 @@ public:
 	ID3D12Resource*				m_pd3dcbLights = NULL;
 	XMFLOAT4					m_xmf4GlobalAmbient;
 
+	CPlayer*					m_pPlayer = NULL;
+	CCamera*					m_pCamera = NULL;
+	CHeightMapTerrain*			m_pTerrain = NULL;
+	CBulletObject*				pBulletObject = NULL;
+	CShader*					m_pShader = NULL;
+
 	float						m_fSavePosition = 0.0;
 	float						m_fCollisionRange = 100.0;
 	float						m_fCollisionVelocity = 2.5;
@@ -97,17 +107,17 @@ public:
 	
 	bool						m_bObjectCollideCheck = false;
 
-	CPlayer*					m_pPlayer = NULL;
-	CCamera*					m_pCamera = NULL;
-	CHeightMapTerrain*			m_pTerrain = NULL;
-	CBulletObject*				pBulletObject = NULL;
-	CShader*					m_pShader = NULL;
 
 public:
+
+	//Active
 	bool m_bMissileActive = false;
 	bool m_bTrapActive = false;
 	bool m_bBoosterActive = false;
-	//int m_iMissileCount = BULLETS;
+
+	//Check
+	bool m_bMissileCollision = false;
+	bool m_bTrapCollision = false;
 
 protected:
 	CTerrainShader* m_pTerrainShader=NULL;

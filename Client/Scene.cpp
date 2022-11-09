@@ -5,6 +5,10 @@
 #include "stdafx.h"
 #include "Scene.h"
 
+random_device ItemVal;
+default_random_engine ItemRanVal(ItemVal());
+uniform_int_distribution<>PresentItemVal(1, 3);
+
 CScene::CScene()
 {
 }
@@ -296,7 +300,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		case VK_SPACE:
 			if (m_bMissileActive == true) { ((CMyPlayer*)m_pPlayer)->MissileMode(NULL); }
 			if (m_bBoosterActive == true) { ((CMyPlayer*)m_pPlayer)->BoosterMode(); }
-		if (m_bTrapActive == true){ ((CMyPlayer*)m_pPlayer)->TrapMode(); }
+			if (m_bTrapActive == true) { ((CMyPlayer*)m_pPlayer)->TrapMode(); }
 			break;
 		default:
 			break;
@@ -312,13 +316,11 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 {
 	return(false);
 }
-random_device ItemVal;
-default_random_engine ItemRanVal(ItemVal());
-uniform_int_distribution<>PresentItemVal(1, 3);
 
 void CScene::CheckPlayerByRandomBoxCollisions()
 {
 	for (int i = 2; i < m_nGameObjects; ++i) {
+
 		m_ppGameObjects[i]->SetRotationSpeed(2.0f);
 		m_ppGameObjects[i]->Rotate(0, m_ppGameObjects[i]->m_fRotationSpeed, 0);
 
@@ -344,6 +346,28 @@ void CScene::CheckPlayerByRandomBoxCollisions()
 				m_ppGameObjects[i]->m_bObjectRising = false;
 			}
 		}
+	}
+
+	if (m_pPlayer->m_iItemVal == 1)
+	{
+		m_bMissileActive = true;
+		m_bTrapActive = false;
+		m_bBoosterActive = false;
+		MissileProcess();
+	}
+	else if (m_pPlayer->m_iItemVal == 2)
+	{
+		m_bTrapActive = true;
+		m_bMissileActive = false;
+		m_bBoosterActive = false;
+		TrapProcess();
+	}
+	else if (m_pPlayer->m_iItemVal == 3)
+	{
+		m_bBoosterActive = true;
+		m_bMissileActive = false;
+		m_bTrapActive = false;
+		BoosterProcess();
 	}
 }
 
@@ -371,40 +395,95 @@ void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 
 		}
 	}
+}
 
-	if (m_pPlayer->m_iItemVal == 1) 
-	{
-		m_bMissileActive = true;
-		m_bTrapActive = false;
-		MissileProcess();
-	}
-	else if (m_pPlayer->m_iItemVal == 2) 
-	{
-		m_bTrapActive = true;
-		m_bMissileActive = false;
-		TrapProcess();
-	}
-	else if (m_pPlayer->m_iItemVal == 3) 
-	{
-		m_bBoosterActive = true;
-		m_bMissileActive = false;
-		m_bTrapActive = false;
-		BoosterProcess();
-	}
+void CScene::CheckPlayerByPlayerCollisions(float fTimeElapsed)
+{
 }
 
 void CScene::MissileProcess()
-{ 
+{
 	cout << "Get Missile" << endl;
 	m_pPlayer->m_iItemVal = 0;
-	
+}
+
+void CScene::CheckMissileByPlayerCollisions(float fTimeElapsed)
+{
+	CBulletObject** ppBullets = ((CMyPlayer*)m_pPlayer)->m_ppBullets;
+	for (int i = 0; i < 2; i++) {
+
+		for (int j = 0; j < BULLETS; j++)
+		{
+			if (ppBullets[j]->m_bActive && (m_ppGameObjects[0]->m_Boobb.Intersects(ppBullets[j]->m_Boobb)))
+			{
+				m_bMissileCollision = true;
+			}
+		}
+	}
+
+	if (m_bMissileCollision == true)
+	{
+		m_ppGameObjects[0]->m_xmf4x4Transform._42 += 30.0 * fTimeElapsed;
+		m_ppGameObjects[0]->Rotate(20.0, 0.0, 0.0);
+		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 > 40.0) m_bMissileCollision = false;
+	}
+
+	if (m_bMissileCollision == false)
+	{
+		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 < 2.0 + 0.1) {
+			m_ppGameObjects[0]->Rotate(0.0, 0.0, 0.0);
+			m_ppGameObjects[0]->m_xmf4x4Transform._42 = 2.0f;
+		}
+		else
+		{
+			m_ppGameObjects[0]->m_xmf4x4Transform._42 -= 30.0 * fTimeElapsed;
+			m_ppGameObjects[0]->Rotate(-20.03, 0.0, 0.0);
+		}
+	}
+
 }
 
 void CScene::TrapProcess()
 {
 	cout << "Get Trap" << endl;
 	m_pPlayer->m_iItemVal = 0;
+}
 
+
+void CScene::CheckTrapByPlayerCollisions(float fTimeElapsed)
+{
+	CTrapObject* ppTrap = ((CMyPlayer*)m_pPlayer)->m_pTrapObject;
+
+	for (int i = 0; i < 2; i++) 
+	{
+		if ((m_ppGameObjects[0]->m_Boobb.Intersects(ppTrap->m_Boobb)))
+		{
+			m_bTrapCollision = true;
+		}
+	}
+
+	if (m_bTrapCollision == true)
+	{
+		m_ppGameObjects[0]->m_xmf4x4Transform._41 += 10.0 * fTimeElapsed;
+		m_ppGameObjects[0]->m_xmf4x4Transform._42 += 30.0 * fTimeElapsed;
+		m_ppGameObjects[0]->Rotate(0.0, 10.0, 0.0);
+		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 > 8.0)
+		{
+			m_bTrapCollision = false;
+		}
+	}
+
+	if (m_bTrapCollision == false)
+	{
+		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 < 2.0 + 0.1) {
+			m_ppGameObjects[0]->Rotate(0.0, 0.0, 0.0);
+			m_ppGameObjects[0]->m_xmf4x4Transform._42 = 2.0f;
+		}
+		else
+		{
+			m_ppGameObjects[0]->m_xmf4x4Transform._42 -= 30.0 * fTimeElapsed;
+		}
+	}
 }
 
 void CScene::BoosterProcess()
@@ -444,6 +523,9 @@ void CScene::AnimateObjects(float fTimeElapsed)
 
 	}
 
+	CheckPlayerByPlayerCollisions(m_fElapsedTime);
+	CheckMissileByPlayerCollisions(m_fElapsedTime);
+	CheckTrapByPlayerCollisions(m_fElapsedTime);
 	CheckWallByPlayerCollisions(m_fElapsedTime);
 	CheckPlayerByRandomBoxCollisions();
 
