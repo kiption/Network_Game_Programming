@@ -228,8 +228,8 @@ CMyPlayer::CMyPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCo
 	{
 		pBulletObject = new CBulletObject(m_fBulletEffectiveRange);
 		pBulletObject->SetChild(pBulletMesh, true);
-		pBulletObject->SetRotationSpeed(90.0f);
-		pBulletObject->SetMovingSpeed(500.0f);
+		pBulletObject->SetRotationSpeed(40.0f);
+		pBulletObject->SetMovingSpeed(300.0f);
 		pBulletObject->SetActive(false);
 		m_ppBullets[i] = pBulletObject;
 
@@ -310,7 +310,7 @@ void CMyPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	{
 		if (m_ppBullets[i]->m_bActive) {
 			m_ppBullets[i]->Animate(fTimeElapsed);
-			m_ppBullets[i]->Rotate(0.0, 90.0, 0.0);
+			m_ppBullets[i]->Rotate(0.0, 20.0, 0.0);
 		}
 	}
 
@@ -369,7 +369,7 @@ void CMyPlayer::MissileMode(CGameObjcet* pLockedObject)
 		pBulletObject->SetFirePosition(xmf3FirePosition);
 		pBulletObject->SetMovingDirection(GetLookVector());
 		pBulletObject->Rotate(90.0f, 0.0, 0.0);
-		pBulletObject->SetScale(300.3, 300.3, 250.3);
+		pBulletObject->SetScale(700.0, 200.0, 700.0);
 		pBulletObject->SetActive(true);
 	}
 }

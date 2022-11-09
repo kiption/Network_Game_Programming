@@ -19,7 +19,7 @@ void CScene::BuildDefaultLightsAndMaterials()
 	m_pLights = new LIGHT[m_nLights];
 	::ZeroMemory(m_pLights, sizeof(LIGHT) * m_nLights);
 
-	m_xmf4GlobalAmbient = XMFLOAT4(0.2f, 0.2f, 0.4f, 1.0f);
+	m_xmf4GlobalAmbient = XMFLOAT4(0.7f, 0.7f, 0.4f, 1.0f);
 
 	m_pLights[0].m_nType = DIRECTIONAL_LIGHT;
 	m_pLights[0].m_fRange = 500.0;
@@ -108,16 +108,16 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pMaterial->SetShader(pTerrainShader);
 	pMaterial->SetMaterialColors(pMaterialColors);
 
-	XMFLOAT3 xmf3Scale(5.0f, 2.0f, 5.0f);
+	XMFLOAT3 xmf3Scale(5.0f, 5.0f, 5.0f);
 	XMFLOAT3 xmf3Pos(0.0f, 0.0f, 0.0f);
 	XMFLOAT4 xmf4Color(0.0f, 0.2f, 0.0f, 0.0f);
-	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("Assets/Image/Terrain/terrain2.raw"), 513, 513, 8, 8, xmf3Scale, xmf4Color);
+	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("Assets/Image/Terrain/SquareMap.raw"), 513, 513, 16, 16, xmf3Scale, xmf4Color);
 
 	m_pTerrain->Rotate(0.0f, 0.0f, 0.0f);
 	m_pTerrain->SetPosition(xmf3Pos);
 	m_pTerrain->SetMaterial(pMaterial);
 
-	m_nGameObjects = 5;
+	m_nGameObjects = 9;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
 	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race2.bin");
@@ -127,7 +127,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	P2->SetChild(pPlayerCars2, true);
 	P2->OnInitialize();
 	P2->SetScale(10.0f, 10.0f, 10.0f);
-	P2->SetPosition(195.0f, 2.0, 320.0f);
+	P2->SetPosition(354.0f, 17.0, 820.0f);
 	m_ppGameObjects[0] = P2;
 
 	CGameObjcet* pPlayerCars3 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race3.bin");
@@ -136,7 +136,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	P3->SetChild(pPlayerCars3, true);
 	P3->OnInitialize();
 	P3->SetScale(10.0f, 10.0f, 10.0f);
-	P3->SetPosition(265.0, 2.0, 430.0f);
+	P3->SetPosition(354.0, 17.0, 730.0f);
 	m_ppGameObjects[1] = P3;
 
 	CGameObjcet* pBoxModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Mystery_box.bin");
@@ -146,8 +146,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pBox1->SetChild(pBoxModel, true);
 	pBox1->OnInitialize();
 	pBox1->SetScale(80.0f, 80.0f, 80.0f);
-	pBox1->SetPosition(288.0f, 10.0f, 799.0f);
-	pBox1->Rotate(45.0f, 0.0f, 0.0f);
+	pBox1->SetPosition(354.0f, 25.0f, 799.0f);
+	pBox1->Rotate(45.0f, 45.0f, 0.0f);
 	m_ppGameObjects[2] = pBox1;
 
 	CObstacleObject* pBox2 = NULL;
@@ -155,18 +155,55 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pBox2->SetChild(pBoxModel, true);
 	pBox2->OnInitialize();
 	pBox2->SetScale(80.0f, 80.0f, 80.0f);
-	pBox2->SetPosition(309.0f, 10.0f, 752.0f);
-	pBox2->Rotate(45.0f, 0.0f, 0.0f);
+	pBox2->SetPosition(394.0f, 25.0f, 799.0f);
+	pBox2->Rotate(45.0f, 45.0f, 0.0f);
 	m_ppGameObjects[3] = pBox2;
-
+	//2->10
 	CObstacleObject* pBox3 = NULL;
 	pBox3 = new CObstacleObject();
 	pBox3->SetChild(pBoxModel, true);
 	pBox3->OnInitialize();
 	pBox3->SetScale(80.0f, 80.0f, 80.0f);
-	pBox3->SetPosition(330.0f, 10.0f, 705.0f);
-	pBox3->Rotate(45.0f, 0.0f, 0.0f);
+	pBox3->SetPosition(434.0f, 25.0f, 799.0f);
+	pBox3->Rotate(45.0f, 45.0f, 0.0f);
 	m_ppGameObjects[4] = pBox3;
+
+	CGameObjcet* pArrowModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Arrow5.bin");
+	CObstacleObject* pArrow1 = NULL;
+	pArrow1 = new CObstacleObject();
+	pArrow1->SetChild(pArrowModel, true);
+	pArrow1->OnInitialize();
+	pArrow1->SetScale(3.0f, 3.0f, 3.0f);
+	pArrow1->SetPosition(305.0f, 25.0f, 2400.0f);
+	pArrow1->Rotate(0.0f, 180.0f, 0.0f);
+	m_ppGameObjects[5] = pArrow1;
+
+	CObstacleObject* pArrow2 = NULL;
+	pArrow2 = new CObstacleObject();
+	pArrow2->SetChild(pArrowModel, true);
+	pArrow2->OnInitialize();
+	pArrow2->SetScale(3.0f, 3.0f, 3.0f);
+	pArrow2->SetPosition(2330, 25.0f, 2200.0f);
+	pArrow2->Rotate(0.0f, 270.0f, 0.0f);
+	m_ppGameObjects[6] = pArrow2;
+
+	CObstacleObject* pArrow3 = NULL;
+	pArrow3 = new CObstacleObject();
+	pArrow3->SetChild(pArrowModel, true);
+	pArrow3->OnInitialize();
+	pArrow3->SetScale(3.0f, 3.0f, 3.0f);
+	pArrow3->SetPosition(2225.0f, 25.0f, 230.0f);
+	pArrow3->Rotate(0.0f, 0.0f, 0.0f);
+	m_ppGameObjects[7] = pArrow3;
+
+	CObstacleObject* pArrow4 = NULL;
+	pArrow4 = new CObstacleObject();
+	pArrow4->SetChild(pArrowModel, true);
+	pArrow4->OnInitialize();
+	pArrow4->SetScale(3.0f, 3.0f, 3.0f);
+	pArrow4->SetPosition(330.0f, 25.0f, 340.0f);
+	pArrow4->Rotate(0.0f, 90.0f, 0.0f);
+	m_ppGameObjects[8] = pArrow4;
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -295,7 +332,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		{
 		case VK_SPACE:
 			if (m_bMissileActive == true) { ((CMyPlayer*)m_pPlayer)->MissileMode(NULL); }
-			if (m_bBoosterActive == true) { ((CMyPlayer*)m_pPlayer)->BoosterMode(); }
+			/*if (m_bBoosterActive == true) { ((CMyPlayer*)m_pPlayer)->BoosterMode(); }*/
 		if (m_bTrapActive == true){ ((CMyPlayer*)m_pPlayer)->TrapMode(); }
 			break;
 		default:
@@ -318,7 +355,7 @@ uniform_int_distribution<>PresentItemVal(1, 3);
 
 void CScene::CheckPlayerByRandomBoxCollisions()
 {
-	for (int i = 2; i < m_nGameObjects; ++i) {
+	for (int i = 2; i < 5; ++i) {
 		m_ppGameObjects[i]->SetRotationSpeed(2.0f);
 		m_ppGameObjects[i]->Rotate(0, m_ppGameObjects[i]->m_fRotationSpeed, 0);
 
@@ -339,8 +376,8 @@ void CScene::CheckPlayerByRandomBoxCollisions()
 			if (m_ppGameObjects[i]->m_bObjectRising) {
 				m_ppGameObjects[i]->m_xmf4x4Transform._42 += 1.5f;
 			}
-			if (m_ppGameObjects[i]->m_xmf4x4Transform._42 >= 10.0f) {
-				m_ppGameObjects[i]->m_xmf4x4Transform._42 = 10.0f;
+			if (m_ppGameObjects[i]->m_xmf4x4Transform._42 >= 25.0f) {
+				m_ppGameObjects[i]->m_xmf4x4Transform._42 = 25.0f;
 				m_ppGameObjects[i]->m_bObjectRising = false;
 			}
 		}
