@@ -228,8 +228,8 @@ CMyPlayer::CMyPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCo
 	{
 		pBulletObject = new CBulletObject(m_fBulletEffectiveRange);
 		pBulletObject->SetChild(pBulletMesh, true);
-		pBulletObject->SetRotationSpeed(30.0f);
-		pBulletObject->SetMovingSpeed(400.0f);
+		pBulletObject->SetRotationSpeed(40.0f);
+		pBulletObject->SetMovingSpeed(300.0f);
 		pBulletObject->SetActive(false);
 		m_ppBullets[i] = pBulletObject;
 
@@ -239,7 +239,7 @@ CMyPlayer::CMyPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCo
 
 	m_pTrapObject = new CTrapObject();
 	m_pTrapObject->SetChild(pTrapModel, true);
-	m_pTrapObject->SetRotationSpeed(5.0f);
+	m_pTrapObject->SetRotationSpeed(90.0f);
 	m_pTrapObject->SetMovingSpeed(20.0f);
 	m_pTrapObject->SetActive(false);
 
@@ -355,19 +355,21 @@ void CMyPlayer::MissileMode(CGameObjcet* pLockedObject)
 		}
 	}
 
+	XMFLOAT3 PlayerPos = GetLook();
+	XMFLOAT3 CameraPos = m_pCamera->GetLookVector();
+	XMFLOAT3 TotalLookVector = Vector3::Normalize(Vector3::Add(PlayerPos, CameraPos));
+
 	if (pBulletObject)
 	{
-		XMFLOAT3 PlayerLookVector = GetLook();
-		XMFLOAT3 CameraLookVector = m_pCamera->GetLookVector();
-		XMFLOAT3 BulletDirection = Vector3::Normalize(Vector3::Add(PlayerLookVector, CameraLookVector));
-		XMFLOAT3 PlayerPosition = GetPosition();
-		XMFLOAT3 FirePosition = Vector3::Add(PlayerPosition, Vector3::ScalarProduct(BulletDirection, 6.0f, true));
-		FirePosition.y -= 5.0f;
+
+		XMFLOAT3 xmf3Position = GetPosition();
+		XMFLOAT3 xmf3Direction = TotalLookVector;
+		XMFLOAT3 xmf3FirePosition = Vector3::Add(xmf3Position, Vector3::ScalarProduct(xmf3Direction, 6.0f, true));
 		pBulletObject->m_xmf4x4Transform = m_xmf4x4World;
-		pBulletObject->SetFirePosition(FirePosition);
+		pBulletObject->SetFirePosition(xmf3FirePosition);
 		pBulletObject->SetMovingDirection(GetLookVector());
 		pBulletObject->Rotate(90.0f, 0.0, 0.0);
-		pBulletObject->SetScale(700.3, 150.3, 700.3);
+		pBulletObject->SetScale(700.0, 200.0, 700.0);
 		pBulletObject->SetActive(true);
 	}
 }
