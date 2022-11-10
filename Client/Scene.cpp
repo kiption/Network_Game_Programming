@@ -357,7 +357,7 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 
 void CScene::CheckPlayerByRandomBoxCollisions()
 {
-	for (int i = 2; i < m_nGameObjects; ++i) {
+	for (int i = 2; i < 5; ++i) {
 
 		m_ppGameObjects[i]->SetRotationSpeed(2.0f);
 		m_ppGameObjects[i]->Rotate(0, m_ppGameObjects[i]->m_fRotationSpeed, 0);
