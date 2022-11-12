@@ -139,11 +139,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CalcMove.cpp" />
     <ClCompile Include="game_server.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Common\Common.h" />
+    <ClInclude Include="..\..\Common\MyVectors.h" />
     <ClInclude Include="..\..\Common\protocol.h" />
+    <ClInclude Include="CalcMove.h" />
+    <ClInclude Include="Global.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
