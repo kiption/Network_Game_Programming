@@ -94,6 +94,8 @@ public:
 	CPlayer*					m_pPlayer = NULL;
 	CCamera*					m_pCamera = NULL;
 	CHeightMapTerrain*			m_pTerrain = NULL;
+	CHeightMapTerrain*			m_pCollisionTerrain = NULL;
+
 	CBulletObject*				pBulletObject = NULL;
 	CShader*					m_pShader = NULL;
 
@@ -106,7 +108,7 @@ public:
 	float						m_fBoxCoordinateZ;
 	
 	bool						m_bObjectCollideCheck = false;
-
+	double radian;
 
 public:
 

@@ -14,9 +14,9 @@ class CPlayer : public CGameObjcet
 {
 protected:
 	XMFLOAT3					m_xmf3Right;
-	XMFLOAT3					m_xmf3Up;
 
 	XMFLOAT3					m_xmf3Look = XMFLOAT3(0,0,1);
+	XMFLOAT3					m_xmf3Up;
 	XMFLOAT3     				m_xmf3Gravity;
 	float           			m_fMaxVelocityXZ;
 	float           			m_fMaxVelocityY;
@@ -35,7 +35,8 @@ public:
 	LPVOID						m_pPlayerUpdatedContext;
 	XMFLOAT3					m_xmf3Position;
 	int							m_iItemVal = 0;
-	
+	XMFLOAT4 m_f4xmf4Color;
+	DWORD dwDirection = 0;
 	CPlayer();
 	virtual ~CPlayer();
 	virtual XMFLOAT3 GetPosition() { return(m_xmf3Position); }
@@ -122,6 +123,7 @@ public:
 	void TrapMode();
 	void BoosterMode();
 	bool m_bbsAct = false;
+
 };
 
 

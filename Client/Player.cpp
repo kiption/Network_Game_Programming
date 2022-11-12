@@ -125,7 +125,7 @@ void CPlayer::Update(float fTimeElapsed)
 	fLength = sqrtf(m_xmf3Velocity.y * m_xmf3Velocity.y);
 	if (fLength > m_fMaxVelocityY) m_xmf3Velocity.y *= (fMaxVelocityY / fLength);
 
-	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fTimeElapsed, false);
+	XMFLOAT3 xmf3Velocity = Vector3::ScalarProduct(m_xmf3Velocity, fTimeElapsed, true);
 	Move(xmf3Velocity, false);
 
 	if (m_pPlayerUpdatedContext) OnPlayerUpdateCallback(fTimeElapsed);
@@ -167,6 +167,8 @@ void CMyPlayer::OnPlayerUpdateCallback(float fTimeElapsed)
 		xmf3PlayerPosition.y = fHeight;
 		SetPosition(xmf3PlayerPosition);
 	}
+
+
 }
 
 CCamera* CPlayer::OnChangeCamera(DWORD nNewCameraMode, DWORD nCurrentCameraMode)
@@ -323,6 +325,7 @@ void CMyPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
 	{
 		m_pCamera->m_xmf3Position.z -= 1.5f;
 	}
+	
 
 	CPlayer::Animate(fTimeElapsed, pxmf4x4Parent);
 	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(15.0, 10.0, 30.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));

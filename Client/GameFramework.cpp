@@ -427,7 +427,7 @@ void CGameFramework::BuildObjects()
 	if (m_pScene) m_pScene->BuildObjects(m_pd3dDevice, m_pd3dCommandList);
 
 	CMyPlayer* pPlayer = new CMyPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
-	pPlayer->SetPosition(XMFLOAT3(245.0f, 0.0f, 290.0f));
+	pPlayer->SetPosition(XMFLOAT3(450.0f, 14.0f, 450.0f));
 	m_pScene->m_pPlayer = m_pPlayer = pPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 	m_pPlayer->SetTerrain(m_pScene->m_pTerrain);
@@ -455,9 +455,10 @@ void CGameFramework::ReleaseObjects()
 void CGameFramework::ProcessInput()
 {
 	static UCHAR pKeysBuffer[256];
+	float Velocity = 0.0;
 	bool bProcessedByScene = false;
 	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
-	if (!bProcessedByScene && m_pScene->m_bCollisionCheck == false)
+	if (!bProcessedByScene)
 	{
 		DWORD dwDirection = 0;
 		if (pKeysBuffer[VK_UP] & 0xF0) {
@@ -473,26 +474,37 @@ void CGameFramework::ProcessInput()
 			dwDirection |= DIR_LEFT;
 		}
 
-
 		if ((dwDirection != 0))
 		{
 			if (dwDirection)
 			{
-				m_pPlayer->Move(dwDirection, 4.0f, false);
-				if (pKeysBuffer[VK_RIGHT] & 0xF0) 
+				if (m_pScene->m_bCollisionCheck == true)
 				{
+					Velocity = 1.0f;
+					//dwDirection *= -1;
+				}
+				else
+				{
+					Velocity = 4.0f;
+					if (pKeysBuffer[VK_SHIFT] & 0xF0)
+						m_pPlayer->Move(dwDirection, Velocity + 4.0f, false);
+
+				}
+					m_pPlayer->Move(dwDirection, Velocity, false);
 				
-					m_pPlayer->Rotate(0.0, +3.3f, 0.0);
-					m_pPlayer->Move(DIR_BACKWARD, 3.5f, false);
-				}
-				else if (pKeysBuffer[VK_LEFT] & 0xF0) 
-				{
+					if (pKeysBuffer[VK_RIGHT] & 0xF0) 
+					{
+				
+						m_pPlayer->Rotate(0.0, +3.3f, 0.0);
+						m_pPlayer->Move(DIR_BACKWARD, Velocity, false);
+					}
+					else if (pKeysBuffer[VK_LEFT] & 0xF0) 
+					{
 					
-					m_pPlayer->Rotate(0.0, -3.3, 0.0f);
-					m_pPlayer->Move(DIR_BACKWARD, 3.5f, false);
-				}
-				if (pKeysBuffer[VK_SHIFT] & 0xF0)
-					m_pPlayer->Move(dwDirection, 8.0f, false);
+						m_pPlayer->Rotate(0.0, -3.3, 0.0f);
+						m_pPlayer->Move(DIR_BACKWARD, Velocity, false);
+					}
+				
 			}
 		}
 	}
