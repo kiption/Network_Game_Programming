@@ -9,16 +9,17 @@ constexpr int WORLD_Y_POS = 2000;
 constexpr int WORLD_Z_POS = 2000;
 
 // Packet ID
-constexpr char CS_LOGIN = 0;
-
-// Struct
-struct MyFloat3
-{
-	float x, y, z;
-};
+constexpr char C2LS_LOGIN = 0;
+constexpr char C2LS_SIGNUP = 1;
+constexpr char LS2C_SIGNUP = 2;
+constexpr char LS2C_GAMESTART = 3;
 
 // Packets ( C: Client / LS: Login Server / GS: Game Server )
 #pragma pack (push, 1)
+struct PACKET_INFO {
+	short size;
+	char type;
+};
 // 1. Client -> Login Server
 struct C2LS_SIGNUP_PACKET {
 	short size;
@@ -39,6 +40,7 @@ struct LS2C_SIGNUP_PACKET {
 	char name[NAME_LEN];
 };
 
+enum{START_DENY, START_APPROVAL};
 struct LS2C_GAMESTART_PACKET {
 	short size;
 	char type;
@@ -63,10 +65,10 @@ struct GS2C_LOGIN_INFO_PACKET {
 	short size;
 	char type;
 	short id;
-	MyFloat3 pos;
-	MyFloat3 right_vec;
-	MyFloat3 up_vec;
-	MyFloat3 look_vec;
+	float pos_x, pos_y, pos_z;
+	float right_vec_x, right_vec_y, right_vec_z;
+	float up_vec_x, up_vec_y, up_vec_z;
+	float look_vec_x, look_vec_y, look_vec_z;
 };
 
 struct GS2C_GET_ITME_PACKET {
@@ -79,16 +81,16 @@ struct GS2C_MOVE_PACKET {
 	short size;
 	char type;
 	short id;
-	MyFloat3 pos;
+	float pos_x, pos_y, pos_z;
 };
 
 struct GS2C_ROTATE_PACKET {
 	short size;
 	char type;
 	short id;
-	MyFloat3 right_vec;
-	MyFloat3 up_vec;
-	MyFloat3 look_vec;
+	float right_vec_x, right_vec_y, right_vec_z;
+	float up_vec_x, up_vec_y, up_vec_z;
+	float look_vec_x, look_vec_y, look_vec_z;
 };
 
 struct GS2C_ADD_OBJ_PACKET {
