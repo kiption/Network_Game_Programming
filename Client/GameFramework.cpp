@@ -1,8 +1,8 @@
 //-----------------------------------------------------------------------------
 // File: CGameFramework.cpp
 //-----------------------------------------------------------------------------
-#include "Common/Common.h"
-#include "Common/protocol.h"
+#include "../Server/Common/Common.h"
+#include "../Server/Common/protocol.h"
 #include "stdafx.h"
 #include "GameFramework.h"
 
@@ -10,13 +10,17 @@ char* SERVERIP = (char*)"127.0.0.1";
 
 CGameFramework::CGameFramework()
 {
-	// Server
-	wcout.imbue(locale("korean"));
-	WSADATA WSAData;
-	WSAStartup(MAKEWORD(2, 0), &WSAData);
+	//==== Server
+	int retval;
+	// 윈속 초기화
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		// 강제종료
+	}
 
 	// 소켓 생성
 	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock == INVALID_SOCKET) err_quit("socket()");
 
 	// connect()
 	struct sockaddr_in serveraddr;
@@ -24,15 +28,29 @@ CGameFramework::CGameFramework()
 	serveraddr.sin_family = AF_INET;
 	inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
 	serveraddr.sin_port = htons(SERVER_PORT);
-	connect(sock, reinterpret_cast<sockaddr*>(&SERVERIP), sizeof(SERVERIP));
+	retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+	if (retval == SOCKET_ERROR) err_quit("connect()");
 	
+	// Send Login Packet
+	PACKET_INFO send_packet;
+	send_packet.type = C2LS_LOGIN;
+	retval = send(sock, (char*)&send_packet, sizeof(PACKET_INFO), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send()");
+	}
+
 	C2LS_LOGIN_PACKET login_packet;
 	login_packet.size = sizeof(C2LS_LOGIN_PACKET);
-	login_packet.type = CS_LOGIN;
+	login_packet.type = C2LS_LOGIN;
 	strcpy_s(login_packet.name, "Player");
+	retval = send(sock, (char*)&login_packet, sizeof(C2LS_LOGIN_PACKET), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send()");
+	}
 
-	//Sendpacket
-	//Recvpacket
+	// Recv Login Packet
+
+	//====
 
 	m_pdxgiFactory = NULL;
 	m_pdxgiSwapChain = NULL;
