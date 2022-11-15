@@ -8,42 +8,6 @@
 //HANDLE networkThread;
 CGameFramework::CGameFramework()
 {
-	//==== Server
-	//networkThread = CreateThread(NULL, 0, NetworkingThreadFunc, 0, 0, NULL);
-
-	/*
-	int retval;
-	// 윈속 초기화
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-		// 강제종료
-	}
-
-	// 소켓 생성
-	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == INVALID_SOCKET) err_quit("socket()");
-
-	// connect()
-	struct sockaddr_in serveraddr;
-	memset(&serveraddr, 0, sizeof(serveraddr));
-	serveraddr.sin_family = AF_INET;
-	inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
-	serveraddr.sin_port = htons(SERVER_PORT);
-	retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-	if (retval == SOCKET_ERROR) err_quit("connect()");
-
-	C2LS_LOGIN_PACKET login_packet;
-	login_packet.size = sizeof(C2LS_LOGIN_PACKET);
-	login_packet.type = C2LS_LOGIN;
-	strcpy_s(login_packet.name, "Player123");
-	retval = send(sock, (char*)&login_packet, sizeof(C2LS_LOGIN_PACKET), 0);
-	if (retval == SOCKET_ERROR) {
-		err_display("send()");
-	}
-	*/
-
-	//====
-
 	m_pdxgiFactory = NULL;
 	m_pdxgiSwapChain = NULL;
 	m_pd3dDevice = NULL;

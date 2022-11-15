@@ -1,6 +1,7 @@
 #include "../../Common/Common.h"
 #include "../../Common/protocol.h"
 #include <iostream>
+#include <fstream>
 #include <array>
 #include <string>
 
@@ -43,7 +44,6 @@ public:
 		m_state = SESSION_EMPTY;
 		m_name = "None";
 	}
-	void sendPacket(void* packet);
 };
 std::array<SESSION, MAX_USER> clients;
 
@@ -98,6 +98,39 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		recved_size += sizeof(PACKET_INFO);
 
 		switch (recv_info.type) {
+		case C2LS_REGISTER: {
+			C2LS_REGISTER_PACKET register_pack;
+			retval = recv(client_sock, (char*)&register_pack, sizeof(C2LS_REGISTER_PACKET), MSG_WAITALL);
+			if (retval == SOCKET_ERROR) {
+				err_display("recv()");
+				break;
+			}
+
+			// 유저 이름이 담긴 파일 open
+			std::ofstream fout("userlist.txt");
+			if (fout.fail()) {
+				std::cerr << "userlist.txt 를 찾을 수 없습니다." << std::endl;
+				exit(100);
+			}
+
+			// 클라이언트로부터 받은 이름 추가
+			fout << register_pack.name << std::endl;
+			fout.close();
+			std::cout << "계정 추가 완료" << std::endl;
+
+			// 계정 등록 결과 전송
+			LS2C_REGISTER_PACKET result_pack;
+			result_pack.size = sizeof(LS2C_REGISTER_PACKET);
+			result_pack.type = LS2C_REGISTER;
+			result_pack.result = true;
+
+			retval = send(client_sock, (char*)&result_pack, sizeof(LS2C_REGISTER_PACKET), 0);
+			if (retval == SOCKET_ERROR) {
+				err_display("send()");
+			}
+
+			break;
+		}
 		case C2LS_LOGIN:
 			C2LS_LOGIN_PACKET login_pack;
 			retval = recv(client_sock, (char*)&login_pack, sizeof(C2LS_LOGIN_PACKET), MSG_WAITALL);
@@ -111,7 +144,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			LS2C_GAMESTART_PACKET start_pack;
 			start_pack.size = sizeof(LS2C_GAMESTART_PACKET);
 			start_pack.type = LS2C_GAMESTART;
-			start_pack.start = START_DENY;
+			start_pack.start = START_APPROVAL;
 			std::cout << "Packet Size: " << sizeof(start_pack) << std::endl;
 			
 			retval = send(client_sock, (char*)&start_pack, sizeof(LS2C_GAMESTART_PACKET), 0);

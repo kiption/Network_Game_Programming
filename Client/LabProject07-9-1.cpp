@@ -47,7 +47,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	Sleep(1000);
 	SetEvent(h_network_th);
 
-	int retval = WaitForSingleObject(h_main_th, 3000);	// 신호 상태가 될때까지 대기
+	int retval = WaitForSingleObject(h_main_th, 20000);	// 신호 상태가 될때까지 대기
 	if (retval == WAIT_OBJECT_0) {
 		cout << "Game Start!" << endl;
 	}
