@@ -5,6 +5,9 @@
 #include "LabProject07-9-1.h"
 #include "GameFramework.h"
 
+//Server
+#include "Network.h"
+
 #define MAX_LOADSTRING 100
 
 HINSTANCE						ghAppInstance;
@@ -18,8 +21,48 @@ BOOL InitInstance(HINSTANCE, int);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
 
+
 int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
+	//==== Server
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		return -1;
+	}
+
+	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock == INVALID_SOCKET) err_quit("socket()");
+
+	struct sockaddr_in serveraddr;
+	memset(&serveraddr, 0, sizeof(serveraddr));
+	serveraddr.sin_family = AF_INET;
+	inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
+	serveraddr.sin_port = htons(SERVER_PORT);
+	retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
+	if (retval == SOCKET_ERROR) err_quit("connect()");
+
+	// 통신담당 (주로 recv) 스레드 생성
+	HANDLE networkThread = CreateThread(NULL, 0, NetworkingThreadFunc, (LPVOID)sock, 0, NULL);
+
+	Sleep(1000);
+	SetEvent(h_network_th);
+
+	int retval = WaitForSingleObject(h_main_th, 3000);	// 신호 상태가 될때까지 대기
+	if (retval == WAIT_OBJECT_0) {
+		cout << "Game Start!" << endl;
+	}
+	else if (retval == WAIT_TIMEOUT) {
+		cout << "[Timeout] 게임진입 요청이 거부되었습니다." << endl;
+		cout << "프로그램을 종료합니다." << endl;
+		Sleep(1500);
+		return 0;
+	}
+	else {
+		return -1;
+	}
+	//===
+
+
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
@@ -52,6 +95,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	}
 	gGameFramework.OnDestroy();
 
+	CloseHandle(networkThread);
 	return((int)msg.wParam);
 }
 

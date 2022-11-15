@@ -1,16 +1,17 @@
 //-----------------------------------------------------------------------------
 // File: CGameFramework.cpp
 //-----------------------------------------------------------------------------
-#include "../Server/Common/Common.h"
-#include "../Server/Common/protocol.h"
 #include "stdafx.h"
 #include "GameFramework.h"
 
-char* SERVERIP = (char*)"127.0.0.1";
 
+//HANDLE networkThread;
 CGameFramework::CGameFramework()
 {
 	//==== Server
+	//networkThread = CreateThread(NULL, 0, NetworkingThreadFunc, 0, 0, NULL);
+
+	/*
 	int retval;
 	// 윈속 초기화
 	WSADATA wsa;
@@ -30,18 +31,16 @@ CGameFramework::CGameFramework()
 	serveraddr.sin_port = htons(SERVER_PORT);
 	retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
 	if (retval == SOCKET_ERROR) err_quit("connect()");
-	
-	// Send Login Packet
+
 	C2LS_LOGIN_PACKET login_packet;
 	login_packet.size = sizeof(C2LS_LOGIN_PACKET);
 	login_packet.type = C2LS_LOGIN;
-	strcpy_s(login_packet.name, "Player");
+	strcpy_s(login_packet.name, "Player123");
 	retval = send(sock, (char*)&login_packet, sizeof(C2LS_LOGIN_PACKET), 0);
 	if (retval == SOCKET_ERROR) {
 		err_display("send()");
 	}
-
-	// Recv Login Packet
+	*/
 
 	//====
 

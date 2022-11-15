@@ -18,6 +18,7 @@ private:
 public:
 	SESSION() {
 		m_id = -1;
+		memset(&m_sock, 0, sizeof(m_sock));
 		m_state = SESSION_EMPTY;
 		m_name = "None";
 	}
@@ -33,6 +34,16 @@ public:
 	void setSock(SOCKET sock) { m_sock = sock; }
 	void setState(char state) { m_state = state; }
 	void setName(char* name) { m_name = name; }
+
+public:
+	// Function
+	void clearSession() {
+		m_id = -1;
+		memset(&m_sock, 0, sizeof(m_sock));
+		m_state = SESSION_EMPTY;
+		m_name = "None";
+	}
+	void sendPacket(void* packet);
 };
 std::array<SESSION, MAX_USER> clients;
 
@@ -74,7 +85,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	while (1) {
 		//test
 		PACKET_INFO recv_info;
-		retval = recv(client_sock, (char*)&recv_info, sizeof(PACKET_INFO), MSG_WAITALL);
+		retval = recv(client_sock, (char*)&recv_info, sizeof(PACKET_INFO), MSG_PEEK);	// MSG_PEEK을 사용하여 수신버퍼를 읽지만 가져오지는 않도록
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
 			break;
@@ -89,19 +100,32 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		switch (recv_info.type) {
 		case C2LS_LOGIN:
 			C2LS_LOGIN_PACKET login_pack;
-			login_pack.size = recv_info.size;
-			login_pack.type = recv_info.type;
-			retval = recv(client_sock, (char*)&login_pack + recved_size, sizeof(C2LS_LOGIN_PACKET) - recved_size, MSG_WAITALL);
+			retval = recv(client_sock, (char*)&login_pack, sizeof(C2LS_LOGIN_PACKET), MSG_WAITALL);
 			if (retval == SOCKET_ERROR) {
 				err_display("recv()");
 				break;
 			}
 			clients[client_id].setName(login_pack.name);
 			std::cout << "Clients[" << clients[client_id].getId() << "]'s Name: " << clients[client_id].getName() << std::endl;
+
+			LS2C_GAMESTART_PACKET start_pack;
+			start_pack.size = sizeof(LS2C_GAMESTART_PACKET);
+			start_pack.type = LS2C_GAMESTART;
+			start_pack.start = START_DENY;
+			std::cout << "Packet Size: " << sizeof(start_pack) << std::endl;
+			
+			retval = send(client_sock, (char*)&start_pack, sizeof(LS2C_GAMESTART_PACKET), 0);
+			if (retval == SOCKET_ERROR) {
+				err_display("send()");
+			}
+
 			break;
 		}
 
 	}
+
+	if (clients[client_id].getState() == SESSION_RUNNING)
+		clients[client_id].clearSession();
 
 	closesocket(client_sock);
 	return 0;
