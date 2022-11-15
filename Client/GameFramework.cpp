@@ -32,13 +32,6 @@ CGameFramework::CGameFramework()
 	if (retval == SOCKET_ERROR) err_quit("connect()");
 	
 	// Send Login Packet
-	PACKET_INFO send_packet;
-	send_packet.type = C2LS_LOGIN;
-	retval = send(sock, (char*)&send_packet, sizeof(PACKET_INFO), 0);
-	if (retval == SOCKET_ERROR) {
-		err_display("send()");
-	}
-
 	C2LS_LOGIN_PACKET login_packet;
 	login_packet.size = sizeof(C2LS_LOGIN_PACKET);
 	login_packet.type = C2LS_LOGIN;

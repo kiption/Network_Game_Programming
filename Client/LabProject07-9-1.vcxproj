@@ -143,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Server\Common\Common.h" />
+    <ClInclude Include="..\Server\Common\protocol.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="GameFramework.h" />
     <ClInclude Include="LabProject07-9-1.h" />

@@ -69,20 +69,29 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	getpeername(client_sock, (struct sockaddr*)&clientaddr, &addrlen);
 	inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 
+	int recved_size = 0;
+
 	while (1) {
-		PACKET_INFO pack_info;
-		retval = recv(client_sock, (char*)&pack_info, sizeof(PACKET_INFO), MSG_WAITALL);
+		//test
+		PACKET_INFO recv_info;
+		retval = recv(client_sock, (char*)&recv_info, sizeof(PACKET_INFO), MSG_WAITALL);
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
 			break;
 		}
-		else if (retval == 0)
-			break;
 
-		switch (pack_info.type) {
+		std::cout << "packet's size: " << recv_info.size << std::endl;
+		if (recv_info.type == C2LS_LOGIN)
+			std::cout << "This packet is C2LS_LOGIN Packet" << std::endl;
+
+		recved_size += sizeof(PACKET_INFO);
+
+		switch (recv_info.type) {
 		case C2LS_LOGIN:
 			C2LS_LOGIN_PACKET login_pack;
-			retval = recv(client_sock, (char*)&login_pack, sizeof(C2LS_LOGIN_PACKET), MSG_WAITALL);
+			login_pack.size = recv_info.size;
+			login_pack.type = recv_info.type;
+			retval = recv(client_sock, (char*)&login_pack + recved_size, sizeof(C2LS_LOGIN_PACKET) - recved_size, MSG_WAITALL);
 			if (retval == SOCKET_ERROR) {
 				err_display("recv()");
 				break;
