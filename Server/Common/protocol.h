@@ -10,8 +10,8 @@ constexpr int WORLD_Z_POS = 2000;
 
 // Packet ID
 constexpr char C2LS_LOGIN = 0;
-constexpr char C2LS_SIGNUP = 1;
-constexpr char LS2C_SIGNUP = 2;
+constexpr char C2LS_REGISTER = 1;
+constexpr char LS2C_REGISTER = 2;
 constexpr char LS2C_GAMESTART = 3;
 
 // Packets ( C: Client / LS: Login Server / GS: Game Server )
@@ -21,7 +21,7 @@ struct PACKET_INFO {
 	char type;
 };
 // 1. Client -> Login Server
-struct C2LS_SIGNUP_PACKET {
+struct C2LS_REGISTER_PACKET {
 	short size;
 	char type;
 	char name[NAME_LEN];
@@ -34,10 +34,10 @@ struct C2LS_LOGIN_PACKET {
 };
 
 // 2. Login Server -> Client
-struct LS2C_SIGNUP_PACKET {
+struct LS2C_REGISTER_PACKET {
 	short size;
 	char type;
-	char name[NAME_LEN];
+	bool result;
 };
 
 enum{START_DENY, START_APPROVAL};
