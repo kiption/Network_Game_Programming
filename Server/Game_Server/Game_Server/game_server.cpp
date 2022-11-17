@@ -122,7 +122,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 {
 	int id = 0;
 	for (int j = 0; j < MAX_USER; ++j) {
-		if (clients[j].getId() == -1) {	
+		if (clients[j].getId() == -1) {
 			clients[j].setID(j);
 			clients[j].setSock(reinterpret_cast<SOCKET>(arg));
 			clients[j].setState(true);
@@ -134,9 +134,9 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	GS2C_LOGIN_INFO_PACKET S2CPacket;
 	S2CPacket.id = clients[id].getId();
 
-	S2CPacket.pos_x = 200;
+	S2CPacket.pos_x = 200 + 50 * id;
 	S2CPacket.pos_y = 2;
-	S2CPacket.pos_z = 200;
+	S2CPacket.pos_z = 200 + 50 * id;
 
 	S2CPacket.right_vec_x = clients[id].getCoordinate().x_coordinate.x;
 	S2CPacket.right_vec_y = clients[id].getCoordinate().x_coordinate.y;
@@ -166,17 +166,18 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	if (retval == SOCKET_ERROR) {
 		err_display("send()");
 	}
-	
+
 	while (1) {
 		// 이동 함수
 		SCMoveProcess(id);
+
 		GS2C_MOVE_PACKET S2CMovePacket;
 		S2CMovePacket.id = clients[id].getId();
 		S2CMovePacket.pos_x = clients[id].getPos().x;
 		S2CMovePacket.pos_y = clients[id].getPos().y;
 		S2CMovePacket.pos_z = clients[id].getPos().z;
 
-			
+
 		for (int i{}; i < MAX_USER; ++i) {
 			if (clients[i].getState()) {
 				send(clients[i].getSock(), reinterpret_cast<char*>(&S2CMovePacket), sizeof(S2CMovePacket), 0);
@@ -217,21 +218,27 @@ void SCMoveProcess(int client_id)
 	// 누른 키에대한 스위치 구문 작성
 	// 프로토콜에다가 계산한 클라이언트 값 넣기
 	// 전후는 룩벡터로
+	C2GS_KEYVALUE_PACKET ClientPushKey{};
 
 	MyVector3D move_dir{ 0,0,0 };
 	// 전후
 	// w,s 키
-
-
-	// 좌우
-	// a,d 키
-	move_dir = clients[client_id].getCoordinate().x_coordinate;
-
-	MyVector3D moveResult = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR);
-	clients[client_id].setPos(moveResult);
-
-
-	
+	switch (ClientPushKey.type)
+	{
+		enum {KEY_WS, KEY_AD};
+	case KEY_WS:
+		move_dir = clients[client_id].getCoordinate().z_coordinate;
+		MyVector3D Move_WS_Result = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR);
+		clients[client_id].setPos(Move_WS_Result);
+		break;
+	case KEY_AD:
+		move_dir = clients[client_id].getCoordinate().x_coordinate;
+		MyVector3D Move_AD_Result = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR);
+		clients[client_id].setPos(Move_AD_Result);
+		break;
+	default:
+		break;
+	}
 }
 
 

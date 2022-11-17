@@ -14,6 +14,9 @@ constexpr char C2LS_REGISTER = 1;
 constexpr char LS2C_REGISTER = 2;
 constexpr char LS2C_GAMESTART = 3;
 
+// Process Key
+constexpr char C2GS_INPUT_KEYBOARD = 6;
+
 // Packets ( C: Client / LS: Login Server / GS: Game Server )
 #pragma pack (push, 1)
 struct PACKET_INFO {
