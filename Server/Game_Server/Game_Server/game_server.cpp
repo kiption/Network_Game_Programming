@@ -150,7 +150,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	S2CPacket.look_vec_y = clients[id].getCoordinate().z_coordinate.y;
 	S2CPacket.look_vec_z = clients[id].getCoordinate().z_coordinate.z;
 
-
 	int retval;
 	SOCKET client_sock = (SOCKET)arg;
 	struct sockaddr_in clientaddr;
@@ -162,27 +161,81 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	getpeername(client_sock, (struct sockaddr*)&clientaddr, &addrlen);
 	inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 
-	retval = send(client_sock, reinterpret_cast<char*>(&S2CPacket), sizeof(S2CPacket), 0);
+	retval = send(client_sock, reinterpret_cast<char*>(&S2CPacket), sizeof(GS2C_LOGIN_INFO_PACKET), 0);
 	if (retval == SOCKET_ERROR) {
 		err_display("send()");
 	}
 
 	while (1) {
 		// 이동 함수
-		SCMoveProcess(id);
+		C2GS_KEYVALUE_PACKET ClientPushKey;
+		retval = recv(client_sock, reinterpret_cast<char*>(&ClientPushKey), sizeof(C2GS_KEYVALUE_PACKET), 0);
+		MyVector3D move_dir{ 0,0,0 };
 
-		GS2C_MOVE_PACKET S2CMovePacket;
-		S2CMovePacket.id = clients[id].getId();
-		S2CMovePacket.pos_x = clients[id].getPos().x;
-		S2CMovePacket.pos_y = clients[id].getPos().y;
-		S2CMovePacket.pos_z = clients[id].getPos().z;
+		enum { KEY_AD, KEY_WS, KEY_SPACE };
+		for (int i{}; i < 5; ++i) {
+			if ((ClientPushKey.key >> i) & 1) {
+
+				int DefaultDir = 1;
+
+				if (i % 2 == 0) {
+					DefaultDir = -1;
+				}
+				switch (i / 2) {
+				case KEY_AD:
+					/*move_dir = clients[id].getCoordinate().x_coordinate;
+					MyVector3D Move_AD_Result = calcMove(clients[id].getPos(), move_dir * DefaultDir, MOVE_SCALAR);
+					clients[id].setPos(Move_AD_Result);*/
+					/*GS2C_ROTATE_PACKET S2CRotatePacket;
+					
+					float right_vec_x, right_vec_y, right_vec_z;
+					float up_vec_x, up_vec_y, up_vec_z;
+					float look_vec_x, look_vec_y, look_vec_z;
 
 
-		for (int i{}; i < MAX_USER; ++i) {
-			if (clients[i].getState()) {
-				send(clients[i].getSock(), reinterpret_cast<char*>(&S2CMovePacket), sizeof(S2CMovePacket), 0);
+					S2CRotatePacket.id = clients[id].getId();
+					S2CRotatePacket.pos_x = clients[id].getPos().x;
+					S2CRotatePacket.pos_y = clients[id].getPos().y;
+					S2CRotatePacket.pos_z = clients[id].getPos().z;
+					for (int i{}; i < MAX_USER; ++i) {
+						if (clients[i].getState()) {
+							send(clients[i].getSock(), reinterpret_cast<char*>(&S2CMovePacket), sizeof(GS2C_MOVE_PACKET), 0);
+						}
+
+					}*/
+
+					
+					break;
+				case KEY_WS:
+					move_dir = { clients[id].getCoordinate().z_coordinate.x * DefaultDir, 
+						clients[id].getCoordinate().z_coordinate.y * DefaultDir, clients[id].getCoordinate().z_coordinate.z * DefaultDir };
+
+					MyVector3D Move_WS_Result = calcMove(clients[id].getPos(), move_dir, MOVE_SCALAR);
+					clients[id].setPos(Move_WS_Result);
+
+					GS2C_MOVE_PACKET S2CMovePacket;
+					S2CMovePacket.id = clients[id].getId();
+					S2CMovePacket.pos_x = clients[id].getPos().x;
+					S2CMovePacket.pos_y = clients[id].getPos().y;
+					S2CMovePacket.pos_z = clients[id].getPos().z;
+					for (int i{}; i < MAX_USER; ++i) {
+						if (clients[i].getState()) {
+							send(clients[i].getSock(), reinterpret_cast<char*>(&S2CMovePacket), sizeof(GS2C_MOVE_PACKET), 0);
+						}
+
+					}
+
+					break;
+				case KEY_SPACE:
+					break;
+				default:
+					break;
+				}
 			}
 		}
+
+		
+
 
 		// ==== [세철 필독] ====
 		// retval = recv(client_sock, (char*)&패킷구조체 객체이름, sizeof(패킷구조체 종류), 0);  <- 이런식으로 send/recv해주면 댐.
@@ -218,27 +271,10 @@ void SCMoveProcess(int client_id)
 	// 누른 키에대한 스위치 구문 작성
 	// 프로토콜에다가 계산한 클라이언트 값 넣기
 	// 전후는 룩벡터로
-	C2GS_KEYVALUE_PACKET ClientPushKey{};
 
-	MyVector3D move_dir{ 0,0,0 };
 	// 전후
 	// w,s 키
-	switch (ClientPushKey.type)
-	{
-		enum {KEY_WS, KEY_AD};
-	case KEY_WS:
-		move_dir = clients[client_id].getCoordinate().z_coordinate;
-		MyVector3D Move_WS_Result = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR);
-		clients[client_id].setPos(Move_WS_Result);
-		break;
-	case KEY_AD:
-		move_dir = clients[client_id].getCoordinate().x_coordinate;
-		MyVector3D Move_AD_Result = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR);
-		clients[client_id].setPos(Move_AD_Result);
-		break;
-	default:
-		break;
-	}
+
 }
 
 
