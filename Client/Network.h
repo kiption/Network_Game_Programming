@@ -10,6 +10,7 @@ HANDLE h_network_th = CreateEvent(NULL, FALSE, FALSE, NULL);
 HANDLE h_main_th = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 int retval;
+char input_name[NAME_LEN];
 
 DWORD WINAPI NetworkingThreadFunc(LPVOID arg)
 {
@@ -33,7 +34,7 @@ DWORD WINAPI NetworkingThreadFunc(LPVOID arg)
 		}
 	}
 	
-	char input_name[NAME_LEN];
+
 	while (1) {
 		char temp[100];
 		cout << "이름을 입력해주세요: ";

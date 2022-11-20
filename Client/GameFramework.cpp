@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 #include "stdafx.h"
 #include "GameFramework.h"
-
+#include "UILayer.h"
 
 //HANDLE networkThread;
 CGameFramework::CGameFramework()
@@ -22,8 +22,6 @@ CGameFramework::CGameFramework()
 	m_pd3dRtvDescriptorHeap = NULL;
 	m_pd3dDsvDescriptorHeap = NULL;
 
-	m_nRtvDescriptorIncrementSize = 0;
-	m_nDsvDescriptorIncrementSize = 0;
 
 	m_hFenceEvent = NULL;
 	m_pd3dFence = NULL;
@@ -36,6 +34,7 @@ CGameFramework::CGameFramework()
 	m_pPlayer = NULL;
 
 	_tcscpy_s(m_pszFrameRate, _T("4 TermProject ( "));
+	_tcscpy_s(m_InputName, _T("Player_Name"));
 }
 
 CGameFramework::~CGameFramework()
@@ -164,7 +163,9 @@ void CGameFramework::CreateDirect3DDevice()
 	for (UINT i = 0; i < m_nSwapChainBuffers; i++) m_nFenceValues[i] = 0;
 
 	m_hFenceEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-
+	::gnCbvSrvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	::gnRtvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	::gnDsvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	if (pd3dAdapter) pd3dAdapter->Release();
 }
 
@@ -193,12 +194,10 @@ void CGameFramework::CreateRtvAndDsvDescriptorHeaps()
 	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	d3dDescriptorHeapDesc.NodeMask = 0;
 	HRESULT hResult = m_pd3dDevice->CreateDescriptorHeap(&d3dDescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dRtvDescriptorHeap);
-	m_nRtvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	d3dDescriptorHeapDesc.NumDescriptors = 1;
 	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	hResult = m_pd3dDevice->CreateDescriptorHeap(&d3dDescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dDsvDescriptorHeap);
-	m_nDsvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 }
 
 void CGameFramework::CreateRenderTargetViews()
@@ -208,7 +207,7 @@ void CGameFramework::CreateRenderTargetViews()
 	{
 		m_pdxgiSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (void**)&m_ppd3dSwapChainBackBuffers[i]);
 		m_pd3dDevice->CreateRenderTargetView(m_ppd3dSwapChainBackBuffers[i], NULL, d3dRtvCPUDescriptorHandle);
-		d3dRtvCPUDescriptorHandle.ptr += m_nRtvDescriptorIncrementSize;
+		d3dRtvCPUDescriptorHandle.ptr += ::gnRtvDescriptorIncrementSize;
 	}
 }
 
@@ -362,6 +361,11 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 	return(0);
 }
 
+void CGameFramework::UpdateUI()
+{
+	m_pUILayer->UpdateTextOutputs(1, m_InputName, NULL, NULL, NULL);
+}
+
 void CGameFramework::OnDestroy()
 {
 	ReleaseObjects();
@@ -395,6 +399,22 @@ void CGameFramework::OnDestroy()
 
 void CGameFramework::BuildObjects()
 {
+	m_pUILayer = new UILayer(m_nSwapChainBuffers, 2, m_pd3dDevice, m_pd3dCommandQueue, m_ppd3dSwapChainBackBuffers, m_nWndClientWidth, m_nWndClientHeight);
+
+	ID2D1SolidColorBrush* pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
+	IDWriteTextFormat* pdwTextFormat = m_pUILayer->CreateTextFormat(L"µ¸¿òÃ¼", m_nWndClientHeight / 15.0f);
+	D2D1_RECT_F d2dRect = D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+
+	WCHAR pstrOutputText[256];
+	wcscpy_s(pstrOutputText, 256, L"GameStart!\n");
+	m_pUILayer->UpdateTextOutputs(0, pstrOutputText, &d2dRect, pdwTextFormat, pd2dBrush);
+
+	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
+	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 25.0f);
+	d2dRect = D2D1::RectF(0.0f, m_nWndClientHeight - 75.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+
+	m_pUILayer->UpdateTextOutputs(1, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
+
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 
 	m_pScene = new CScene();
@@ -420,6 +440,8 @@ void CGameFramework::BuildObjects()
 
 void CGameFramework::ReleaseObjects()
 {
+	if (m_pUILayer) m_pUILayer->ReleaseResources();
+	if (m_pUILayer) delete m_pUILayer;
 	if (m_pPlayer) m_pPlayer->Release();
 
 	if (m_pScene) m_pScene->ReleaseObjects();
@@ -530,6 +552,7 @@ void CGameFramework::FrameAdvance()
 	ProcessInput();
 
 	AnimateObjects();
+	UpdateUI();
 
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
 	hResult = m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
@@ -545,7 +568,7 @@ void CGameFramework::FrameAdvance()
 	m_pd3dCommandList->ResourceBarrier(1, &d3dResourceBarrier);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * m_nRtvDescriptorIncrementSize);
+	d3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * ::gnRtvDescriptorIncrementSize);
 
 	float pfClearColor[4] = { 0.2f, 0.3f, 0.4f, 0.5f };
 	m_pd3dCommandList->ClearRenderTargetView(d3dRtvCPUDescriptorHandle, pfClearColor/*Colors::Azure*/, 0, NULL);
@@ -574,6 +597,7 @@ void CGameFramework::FrameAdvance()
 
 	WaitForGpuComplete();
 
+	m_pUILayer->Render(m_nSwapChainBufferIndex);
 #ifdef _WITH_PRESENT_PARAMETERS
 	DXGI_PRESENT_PARAMETERS dxgiPresentParameters;
 	dxgiPresentParameters.DirtyRectsCount = 0;

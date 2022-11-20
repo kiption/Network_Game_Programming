@@ -376,7 +376,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 		{
 		case VK_SPACE:
 			if (m_bMissileActive == true) { ((CMyPlayer*)m_pPlayer)->MissileMode(NULL); }
-			if (m_bBoosterActive == true) { ((CMyPlayer*)m_pPlayer)->BoosterMode(); }
+			//if (m_bBoosterActive == true) { ((CMyPlayer*)m_pPlayer)->BoosterMode(); }
 			if (m_bTrapActive == true) { ((CMyPlayer*)m_pPlayer)->TrapMode(); }
 			break;
 		default:

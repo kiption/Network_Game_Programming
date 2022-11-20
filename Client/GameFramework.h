@@ -6,6 +6,7 @@
 #include "Timer.h"
 #include "Player.h"
 #include "Scene.h"
+class UILayer;
 
 class CGameFramework
 {
@@ -21,7 +22,6 @@ public:
 	void CreateCommandQueueAndList();
 
 	void CreateRtvAndDsvDescriptorHeaps();
-
 	void CreateRenderTargetViews();
 	void CreateDepthStencilView();
 
@@ -41,6 +41,8 @@ public:
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	LRESULT OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	
+	void UpdateUI();
+
 private:
 	HINSTANCE					m_hInstance;
 	HWND						m_hWnd; 
@@ -60,11 +62,11 @@ private:
 
 	ID3D12Resource				*m_ppd3dSwapChainBackBuffers[m_nSwapChainBuffers];
 	ID3D12DescriptorHeap		*m_pd3dRtvDescriptorHeap = NULL;
-	UINT						m_nRtvDescriptorIncrementSize;
+	//UINT						m_nRtvDescriptorIncrementSize;
 
 	ID3D12Resource				*m_pd3dDepthStencilBuffer = NULL;
 	ID3D12DescriptorHeap		*m_pd3dDsvDescriptorHeap = NULL;
-	UINT						m_nDsvDescriptorIncrementSize;
+	//UINT						m_nDsvDescriptorIncrementSize;
 
 	ID3D12CommandAllocator		*m_pd3dCommandAllocator = NULL;
 	ID3D12CommandQueue			*m_pd3dCommandQueue = NULL;
@@ -81,10 +83,10 @@ private:
 	CGameTimer					m_GameTimer;
 	CPlayer						*m_pPlayer = NULL;
 	CScene						*m_pScene = NULL;
-	
+	UILayer						*m_pUILayer = NULL;
 	CCamera						*m_pCamera = NULL;
 	POINT						m_ptOldCursorPos;
-
+	WCHAR						m_InputName[50];
 	_TCHAR						m_pszFrameRate[70];
 };
 
