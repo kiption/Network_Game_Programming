@@ -10,18 +10,21 @@
 using namespace std;
 
 DWORD WINAPI ProcessClient(LPVOID arg);
-void SCMoveProcess(int client_id);
+DWORD WINAPI ServerTimer(LPVOID arg);
 
 // 클라이언트 객체 정보
 class ClientINFO {
 private:
-	int			m_id = 0;
 	SOCKET		m_sock;
+
+	int			m_id = 0;
 	bool		m_onlinestate = false;
 
-	MyVector3D	m_pos;
+	float		m_acceleator;
 	float		m_yaw, m_pitch, m_roll;
+	MyVector3D	m_pos;
 	Coordinate	m_coordinate;
+	float		m_timer;
 
 public:
 	ClientINFO() {
@@ -36,17 +39,20 @@ public:
 		m_coordinate.x_coordinate = tmp_rightvec;
 		m_coordinate.y_coordinate = tmp_upvec;
 		m_coordinate.z_coordinate = tmp_lookvec;
-
+		m_acceleator = 2.0f;
 	};
 
-	bool		getState() { return m_onlinestate; }
 	SOCKET		getSock() { return m_sock; }
+	bool		getState() { return m_onlinestate; }
 	int			getId() { return m_id; }
+	float		getAccel() { return m_acceleator; }
 	MyVector3D	getPos() { return m_pos; }
 	Coordinate	getCoordinate() { return m_coordinate; }
+	float		getTimer() {}
 
-	void		setState(bool state) { m_onlinestate = state; }
 	void		setSock(SOCKET socket) { m_sock = socket; }
+	void		setState(bool state) { m_onlinestate = state; }
+	void		setAccel(float accel) { m_acceleator = accel; }
 	void		setID(int id) { m_id = id; }
 	void		setPos(MyVector3D pos) { m_pos = pos; }
 	void		setCoordinate(Coordinate co) { m_coordinate = co; }
@@ -57,7 +63,7 @@ array<ClientINFO, MAX_USER> clients;
 int main(int argc, char* argv[])
 {
 	int retval;
-
+	::QueryPerformanceFrequency;
 	// 윈속 초기화
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
@@ -84,7 +90,9 @@ int main(int argc, char* argv[])
 	SOCKET client_sock;
 	struct sockaddr_in clientaddr;
 	int addrlen;
-	HANDLE hThread;
+	HANDLE hThread, tThread;
+
+	tThread = CreateThread(NULL, 0, ServerTimer, 0, 0, NULL);
 
 	while (1) {
 		// accept()
@@ -187,7 +195,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					MyVector3D Move_AD_Result = calcMove(clients[id].getPos(), move_dir * DefaultDir, MOVE_SCALAR);
 					clients[id].setPos(Move_AD_Result);*/
 					/*GS2C_ROTATE_PACKET S2CRotatePacket;
-					
+
 					float right_vec_x, right_vec_y, right_vec_z;
 					float up_vec_x, up_vec_y, up_vec_z;
 					float look_vec_x, look_vec_y, look_vec_z;
@@ -204,13 +212,14 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 					}*/
 
-					
+
 					break;
 				case KEY_WS:
-					move_dir = { clients[id].getCoordinate().z_coordinate.x * DefaultDir, 
+					move_dir = { clients[id].getCoordinate().z_coordinate.x * DefaultDir,
 						clients[id].getCoordinate().z_coordinate.y * DefaultDir, clients[id].getCoordinate().z_coordinate.z * DefaultDir };
 
-					MyVector3D Move_WS_Result = calcMove(clients[id].getPos(), move_dir, MOVE_SCALAR);
+
+					MyVector3D Move_WS_Result = calcMove(clients[id].getPos(), move_dir, MOVE_SCALAR, clients[id].getAccel());
 					clients[id].setPos(Move_WS_Result);
 
 					GS2C_MOVE_PACKET S2CMovePacket;
@@ -233,29 +242,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				}
 			}
 		}
-
-		
-
-
-		// ==== [세철 필독] ====
-		// retval = recv(client_sock, (char*)&패킷구조체 객체이름, sizeof(패킷구조체 종류), 0);  <- 이런식으로 send/recv해주면 댐.
-		// ====				====
-
-		// 데이터 받기
-		//retval = recv(client_sock, buf, BUFSIZE, 0);
-		//if (retval == SOCKET_ERROR) {
-		//	err_display("recv()");
-		//	break;
-		//}
-		//else if (retval == 0)
-		//	break;
-
-		// 데이터 보내기
-		//retval = send(client_sock, buf, retval, 0);
-		//if (retval == SOCKET_ERROR) {
-		//	err_display("send()");
-		//	break;
-		//}
 	}
 
 	// 소켓 닫기
@@ -265,16 +251,18 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	return 0;
 }
 
-void SCMoveProcess(int client_id)
+DWORD WINAPI ServerTimer(LPVOID arg)
 {
-	// 클라이언트 정보를 받은 뒤 제대로 작성 예정
-	// 누른 키에대한 스위치 구문 작성
-	// 프로토콜에다가 계산한 클라이언트 값 넣기
-	// 전후는 룩벡터로
+	while (1) {
+		for (int i{}; i < 3; ++i) {
+			if (clients[i].getState()) {
 
-	// 전후
-	// w,s 키
 
+
+
+			}
+		}
+	}
 }
 
 
