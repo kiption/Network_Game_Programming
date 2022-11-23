@@ -42,6 +42,7 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 	char registered;			// 등록여부
 	char input_name[NAME_LEN];	// 계정이름 
 	while (1) {
+		ASK_ALREADY_REGISTERED:
 		cout << "이미 등록된 계정이 있나요? [예: Y | 아니오: N]: ";
 		cin >> registered;
 
@@ -83,13 +84,20 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 				}
 
 				if (start_pack.start == START_APPROVAL) {
+					cout << "로그인이 허가되었습니다.\n" << endl;
 					g_gamestart = true;
 
 					closesocket(sock_forLS);
 					return 0;
 				}
+				else if (start_pack.start == START_DENY_UNKNOWNNAME) {
+					cout << "등록되지 않은 이름입니다. 등록 후 다시 로그인을 시도해주세요.\n" << endl;
+				}
+				else if (start_pack.start == START_DENY_FULL) {
+					cout << "현재 서버가 포화상태입니다. 잠시 후 다시 시도해 주세요.\n" << endl;
+				}
 				else {
-					cout << "로그인 요청이 거절되었습니다. 다시 계정을 입력해주세요.\n" << endl;
+					cout << "알 수 없는 이유로 로그인 요청이 거절되었습니다. 다시 계정을 입력해주세요.\n" << endl;
 				}
 			}
 		}
@@ -135,6 +143,10 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 				if (register_result.result) {
 					cout << "계정이 성공적으로 등록되었습니다.\n" << endl;
 					g_registerd = true;
+				}
+				else {
+					cout << "이미 존재하는 이름입니다. 다른 이름을 입력해주세요.\n" << endl;
+					goto REGISTERED_NAME_INPUT_AGAIN;
 				}
 			}
 		}

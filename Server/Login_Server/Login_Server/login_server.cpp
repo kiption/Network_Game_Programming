@@ -85,23 +85,47 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				break;
 			}
 
-			// 유저 이름이 담긴 파일 open
-			std::ofstream fout("userlist.txt");
-			if (fout.fail()) {
+			// 중복 체크
+			std::ifstream fin("userlist.txt");
+			if (fin.fail()) {
 				std::cerr << "userlist.txt 를 찾을 수 없습니다." << std::endl;
 				exit(100);
 			}
 
-			// 클라이언트로부터 받은 이름 추가
-			fout << register_pack.name << std::endl;
-			fout.close();
-			std::cout << "계정 추가 완료" << std::endl;
+			bool usable_name = true;
+			std::string saved_name;
+			std::string recved_name = register_pack.name;
+			while (fin >> saved_name) {
+				std::cout << "Saved name: " << saved_name << std::endl;
+				if (saved_name.compare(recved_name) == 0) {
+					usable_name = false;
+					break;
+				}
+			}
+
+			// 사용가능한 이름이라면, 입력받은 이름을 새롭게 등록합니다.
+			if (usable_name) {
+				// 유저 이름이 담긴 파일 open
+				std::ofstream fout("userlist.txt", std::ios::app);
+				if (fout.fail()) {
+					std::cerr << "userlist.txt 를 찾을 수 없습니다." << std::endl;
+					exit(100);
+				}
+
+				// 클라이언트로부터 받은 이름 추가
+				fout << register_pack.name << "\n";
+				fout.close();
+				std::cout << "계정 추가 완료" << std::endl;
+			}
 
 			// 계정 등록 결과 전송
 			LS2C_REGISTER_PACKET result_pack;
 			result_pack.size = sizeof(LS2C_REGISTER_PACKET);
 			result_pack.type = LS2C_REGISTER;
-			result_pack.result = true;
+			if (usable_name)
+				result_pack.result = true;
+			else
+				result_pack.result = false;
 
 			retval = send(client_sock, (char*)&result_pack, sizeof(LS2C_REGISTER_PACKET), 0);
 			if (retval == SOCKET_ERROR) {
@@ -118,33 +142,61 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				break;
 			}
 
-			// id 할당
-			bool approval = true;
-			for (int i = 0; i < MAX_USER; i++) {
-				if (clients[i].getState() == SESSION_EMPTY) {
-					client_id = i;
-
-					clients[i].setState(SESSION_RUNNING);
-					clients[i].setId(client_id);
-					break;
-				}
-
-				if (i == MAX_USER - 1 && clients[i].getState() == SESSION_RUNNING) {
-					std::cout << "Max Users Exceeded!" << std::endl;
-					approval = false;
-				}
+			// 유저 이름이 담긴 파일 open
+			std::ifstream fin("userlist.txt");
+			if (fin.fail()) {
+				std::cerr << "userlist.txt 를 찾을 수 없습니다." << std::endl;
+				exit(100);
 			}
 
-			clients[client_id].setName(login_pack.name);
-			std::cout << "Clients[" << clients[client_id].getId() << "]'s Name: " << clients[client_id].getName() << std::endl;
+			// 클라이언트로부터 받은 이름이 계정 정보에 존재하는 지 확인.
+			bool name_exist = false;
+			std::string saved_name;
+			std::string recved_name = login_pack.name;
+			while (fin >> saved_name) {
+				std::cout << "Saved name: " << saved_name << std::endl;
+				if (saved_name.compare(recved_name) == 0) {
+					std::cout << "계정 [" << login_pack.name << "]이 확인되었습니다." << std::endl;
+					name_exist = true;
+					break;
+				}
+			}
+			fin.close();
+
+			bool approval = true;
+			if (!name_exist) {
+				std::cout << "존재하지 않는 계정입니다. 등록 후 다시 시도해주세요." << std::endl;
+			}
+			else {
+				// id 할당
+				for (int i = 0; i < MAX_USER; i++) {
+					if (clients[i].getState() == SESSION_EMPTY) {
+						client_id = i;
+
+						clients[client_id].setState(SESSION_RUNNING);
+						clients[client_id].setId(client_id);
+						clients[client_id].setName(login_pack.name);
+						std::cout << "Clients[" << clients[client_id].getId() << "]'s Name: " << clients[client_id].getName() << std::endl;
+						break;
+					}
+
+					if (i == MAX_USER - 1 && clients[i].getState() == SESSION_RUNNING) {
+						std::cout << "Max Users Exceeded!" << std::endl;
+						approval = false;
+					}
+				}
+			}
 
 			LS2C_GAMESTART_PACKET start_pack;
 			start_pack.size = sizeof(LS2C_GAMESTART_PACKET);
 			start_pack.type = LS2C_GAMESTART;
-			if (approval)
+			if (approval && name_exist)
 				start_pack.start = START_APPROVAL;
-			else
-				start_pack.start = START_DENY;
+			else if (!name_exist)	// 입력된 계정 이름이 존재하지 않는 이름일때
+				start_pack.start = START_DENY_UNKNOWNNAME;
+			else if (!approval)		// 서버가 포화상태일 때
+				start_pack.start = START_DENY_FULL;
+			
 			std::cout << "Packet Size: " << sizeof(start_pack) << std::endl;
 			
 			retval = send(client_sock, (char*)&start_pack, sizeof(LS2C_GAMESTART_PACKET), 0);
@@ -152,12 +204,14 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				err_display("send()");
 			}
 
-			break;
+			if (approval && name_exist)	break;
 		}
 
 	}
 
-	if (clients[client_id].getState() == SESSION_RUNNING)
+	// Session Clear
+	short curr_state = clients[client_id].getState();
+	if (curr_state == SESSION_RUNNING)
 		clients[client_id].clearSession();
 
 	closesocket(client_sock);
