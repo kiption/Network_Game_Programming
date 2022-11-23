@@ -4,7 +4,7 @@
 
 #include "stdafx.h"
 #include "Scene.h"
-
+#include "ObjINFO.h"
 random_device ItemVal;
 default_random_engine ItemRanVal(ItemVal());
 uniform_int_distribution<>PresentItemVal(1, 3);
@@ -132,7 +132,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	CMaterialColors* pMaterialColors = new CMaterialColors();
 	pMaterialColors->m_xmf4Ambient = XMFLOAT4(0.1f, 0.2f, 0.1f, 0.5f);
 	pMaterialColors->m_xmf4Diffuse = XMFLOAT4(0.15f, 0.45f, 0.05f, 1.0f);
-	pMaterialColors->m_xmf4Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f); 
+	pMaterialColors->m_xmf4Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 	pMaterialColors->m_xmf4Emissive = XMFLOAT4(0.2f, 0.5f, 0.2f, 1.0f);
 	CMaterial* pMaterial = new CMaterial();
 	pMaterial->SetShader(pTerrainShader);
@@ -160,7 +160,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pCollisionTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("Assets/Image/Terrain/SquareMap.raw"), 513, 513, 16, 16, xmf3collisionScale, xmf4Color);
 	m_pCollisionTerrain->SetPosition(xmf3collisionPos);
 	m_pCollisionTerrain->SetMaterial(pCollisonMaterial);
-	
+
 
 	m_nGameObjects = 179;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
@@ -191,9 +191,9 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		m_ppGameObjects[i] = new CObstacleObject();
 		m_ppGameObjects[i]->SetChild(pBoxModel, true);
 		m_ppGameObjects[i]->SetScale(80.0f, 80.0f, 80.0f);
-		m_ppGameObjects[i]->SetPosition(350.0f+(i*40), 20.0f, 800.0f);
+		m_ppGameObjects[i]->SetPosition(350.0f + (i * 40), 20.0f, 800.0f);
 		m_ppGameObjects[i]->Rotate(45.0f, 0.0f, 0.0f);
-	}	
+	}
 
 	CGameObjcet* pArrowModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Arrow5.bin");
 	CObstacleObject* pArrow1 = NULL;
@@ -231,7 +231,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pArrow4->SetPosition(330.0f, 25.0f, 340.0f);
 	pArrow4->Rotate(0.0f, 90.0f, 0.0f);
 	m_ppGameObjects[8] = pArrow4;
-	
+
 
 	CGameObjcet* pMiddleLineModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Tree.bin");
 	for (int i = 9; i < 179; i++)
@@ -240,11 +240,11 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		m_ppGameObjects[i]->SetChild(pMiddleLineModel, true);
 		m_ppGameObjects[i]->SetScale(3.0f, 10.0f, 3.0f);
 	}
-	for (int i = 9; i < 50; i++)m_ppGameObjects[i]->SetPosition(280.0, 6.0f, 0.0f + (float)i*45);
-	for (int i = 50; i < 56; i++)m_ppGameObjects[i]->SetPosition(((float)(i-50) * 25)+220.0+cos(radian)*70.0, 6.0f, ((float)(i-50) * 25 )+2230.0+sin(radian)*70.0);
-	for (int i = 56; i <97; i++)m_ppGameObjects[i]->SetPosition(450.0+(float)((i-56) * 45.0), 6.0f, 2350.0);
-	for (int i = 97; i < 138; i++)m_ppGameObjects[i]->SetPosition(2300.0, 6.0f, 0.0f + 280.0+(float)((i-97) * 45));
-	for (int i = 138; i < 179; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i-138) * 45.0), 6.0f, 250.0);
+	for (int i = 9; i < 50; i++)m_ppGameObjects[i]->SetPosition(280.0, 6.0f, 0.0f + (float)i * 45);
+	for (int i = 50; i < 56; i++)m_ppGameObjects[i]->SetPosition(((float)(i - 50) * 25) + 220.0 + cos(radian) * 70.0, 6.0f, ((float)(i - 50) * 25) + 2230.0 + sin(radian) * 70.0);
+	for (int i = 56; i < 97; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 56) * 45.0), 6.0f, 2350.0);
+	for (int i = 97; i < 138; i++)m_ppGameObjects[i]->SetPosition(2300.0, 6.0f, 0.0f + 280.0 + (float)((i - 97) * 45));
+	for (int i = 138; i < 179; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 138) * 45.0), 6.0f, 250.0);
 
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
@@ -396,31 +396,34 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 
 void CScene::CheckPlayerByRandomBoxCollisions()
 {
-	for (int i = 2; i < 5; ++i) {
+	objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	objinfo.m_xoobb.ItemboxOOBB = BoundingOrientedBox(XMFLOAT3(350.0f + (2 * 40), 20.0f, 800.0f), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 
-		m_ppGameObjects[i]->SetRotationSpeed(2.0f);
-		m_ppGameObjects[i]->Rotate(0, m_ppGameObjects[i]->m_fRotationSpeed, 0);
+	for (int i = 2; i < 3; ++i) {
 
-		if (m_ppGameObjects[i]->m_Boobb.Intersects(m_pPlayer->m_Boobb)) {
-			m_ppGameObjects[i]->m_bObjectCollideCheck = true;
+		m_ppGameObjects[2]->SetRotationSpeed(2.0f);
+		m_ppGameObjects[2]->Rotate(0, m_ppGameObjects[2]->m_fRotationSpeed, 0);
+
+		if (objinfo.m_xoobb.ItemboxOOBB.Intersects(objinfo.m_xoobb.PlayerOOBB)) {
+			m_ppGameObjects[2]->m_bObjectCollideCheck = true;
 		}
-		if (m_ppGameObjects[i]->m_bObjectCollideCheck) {
-			m_ppGameObjects[i]->m_xmf4x4Transform._42 -= 0.5f;
-			if (m_ppGameObjects[i]->m_xmf4x4Transform._42 < -100.0) {
-				m_ppGameObjects[i]->m_bObjectCollideCheck = false;
-				m_ppGameObjects[i]->m_bObjectRising = true;
+		if (m_ppGameObjects[2]->m_bObjectCollideCheck) {
+			m_ppGameObjects[2]->m_xmf4x4Transform._42 -= 0.5f;
+			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 < -100.0) {
+				m_ppGameObjects[2]->m_bObjectCollideCheck = false;
+				m_ppGameObjects[2]->m_bObjectRising = true;
 				int RandomItemVal = PresentItemVal(ItemRanVal);
 				m_pPlayer->m_iItemVal = RandomItemVal;
 			}
 		}
 
 		else {
-			if (m_ppGameObjects[i]->m_bObjectRising) {
-				m_ppGameObjects[i]->m_xmf4x4Transform._42 += 1.5f;
-			}
-			if (m_ppGameObjects[i]->m_xmf4x4Transform._42 >= 20.0f) {
-				m_ppGameObjects[i]->m_xmf4x4Transform._42 = 20.0f;
-				m_ppGameObjects[i]->m_bObjectRising = false;
+			if (m_ppGameObjects[2]->m_bObjectRising) {
+				m_ppGameObjects[2]->m_xmf4x4Transform._42 += 1.5f;
+			}					
+			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 >= 20.0f) {
+				m_ppGameObjects[2]->m_xmf4x4Transform._42 = 20.0f;
+				m_ppGameObjects[2]->m_bObjectRising = false;
 			}
 		}
 	}
@@ -460,7 +463,7 @@ void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 	{
 		m_bCollisionCheck = false;
 	}
-	
+
 }
 
 void CScene::CheckPlayerByPlayerCollisions(float fTimeElapsed)
@@ -477,13 +480,17 @@ void CScene::CheckMissileByPlayerCollisions(float fTimeElapsed)
 {
 
 	CBulletObject** ppBullets = ((CMyPlayer*)m_pPlayer)->m_ppBullets;
-	for (int i = 0; i < 2; i++) {
+	objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 
+	for (int i = 0; i < 2; i++) {
 		for (int j = 0; j < BULLETS; j++)
 		{
-			if (ppBullets[j]->m_bActive && (m_ppGameObjects[0]->m_Boobb.Intersects(ppBullets[j]->m_Boobb)))
+			// Coordinate None Recv
+			// ppBullets[j]->m_Boobb = objinfo.m_xoobb.MissileOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(2.0, 2.0, 4.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+			
+			if (ppBullets[j]->m_bActive && (objinfo.m_xoobb.PlayerOOBB.Intersects(ppBullets[j]->m_Boobb)))
 			{
-
+				cout << "Collision!!-Missile" << endl;
 				m_bMissileCollision = true;
 
 			}
@@ -522,10 +529,10 @@ void CScene::TrapProcess()
 void CScene::CheckTrapByPlayerCollisions(float fTimeElapsed)
 {
 	CTrapObject* ppTrap = ((CMyPlayer*)m_pPlayer)->m_pTrapObject;
-
+	objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 	for (int i = 0; i < 2; i++)
 	{
-		if ((m_ppGameObjects[0]->m_Boobb.Intersects(ppTrap->m_Boobb)))
+		if ((objinfo.m_xoobb.PlayerOOBB.Intersects(ppTrap->m_Boobb)))
 		{
 			m_bTrapCollision = true;
 		}

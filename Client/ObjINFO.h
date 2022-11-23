@@ -2,8 +2,18 @@
 #include <array>
 #include "../Server/Common/protocol.h"
 #include "../Server/Common/MyVectors.h"
+#include "stdafx.h"
 
 enum OBJECT_STATE { OBJ_ST_EMPTY, OBJ_ST_LOGOUT, OBJ_ST_RUNNING };
+struct BoundingBoxInfo
+{
+	BoundingOrientedBox ItemboxOOBB = BoundingOrientedBox();
+	BoundingOrientedBox MissileOOBB = BoundingOrientedBox();
+	BoundingOrientedBox TrapOOBB = BoundingOrientedBox();
+	BoundingOrientedBox PlayerOOBB = BoundingOrientedBox();
+
+};
+
 struct ObjINFO
 {
 	short m_id;
@@ -11,6 +21,7 @@ struct ObjINFO
 	MyVector3D m_right_vec;
 	MyVector3D m_up_vec;
 	MyVector3D m_look_vec;
+	BoundingBoxInfo m_xoobb;
 	int m_state;
 
 	ObjINFO() {
@@ -21,6 +32,10 @@ struct ObjINFO
 		m_look_vec = { 0.0f, 0.0f, 1.0f };
 		m_state = OBJ_ST_EMPTY;
 	}
+
+	XMFLOAT3 GetPosition() { return XMFLOAT3(m_x, m_y, m_z); };
 };
+ObjINFO objinfo;
+
 
 std::array<ObjINFO, MAX_USER> players_info;
