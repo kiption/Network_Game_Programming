@@ -12,6 +12,7 @@ struct ITeminfo
 	bool Booster;
 };
 
+XMFLOAT3 GetPosition() { return XMFLOAT3(vec3.x, vec3.y, vec3.z); };
 struct BoundingBoxInfo
 {
 	BoundingOrientedBox ItemboxOOBB = BoundingOrientedBox(GetPosition(), XMFLOAT3(4.0, 4.0, 4.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
@@ -21,7 +22,6 @@ struct BoundingBoxInfo
 
 };
 
-XMFLOAT3 GetPosition() { return XMFLOAT3(vec3.x, vec3.y, vec3.z); };
 
 void TerrainExitCollision(MyVector3D vec , float veclocity, float scarla);
 int ITemBoxCollision();

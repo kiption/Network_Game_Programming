@@ -50,29 +50,12 @@ std::array<SESSION, MAX_USER> clients;
 // 클라이언트와 통신하는 스레드
 DWORD WINAPI ProcessClient(LPVOID arg)
 {
-	// id 할당
 	int client_id = -1;
-	for (int i = 0; i < MAX_USER; i++) {
-		if (clients[i].getState() == SESSION_EMPTY) {
-			client_id = i;
-
-			clients[i].setState(SESSION_RUNNING);
-			clients[i].setId(client_id);
-			break;
-		}
-
-		if (i == MAX_USER - 1 && clients[i].getState() == SESSION_RUNNING) {
-			std::cout << "Max Users Exceeded!" << std::endl;
-			return 0;
-		}
-	}
 
 	SOCKET client_sock = (SOCKET)arg;
 	struct sockaddr_in clientaddr;
 	char addr[INET_ADDRSTRLEN];
 	int addrlen;
-
-	clients[client_id].setSock(client_sock);	// 소켓 정보 저장
 
 	int retval;
 	// 클라이언트 정보 얻기
@@ -80,22 +63,18 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	getpeername(client_sock, (struct sockaddr*)&clientaddr, &addrlen);
 	inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 
-	int recved_size = 0;
-
 	while (1) {
 		//test
+		Recv_Again:
 		PACKET_INFO recv_info;
 		retval = recv(client_sock, (char*)&recv_info, sizeof(PACKET_INFO), MSG_PEEK);	// MSG_PEEK을 사용하여 수신버퍼를 읽지만 가져오지는 않도록
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
 			break;
 		}
-
-		std::cout << "packet's size: " << recv_info.size << std::endl;
-		if (recv_info.type == C2LS_LOGIN)
-			std::cout << "This packet is C2LS_LOGIN Packet" << std::endl;
-
-		recved_size += sizeof(PACKET_INFO);
+		else if (retval == 0) {
+			goto Recv_Again;
+		}
 
 		switch (recv_info.type) {
 		case C2LS_REGISTER: {
@@ -138,13 +117,34 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				err_display("recv()");
 				break;
 			}
+
+			// id 할당
+			bool approval = true;
+			for (int i = 0; i < MAX_USER; i++) {
+				if (clients[i].getState() == SESSION_EMPTY) {
+					client_id = i;
+
+					clients[i].setState(SESSION_RUNNING);
+					clients[i].setId(client_id);
+					break;
+				}
+
+				if (i == MAX_USER - 1 && clients[i].getState() == SESSION_RUNNING) {
+					std::cout << "Max Users Exceeded!" << std::endl;
+					approval = false;
+				}
+			}
+
 			clients[client_id].setName(login_pack.name);
 			std::cout << "Clients[" << clients[client_id].getId() << "]'s Name: " << clients[client_id].getName() << std::endl;
 
 			LS2C_GAMESTART_PACKET start_pack;
 			start_pack.size = sizeof(LS2C_GAMESTART_PACKET);
 			start_pack.type = LS2C_GAMESTART;
-			start_pack.start = START_APPROVAL;
+			if (approval)
+				start_pack.start = START_APPROVAL;
+			else
+				start_pack.start = START_DENY;
 			std::cout << "Packet Size: " << sizeof(start_pack) << std::endl;
 			
 			retval = send(client_sock, (char*)&start_pack, sizeof(LS2C_GAMESTART_PACKET), 0);
@@ -179,7 +179,7 @@ int main(int argc, char* argv[])
 	memset(&serveraddr, 0, sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
 	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serveraddr.sin_port = htons(SERVERPORT);
+	serveraddr.sin_port = htons(LOGIN_SERVER_PORT);
 	retval = bind(listen_sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
 	if (retval == SOCKET_ERROR) err_quit("bind()");
 

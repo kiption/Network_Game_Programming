@@ -1,4 +1,6 @@
-constexpr int SERVER_PORT = 9000;
+constexpr int LOGIN_SERVER_PORT = 9000;
+constexpr int GAME_SERVER_PORT = 10000;
+
 constexpr int BUF_SIZE = 200;
 constexpr int NAME_LEN = 10;
 
@@ -13,9 +15,6 @@ constexpr char C2LS_LOGIN = 0;
 constexpr char C2LS_REGISTER = 1;
 constexpr char LS2C_REGISTER = 2;
 constexpr char LS2C_GAMESTART = 3;
-
-// Process Key
-constexpr char C2GS_INPUT_KEYBOARD = 6;
 
 // Packets ( C: Client / LS: Login Server / GS: Game Server )
 #pragma pack (push, 1)
@@ -43,7 +42,7 @@ struct LS2C_REGISTER_PACKET {
 	bool result;
 };
 
-enum{START_DENY, START_APPROVAL};
+enum { START_DENY, START_APPROVAL };
 struct LS2C_GAMESTART_PACKET {
 	short size;
 	char type;
@@ -101,7 +100,7 @@ struct GS2C_ADD_OBJ_PACKET {
 	char type;
 	short id;
 	short objtype;
-	
+
 };
 
 #pragma pack (pop)

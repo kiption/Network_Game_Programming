@@ -24,42 +24,27 @@ INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
-	//==== Server
+	//=== Server
+	int retval;
+
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
 		return -1;
 	}
 
-	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == INVALID_SOCKET) err_quit("socket()");
-
-	struct sockaddr_in serveraddr;
-	memset(&serveraddr, 0, sizeof(serveraddr));
-	serveraddr.sin_family = AF_INET;
-	inet_pton(AF_INET, SERVERIP, &serveraddr.sin_addr);
-	serveraddr.sin_port = htons(SERVER_PORT);
-	retval = connect(sock, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
-	if (retval == SOCKET_ERROR) err_quit("connect()");
-
-	// 통신담당 (주로 recv) 스레드 생성
-	HANDLE networkThread = CreateThread(NULL, 0, NetworkingThreadFunc, (LPVOID)sock, 0, NULL);
-
-	Sleep(1000);
-	SetEvent(h_network_th);
-
-	int retval = WaitForSingleObject(h_main_th, 20000);	// 신호 상태가 될때까지 대기
-	if (retval == WAIT_OBJECT_0) {
-		cout << "Game Start!" << endl;
+	// 클라-로그인서버 통신담당 스레드 생성
+	HANDLE h_networkLS_th = CreateThread(NULL, 0, Network_WithLS_ThreadFunc, NULL, 0, NULL);
+	SetEvent(h_thread_event_LS);
+	
+	// 로그인 서버로부터 게임 로그인이 허가될 때까지 대기.
+	while (!g_gamestart) {
+		Sleep(100);
 	}
-	else if (retval == WAIT_TIMEOUT) {
-		cout << "[Timeout] 게임진입 요청이 거부되었습니다." << endl;
-		cout << "프로그램을 종료합니다." << endl;
-		Sleep(1500);
-		return 0;
-	}
-	else {
-		return -1;
-	}
+	cout << "Game Start" << endl;
+
+	// 클라-게임서버 통신담당 스레드 생성
+	HANDLE h_networkGS_th = CreateThread(NULL, 0, Network_WithGS_ThreadFunc, NULL, 0, NULL);
+	SetEvent(h_thread_event_GS);
 	//===
 
 
@@ -95,7 +80,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	}
 	gGameFramework.OnDestroy();
 
-	CloseHandle(networkThread);
+	CloseHandle(h_networkLS_th);
 	return((int)msg.wParam);
 }
 
