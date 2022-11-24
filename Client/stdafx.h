@@ -4,6 +4,14 @@
 //
 
 #pragma once
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "d2d1.lib")
+#pragma comment(lib, "dwrite.lib")
+#pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "windowscodecs.lib")
 #pragma comment(linker, "/entry:wWinMainCRTStartup /subsystem:console") // cmd 창 관련 링커
 #define WIN32_LEAN_AND_MEAN             // 거의 사용되지 않는 내용은 Windows 헤더에서 제외합니다.
 // Windows 헤더 파일:
@@ -33,6 +41,7 @@ using namespace std;
 #include <d2d1_3.h>
 #include <D3Dcompiler.h>
 #include <d3d11on12.h>
+#include <D3Dcompiler.h>
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
 #include <DirectXColors.h>
@@ -42,6 +51,11 @@ using namespace std;
 #include <dwrite.h>
 #include <d3d11on12.h>
 #include <wrl.h>
+#include <dwrite_1.h>
+#include <d2d1_1helper.h>
+#include <d2d1effects.h>
+#include <wincodec.h>
+#include <dxgi1_4.h>
 
 #include <process.h>
 #include <float.h>
@@ -71,13 +85,7 @@ using Microsoft::WRL::ComPtr;
 //#define _WITH_CB_GAMEOBJECT_ROOT_DESCRIPTOR
 #define _WITH_CB_WORLD_MATRIX_DESCRIPTOR_TABLE
 
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "d2d1.lib")
-#pragma comment(lib, "dwrite.lib")
-#pragma comment(lib, "dxguid.lib")
+
 
 // TODO: 프로그램에 필요한 추가 헤더는 여기에서 참조합니다.
 
@@ -95,7 +103,11 @@ extern ID3D12Resource* CreateTexture2DResource(ID3D12Device* pd3dDevice, ID3D12G
 #define RANDOM_COLOR			XMFLOAT4(rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX), rand() / float(RAND_MAX))
 
 #define EPSILON					1.0e-10f
+#define _WITH_DIRECT2D
 
+#ifdef _WITH_DIRECT2D
+#define _WITH_DIRECT2D_IMAGE_EFFECT
+#endif
 inline bool IsZero(float fValue) { return((fabsf(fValue) < EPSILON)); }
 inline bool IsEqual(float fA, float fB) { return(::IsZero(fA - fB)); }
 inline float InverseSqrt(float fValue) { return 1.0f / sqrtf(fValue); }
