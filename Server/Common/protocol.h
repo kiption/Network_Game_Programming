@@ -42,7 +42,7 @@ struct LS2C_REGISTER_PACKET {
 	bool result;
 };
 
-enum { START_DENY, START_APPROVAL };
+enum { START_DENY_UNKNOWNNAME, START_DENY_FULL, START_APPROVAL };
 struct LS2C_GAMESTART_PACKET {
 	short size;
 	char type;
