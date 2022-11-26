@@ -4,7 +4,7 @@
 
 #include "stdafx.h"
 #include "Scene.h"
-#include "ObjINFO.h"
+//#include "ObjINFO.h"
 random_device ItemVal;
 default_random_engine ItemRanVal(ItemVal());
 uniform_int_distribution<>PresentItemVal(1, 3);
@@ -396,17 +396,17 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 
 void CScene::CheckPlayerByRandomBoxCollisions()
 {
-	objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-	objinfo.m_xoobb.ItemboxOOBB = BoundingOrientedBox(XMFLOAT3(350.0f + (2 * 40), 20.0f, 800.0f), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	//objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	//objinfo.m_xoobb.ItemboxOOBB = BoundingOrientedBox(XMFLOAT3(350.0f + (2 * 40), 20.0f, 800.0f), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 
 	for (int i = 2; i < 3; ++i) {
 
 		m_ppGameObjects[2]->SetRotationSpeed(2.0f);
 		m_ppGameObjects[2]->Rotate(0, m_ppGameObjects[2]->m_fRotationSpeed, 0);
 
-		if (objinfo.m_xoobb.ItemboxOOBB.Intersects(objinfo.m_xoobb.PlayerOOBB)) {
-			m_ppGameObjects[2]->m_bObjectCollideCheck = true;
-		}
+		//if (objinfo.m_xoobb.ItemboxOOBB.Intersects(objinfo.m_xoobb.PlayerOOBB)) {
+		//	m_ppGameObjects[2]->m_bObjectCollideCheck = true;
+		//}
 		if (m_ppGameObjects[2]->m_bObjectCollideCheck) {
 			m_ppGameObjects[2]->m_xmf4x4Transform._42 -= 0.5f;
 			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 < -100.0) {
@@ -420,7 +420,7 @@ void CScene::CheckPlayerByRandomBoxCollisions()
 		else {
 			if (m_ppGameObjects[2]->m_bObjectRising) {
 				m_ppGameObjects[2]->m_xmf4x4Transform._42 += 1.5f;
-			}					
+			}
 			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 >= 20.0f) {
 				m_ppGameObjects[2]->m_xmf4x4Transform._42 = 20.0f;
 				m_ppGameObjects[2]->m_bObjectRising = false;
@@ -480,20 +480,20 @@ void CScene::CheckMissileByPlayerCollisions(float fTimeElapsed)
 {
 
 	CBulletObject** ppBullets = ((CMyPlayer*)m_pPlayer)->m_ppBullets;
-	objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	//objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 
 	for (int i = 0; i < 2; i++) {
 		for (int j = 0; j < BULLETS; j++)
 		{
 			// Coordinate None Recv
 			// ppBullets[j]->m_Boobb = objinfo.m_xoobb.MissileOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(2.0, 2.0, 4.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-			
-			if (ppBullets[j]->m_bActive && (objinfo.m_xoobb.PlayerOOBB.Intersects(ppBullets[j]->m_Boobb)))
-			{
-				cout << "Collision!!-Missile" << endl;
-				m_bMissileCollision = true;
 
-			}
+			//if (ppBullets[j]->m_bActive && (objinfo.m_xoobb.PlayerOOBB.Intersects(ppBullets[j]->m_Boobb)))
+			//{
+			//	cout << "Collision!!-Missile" << endl;
+			//	m_bMissileCollision = true;
+
+			//}
 		}
 	}
 
@@ -529,14 +529,14 @@ void CScene::TrapProcess()
 void CScene::CheckTrapByPlayerCollisions(float fTimeElapsed)
 {
 	CTrapObject* ppTrap = ((CMyPlayer*)m_pPlayer)->m_pTrapObject;
-	objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-	for (int i = 0; i < 2; i++)
-	{
-		if ((objinfo.m_xoobb.PlayerOOBB.Intersects(ppTrap->m_Boobb)))
-		{
-			m_bTrapCollision = true;
-		}
-	}
+	//objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	//for (int i = 0; i < 2; i++)
+	//{
+	//	if ((objinfo.m_xoobb.PlayerOOBB.Intersects(ppTrap->m_Boobb)))
+	//	{
+	//		m_bTrapCollision = true;
+	//	}
+	//}
 
 	if (m_bTrapCollision == true)
 	{

@@ -24,7 +24,9 @@ INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
-	//=== Server
+	//==================================================
+	//					Server Code
+	//==================================================
 	int retval;
 
 	WSADATA wsa;
@@ -35,7 +37,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	// 클라-로그인서버 통신담당 스레드 생성
 	HANDLE h_networkLS_th = CreateThread(NULL, 0, Network_WithLS_ThreadFunc, NULL, 0, NULL);
 	SetEvent(h_thread_event_LS);
-	
+
 	// 로그인 서버로부터 게임 로그인이 허가될 때까지 대기.
 	while (!g_gamestart) {
 		Sleep(100);
@@ -45,7 +47,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	// 클라-게임서버 통신담당 스레드 생성
 	HANDLE h_networkGS_th = CreateThread(NULL, 0, Network_WithGS_ThreadFunc, NULL, 0, NULL);
 	SetEvent(h_thread_event_GS);
-	//===
+	//==================================================
+
 
 
 	UNREFERENCED_PARAMETER(hPrevInstance);

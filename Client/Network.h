@@ -1,6 +1,6 @@
 #pragma once
 #include "../Server/Common/Common.h"
-#include "../Server/Common/protocol.h"
+#include "ObjINFO.h"
 
 char* SERVERIP = (char*)"127.0.0.1";
 
@@ -42,7 +42,7 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 	char registered;			// 등록여부
 	char input_name[NAME_LEN];	// 계정이름 
 	while (1) {
-		ASK_ALREADY_REGISTERED:
+	ASK_ALREADY_REGISTERED:
 		cout << "이미 등록된 계정이 있나요? [예: Y | 아니오: N]: ";
 		cin >> registered;
 
@@ -170,31 +170,51 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 	if (retval != WAIT_OBJECT_0) return -1;
 
 	// 소켓 생성 및 connect
-	SOCKET GS_sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (GS_sock == INVALID_SOCKET) err_quit("socket()");
+	sock_forGS = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock_forGS == INVALID_SOCKET)
+		err_quit("socket()");
 
-	struct sockaddr_in gameserver_addr;
-	memset(&gameserver_addr, 0, sizeof(gameserver_addr));
-	gameserver_addr.sin_family = AF_INET;
-	gameserver_addr.sin_addr.s_addr = inet_addr(SERVERIP);
-	gameserver_addr.sin_port = htons(GAME_SERVER_PORT);
-	retval = connect(GS_sock, (struct sockaddr*)&gameserver_addr, sizeof(gameserver_addr));
-	if (retval == SOCKET_ERROR) err_quit("connect()");
+	struct sockaddr_in game_server_addr;
+	memset(&game_server_addr, 0, sizeof(game_server_addr));
+	game_server_addr.sin_family = AF_INET;
+	game_server_addr.sin_addr.s_addr = inet_addr(SERVERIP);
+	game_server_addr.sin_port = htons(GAME_SERVER_PORT);
+	retval = connect(sock_forGS, (struct sockaddr*)&game_server_addr, sizeof(game_server_addr));
+	if (retval == SOCKET_ERROR)
+		err_quit("connect()");
 
 	// Recv
+	int client_id = -1;
 	while (1) {
-	GS_RECV_AGAIN:
 		PACKET_INFO recv_info;
-
-		retval = recv(GS_sock, (char*)&recv_info, sizeof(PACKET_INFO), MSG_PEEK);	// MSG_PEEK을 사용하여 수신버퍼를 읽지만 가져오지는 않도록
+		retval = recv(sock_forGS, (char*)&recv_info, sizeof(PACKET_INFO), MSG_PEEK);	// MSG_PEEK을 사용하여 수신버퍼를 읽지만 가져오지는 않도록
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
 		}
 		else if (retval == 0) {
-			goto GS_RECV_AGAIN;
+			break;
 		}
 
 		switch (recv_info.type) {
+		case GS2C_LOGIN_INFO:
+			GS2C_LOGIN_INFO_PACKET login_info_pack;
+			retval = recv(sock_forGS, (char*)&login_info_pack, sizeof(GS2C_LOGIN_INFO_PACKET), MSG_WAITALL);
+			if (retval == SOCKET_ERROR) {
+				err_display("recv()");
+			}
+
+			// 서버로부터 할당받은 id
+			client_id = login_info_pack.id;
+
+			// 클라 내 객체정보 컨테이너에 서버로 부터 받은 값을 저장합니다.
+			players_info[client_id].m_id = client_id;
+			players_info[client_id].m_pos = { login_info_pack.pos_x, login_info_pack.pos_y, login_info_pack.pos_z };
+			players_info[client_id].m_right_vec = { login_info_pack.right_vec_x, login_info_pack.right_vec_y, login_info_pack.right_vec_z };
+			players_info[client_id].m_up_vec = { login_info_pack.up_vec_x, login_info_pack.up_vec_y, login_info_pack.up_vec_z };
+			players_info[client_id].m_look_vec = { login_info_pack.look_vec_x, login_info_pack.look_vec_y, login_info_pack.look_vec_z };
+			players_info[client_id].m_state = OBJ_ST_RUNNING;
+
+			break;
 		default:
 			break;
 		}

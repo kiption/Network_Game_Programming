@@ -10,13 +10,32 @@ constexpr int WORLD_X_POS = 2000;
 constexpr int WORLD_Y_POS = 2000;
 constexpr int WORLD_Z_POS = 2000;
 
+//===================================
 // Packet ID
+//===================================
+// C -> LS
 constexpr char C2LS_LOGIN = 0;
 constexpr char C2LS_REGISTER = 1;
+// LS -> C
 constexpr char LS2C_REGISTER = 2;
 constexpr char LS2C_GAMESTART = 3;
+// C -> GS
+constexpr char C2GS_LOGIN = 4;
+constexpr char C2GS_KEYVALUE = 5;
+// GS -> C
+constexpr char GS2C_LOGIN_INFO = 6;
+constexpr char GS2C_GET_ITME = 7;
+constexpr char GS2C_MOVE = 8;
+constexpr char GS2C_ROTATE = 9;
+constexpr char GS2C_ADD_OBJ = 10;
 
-// Packets ( C: Client / LS: Login Server / GS: Game Server )
+
+//===================================
+// Packets
+//   C: Client
+//   LS: Login Server
+//   GS: Game Server )
+//===================================
 #pragma pack (push, 1)
 struct PACKET_INFO {
 	short size;
