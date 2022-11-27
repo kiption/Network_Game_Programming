@@ -5,6 +5,8 @@
 #include "GameFramework.h"
 #include "UILayer.h"
 
+queue<short> q_input_key;
+
 //HANDLE networkThread;
 CGameFramework::CGameFramework()
 {
@@ -590,52 +592,60 @@ void CGameFramework::ProcessInput()
 	if (!bProcessedByScene)
 	{
 		DWORD dwDirection = 0;
+		short keyValue = 0b00000;	// 0b[Space][Up][Down][Right][Left]
 		if (pKeysBuffer[VK_UP] & 0xF0) {
 			dwDirection |= DIR_FORWARD;
+			keyValue += 0b01000;
 		}
 		if (pKeysBuffer[VK_DOWN] & 0xF0) {
 			dwDirection |= DIR_BACKWARD;
+			keyValue += 0b00100;
 		}
 		if (pKeysBuffer[VK_RIGHT] & 0xF0) {
 			dwDirection |= DIR_RIGHT;
+			keyValue += 0b00010;
 		}
 		if (pKeysBuffer[VK_LEFT] & 0xF0) {
 			dwDirection |= DIR_LEFT;
+			keyValue += 0b00001;
 		}
 
-		if ((dwDirection != 0))
-		{
-			if (dwDirection)
-			{
-				if (m_pScene->m_bCollisionCheck == true)
-				{
-					Velocity = 1.0f;
-					//dwDirection *= -1;
-				}
-				else
-				{
-					Velocity = 4.0f;
-					if (pKeysBuffer[VK_SHIFT] & 0xF0)
-						m_pPlayer->Move(dwDirection, Velocity + 4.0f, false);
+		if (keyValue != 0b00000)
+			q_input_key.push(keyValue);
 
-				}
-				m_pPlayer->Move(dwDirection, Velocity, false);
+	//	if ((dwDirection != 0))
+	//	{
+	//		if (dwDirection)
+	//		{
+	//			if (m_pScene->m_bCollisionCheck == true)
+	//			{
+	//				Velocity = 1.0f;
+	//				//dwDirection *= -1;
+	//			}
+	//			else
+	//			{
+	//				Velocity = 4.0f;
+	//				if (pKeysBuffer[VK_SHIFT] & 0xF0)
+	//					m_pPlayer->Move(dwDirection, Velocity + 4.0f, false);
 
-				if (pKeysBuffer[VK_RIGHT] & 0xF0)
-				{
+	//			}
+	//			m_pPlayer->Move(dwDirection, Velocity, false);
 
-					m_pPlayer->Rotate(0.0, +3.3f, 0.0);
-					m_pPlayer->Move(DIR_BACKWARD, Velocity, false);
-				}
-				else if (pKeysBuffer[VK_LEFT] & 0xF0)
-				{
+	//			if (pKeysBuffer[VK_RIGHT] & 0xF0)
+	//			{
 
-					m_pPlayer->Rotate(0.0, -3.3, 0.0f);
-					m_pPlayer->Move(DIR_BACKWARD, Velocity, false);
-				}
+	//				m_pPlayer->Rotate(0.0, +3.3f, 0.0);
+	//				m_pPlayer->Move(DIR_BACKWARD, Velocity, false);
+	//			}
+	//			else if (pKeysBuffer[VK_LEFT] & 0xF0)
+	//			{
 
-			}
-		}
+	//				m_pPlayer->Rotate(0.0, -3.3, 0.0f);
+	//				m_pPlayer->Move(DIR_BACKWARD, Velocity, false);
+	//			}
+
+	//		}
+	//	}
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 }
@@ -784,3 +794,26 @@ void CGameFramework::FrameAdvance()
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 }
 
+//==================================================
+//		Functions for Networking with Server
+//==================================================
+void CGameFramework::myFunc_SetPosition(XMFLOAT3 position) {
+	m_pPlayer->SetPosition(position);
+}
+
+void CGameFramework::myFunc_SetVectors(XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
+	m_pPlayer->myFunc_SetVectors(rightVector, upVector, lookVector);
+}
+
+bool CGameFramework::is_KeyInput_Empty() {
+	return q_input_key.empty();
+}
+
+short CGameFramework::pop_keyvalue() {
+	
+	short temp = q_input_key.front();
+	q_input_key.pop();
+
+	return temp;
+}
+//==================================================

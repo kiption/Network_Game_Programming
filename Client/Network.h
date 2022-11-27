@@ -184,7 +184,6 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 		err_quit("connect()");
 
 	// Recv
-	int client_id = -1;
 	while (1) {
 		PACKET_INFO recv_info;
 		retval = recv(sock_forGS, (char*)&recv_info, sizeof(PACKET_INFO), MSG_PEEK);	// MSG_PEEK을 사용하여 수신버퍼를 읽지만 가져오지는 않도록
@@ -204,16 +203,38 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			}
 
 			// 서버로부터 할당받은 id
-			client_id = login_info_pack.id;
+			myID = login_info_pack.id;
 
 			// 클라 내 객체정보 컨테이너에 서버로 부터 받은 값을 저장합니다.
-			players_info[client_id].m_id = client_id;
-			players_info[client_id].m_pos = { login_info_pack.pos_x, login_info_pack.pos_y, login_info_pack.pos_z };
-			players_info[client_id].m_right_vec = { login_info_pack.right_vec_x, login_info_pack.right_vec_y, login_info_pack.right_vec_z };
-			players_info[client_id].m_up_vec = { login_info_pack.up_vec_x, login_info_pack.up_vec_y, login_info_pack.up_vec_z };
-			players_info[client_id].m_look_vec = { login_info_pack.look_vec_x, login_info_pack.look_vec_y, login_info_pack.look_vec_z };
-			players_info[client_id].m_state = OBJ_ST_RUNNING;
+			players_info[myID].m_id = myID;
+			players_info[myID].m_pos = { login_info_pack.pos_x, login_info_pack.pos_y, login_info_pack.pos_z };
+			players_info[myID].m_right_vec = { login_info_pack.right_vec_x, login_info_pack.right_vec_y, login_info_pack.right_vec_z };
+			players_info[myID].m_up_vec = { login_info_pack.up_vec_x, login_info_pack.up_vec_y, login_info_pack.up_vec_z };
+			players_info[myID].m_look_vec = { login_info_pack.look_vec_x, login_info_pack.look_vec_y, login_info_pack.look_vec_z };
+			players_info[myID].m_state = OBJ_ST_RUNNING;
 
+			// Test Log
+			cout << "[Recv MyInfo] ID: " << players_info[myID].m_id
+				<< ", Pos: (" << players_info[myID].m_pos.x << ", " << players_info[myID].m_pos.y << ", " << players_info[myID].m_pos.z << ")"
+				<< ", LookVec: (" << players_info[myID].m_look_vec.x << ", " << players_info[myID].m_look_vec.y << ", " << players_info[myID].m_look_vec.z << ")" << endl;
+
+			break;
+		case GS2C_UPDATE:
+			GS2C_UPDATE_PACKET update_pack;
+			retval = recv(sock_forGS, (char*)&update_pack, sizeof(GS2C_UPDATE_PACKET), MSG_WAITALL);
+			if (retval == SOCKET_ERROR) {
+				err_display("recv()");
+			}
+
+			//players_info[myID].m_pos = { mv_pack.pos_x, mv_pack.pos_y, mv_pack.pos_z };
+			players_info[myID].m_pos = { update_pack.pos_x, update_pack.pos_y, update_pack.pos_z };
+
+			players_info[myID].m_right_vec = { update_pack.right_vec_x, update_pack.right_vec_y, update_pack.right_vec_z };
+			players_info[myID].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
+			players_info[myID].m_look_vec = { update_pack.look_vec_x, update_pack.look_vec_y, update_pack.look_vec_z };
+
+			// Test Log
+			//cout << "My Car moves to Pos(" << players_info[myID].m_pos.x << ", " << players_info[myID].m_pos.y << ", " << players_info[myID].m_pos.z << ")." << endl;
 			break;
 		default:
 			break;

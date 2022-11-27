@@ -47,6 +47,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	// 클라-게임서버 통신담당 스레드 생성
 	HANDLE h_networkGS_th = CreateThread(NULL, 0, Network_WithGS_ThreadFunc, NULL, 0, NULL);
 	SetEvent(h_thread_event_GS);
+
+	// 게임 서버로부터 객체 초기정보를 받을 때까지 대기.
+	while (players_info[myID].m_state != OBJ_ST_RUNNING) {
+		Sleep(100);
+	}
 	//==================================================
 
 
@@ -78,6 +83,30 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		}
 		else
 		{
+			//==================================================
+			//			서버에게 패킷을 전송합니다.
+			//==================================================
+			if (!gGameFramework.is_KeyInput_Empty()) {
+				short send_keyValue = gGameFramework.pop_keyvalue();									// 키입력 큐에 있는 키값 중 가장 먼저 입력된 키값을
+				C2GS_KEYVALUE_PACKET keyvalue_pack;
+				keyvalue_pack.size = sizeof(C2GS_KEYVALUE_PACKET);
+				keyvalue_pack.type = C2GS_KEYVALUE;
+				keyvalue_pack.key = send_keyValue;
+				retval = send(sock_forGS, (char*)&keyvalue_pack, sizeof(C2GS_KEYVALUE_PACKET), 0);		// 서버로 전송합니다.
+				if (retval == SOCKET_ERROR) {
+					err_display("send()");
+				}
+				//cout << "Key: " << keyvalue_pack.key << endl; //test
+			}
+			//==================================================
+
+			//==================================================
+			//	    서버로부터 받은 값으로 최신화해줍니다.
+			//==================================================
+			gGameFramework.myFunc_SetPosition(players_info[myID].GetPosition());
+			gGameFramework.myFunc_SetVectors(players_info[myID].GetRightVector(), players_info[myID].GetUpVector(), players_info[myID].GetLookVector());
+			//==================================================
+
 			gGameFramework.FrameAdvance();
 		
 		}

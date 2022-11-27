@@ -82,6 +82,12 @@ public:
 	virtual CCamera *ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed) { return(NULL); }
 	virtual void OnPrepareRender();
 	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera = NULL);
+
+	//==================================================
+	//		Functions for Networking with Server
+	//==================================================
+	void myFunc_SetVectors(const XMFLOAT3& xmf3right, const XMFLOAT3& xmf3up, const XMFLOAT3& xmf3look) { m_xmf3Right = xmf3right;m_xmf3Up = xmf3up;m_xmf3Look = xmf3look; }
+	//==================================================
 };
 
 #define BULLETS					6

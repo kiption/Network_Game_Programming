@@ -25,9 +25,8 @@ constexpr char C2GS_KEYVALUE = 5;
 // GS -> C
 constexpr char GS2C_LOGIN_INFO = 6;
 constexpr char GS2C_GET_ITME = 7;
-constexpr char GS2C_MOVE = 8;
-constexpr char GS2C_ROTATE = 9;
-constexpr char GS2C_ADD_OBJ = 10;
+constexpr char GS2C_UPDATE = 8;
+constexpr char GS2C_ADD_OBJ = 9;
 
 
 //===================================
@@ -98,17 +97,11 @@ struct GS2C_GET_ITME_PACKET {
 	short itemtype;
 };
 
-struct GS2C_MOVE_PACKET {
+struct GS2C_UPDATE_PACKET {
 	short size;
 	char type;
 	short id;
 	float pos_x, pos_y, pos_z;
-};
-
-struct GS2C_ROTATE_PACKET {
-	short size;
-	char type;
-	short id;
 	float right_vec_x, right_vec_y, right_vec_z;
 	float up_vec_x, up_vec_y, up_vec_z;
 	float look_vec_x, look_vec_y, look_vec_z;

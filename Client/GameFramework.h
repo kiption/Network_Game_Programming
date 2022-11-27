@@ -6,6 +6,9 @@
 #include "Timer.h"
 #include "Player.h"
 #include "Scene.h"
+
+#include <queue>		// 입력된 키를 저장해둠. (선입력 시스템 비슷한..? 역할)
+
 class UILayer;
 
 class CGameFramework
@@ -45,6 +48,16 @@ public:
 	
 	void UpdateUI();
 	void GetPosition();
+
+	//==================================================
+	//		Functions for Networking with Server
+	//==================================================
+	void myFunc_SetPosition(XMFLOAT3 position);
+	void myFunc_SetVectors(XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector);
+
+	bool is_KeyInput_Empty();
+	short pop_keyvalue();
+	//==================================================
 private:
 	HINSTANCE					m_hInstance;
 	HWND						m_hWnd; 

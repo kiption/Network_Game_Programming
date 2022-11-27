@@ -3,7 +3,10 @@
 #define SERVERPORT 9000
 #define BUFSIZE    512
 
-#define MOVE_SCALAR 1.5f
+#define PI 3.141592654f
+
+#define MOVE_SCALAR 6.0f
+#define ROTATE_SCALAR 1.5f
 
 #include <random>
 #include <math.h>

@@ -12,6 +12,8 @@ using namespace std;
 DWORD WINAPI ProcessClient(LPVOID arg);
 DWORD WINAPI ServerTimer(LPVOID arg);
 
+Coordinate basic_coordinate;	// 기본(초기) 좌표계
+
 // 클라이언트 객체 정보
 class ClientINFO {
 private:
@@ -48,6 +50,9 @@ public:
 	float		getAccel() { return m_acceleator; }
 	MyVector3D	getPos() { return m_pos; }
 	Coordinate	getCoordinate() { return m_coordinate; }
+	float		getPitch() { return m_pitch; }
+	float		getYaw() { return m_yaw; }
+	float		getRoll() { return m_roll; }
 	float		getTimer() {}
 
 	void		setSock(SOCKET socket) { m_sock = socket; }
@@ -56,6 +61,10 @@ public:
 	void		setID(int id) { m_id = id; }
 	void		setPos(MyVector3D pos) { m_pos = pos; }
 	void		setCoordinate(Coordinate co) { m_coordinate = co; }
+	void		setCoordinate(MyVector3D x, MyVector3D y, MyVector3D z) { m_coordinate.x_coordinate = x; m_coordinate.y_coordinate = y; m_coordinate.z_coordinate = z; }
+	void		setPitch(float f) { m_pitch = f; }
+	void		setYaw(float f) { m_yaw = f; }
+	void		setRoll(float f) { m_roll = f; }
 };
 array<ClientINFO, MAX_USER> clients;
 
@@ -106,8 +115,7 @@ int main(int argc, char* argv[])
 		// 접속한 클라이언트 정보 출력
 		char addr[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
-		printf("\n[TCP 서버] 클라이언트 접속: IP 주소=%s, 포트 번호=%d\n",
-			addr, ntohs(clientaddr.sin_port));
+		cout << "\n[TCP 서버] 클라이언트 접속: IP 주소=" << addr << ", 포트 번호 = " << ntohs(clientaddr.sin_port) << endl;
 
 		// 스레드 생성
 		hThread = CreateThread(NULL, 0, ProcessClient, (LPVOID)client_sock, 0, NULL);
@@ -128,36 +136,6 @@ int main(int argc, char* argv[])
 // 통신 스레드
 DWORD WINAPI ProcessClient(LPVOID arg)
 {
-	int id = 0;
-	for (int j = 0; j < MAX_USER; ++j) {
-		if (clients[j].getId() == -1) {
-			clients[j].setID(j);
-			clients[j].setSock(reinterpret_cast<SOCKET>(arg));
-			clients[j].setState(true);
-			id = j;
-			break;
-		}
-	}
-
-	GS2C_LOGIN_INFO_PACKET S2CPacket;
-	S2CPacket.id = clients[id].getId();
-
-	S2CPacket.pos_x = 200 + 50 * id;
-	S2CPacket.pos_y = 2;
-	S2CPacket.pos_z = 200 + 50 * id;
-
-	S2CPacket.right_vec_x = clients[id].getCoordinate().x_coordinate.x;
-	S2CPacket.right_vec_y = clients[id].getCoordinate().x_coordinate.y;
-	S2CPacket.right_vec_z = clients[id].getCoordinate().x_coordinate.z;
-
-	S2CPacket.up_vec_x = clients[id].getCoordinate().y_coordinate.x;
-	S2CPacket.up_vec_y = clients[id].getCoordinate().y_coordinate.y;
-	S2CPacket.up_vec_z = clients[id].getCoordinate().y_coordinate.z;
-
-	S2CPacket.look_vec_x = clients[id].getCoordinate().z_coordinate.x;
-	S2CPacket.look_vec_y = clients[id].getCoordinate().z_coordinate.y;
-	S2CPacket.look_vec_z = clients[id].getCoordinate().z_coordinate.z;
-
 	int retval;
 	SOCKET client_sock = (SOCKET)arg;
 	struct sockaddr_in clientaddr;
@@ -169,76 +147,135 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	getpeername(client_sock, (struct sockaddr*)&clientaddr, &addrlen);
 	inet_ntop(AF_INET, &clientaddr.sin_addr, addr, sizeof(addr));
 
+	// 클라이언트ID 할당
+	int client_id = 0;
+	for (int j = 0; j < MAX_USER; ++j) {
+		if (clients[j].getId() == -1) {
+			client_id = j;
+
+			clients[client_id].setID(client_id);
+			clients[client_id].setSock(client_sock);
+			clients[client_id].setState(true);
+			
+			break;
+		}
+	}
+
+	// 접속한 클라이언트의 정보를 초기화합니다.
+	clients[client_id].setID(client_id);
+	MyVector3D Pos = { 400 + 50 * client_id, 2, 400 + 50 * client_id };
+	clients[client_id].setPos(Pos);
+
+	// 접속한 클라이언트에게 초기 정보를 전달합니다.
+	GS2C_LOGIN_INFO_PACKET S2CPacket;
+	S2CPacket.size = sizeof(GS2C_LOGIN_INFO_PACKET);
+	S2CPacket.type = GS2C_LOGIN_INFO;
+	S2CPacket.id = clients[client_id].getId();
+
+	S2CPacket.pos_x = clients[client_id].getPos().x;
+	S2CPacket.pos_y = clients[client_id].getPos().y;
+	S2CPacket.pos_z = clients[client_id].getPos().z;
+
+	S2CPacket.right_vec_x = clients[client_id].getCoordinate().x_coordinate.x;
+	S2CPacket.right_vec_y = clients[client_id].getCoordinate().x_coordinate.y;
+	S2CPacket.right_vec_z = clients[client_id].getCoordinate().x_coordinate.z;
+
+	S2CPacket.up_vec_x = clients[client_id].getCoordinate().y_coordinate.x;
+	S2CPacket.up_vec_y = clients[client_id].getCoordinate().y_coordinate.y;
+	S2CPacket.up_vec_z = clients[client_id].getCoordinate().y_coordinate.z;
+
+	S2CPacket.look_vec_x = clients[client_id].getCoordinate().z_coordinate.x;
+	S2CPacket.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
+	S2CPacket.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
+
 	retval = send(client_sock, reinterpret_cast<char*>(&S2CPacket), sizeof(GS2C_LOGIN_INFO_PACKET), 0);
 	if (retval == SOCKET_ERROR) {
 		err_display("send()");
 	}
+	cout << "Send Client[" << clients[client_id].getId() << "]'s Info - Pos:(" << S2CPacket.pos_x << ", " << S2CPacket.pos_y << ", " << S2CPacket.pos_z << "), "
+		<< "LookVec:(" << S2CPacket.look_vec_x << ", " << S2CPacket.look_vec_y << ", " << S2CPacket.look_vec_z << ")." << endl;
 
+	// Loop
 	while (1) {
 		// 이동 함수
 		C2GS_KEYVALUE_PACKET ClientPushKey;
 		retval = recv(client_sock, reinterpret_cast<char*>(&ClientPushKey), sizeof(C2GS_KEYVALUE_PACKET), 0);
-		MyVector3D move_dir{ 0,0,0 };
-
-		enum { KEY_AD, KEY_WS, KEY_SPACE };
-		for (int i{}; i < 5; ++i) {
+		if (retval == SOCKET_ERROR) {
+			err_display("recv()");
+		}
+		
+		enum { KEY_LEFT, KEY_RIGHT, KEY_DOWN, KEY_UP, KEY_SPACE };
+		for (int i = KEY_LEFT; i <= KEY_SPACE; ++i) {
 			if ((ClientPushKey.key >> i) & 1) {
 
-				int DefaultDir = 1;
+				int plus_minus = 1;	// 양수 음수
 
-				if (i % 2 == 0) {
-					DefaultDir = -1;
+				switch (i) {
+				case KEY_LEFT:
+					plus_minus = -1;
+					[[fallthrough]];
+				case KEY_RIGHT:
+				{
+					// yaw 설정
+					clients[client_id].setYaw(clients[client_id].getYaw() + ROTATE_SCALAR * plus_minus * PI / 360.0f);
+
+					// right, up, look 벡터 회전계산
+					MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
+						, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
+					MyVector3D rotate_result_y = calcRotate(basic_coordinate.y_coordinate
+						, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
+					MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
+						, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
+
+					// right, up, look 벡터 회전결과 적용
+					clients[client_id].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
+
+					break;
 				}
-				switch (i / 2) {
-				case KEY_AD:
-					/*move_dir = clients[id].getCoordinate().x_coordinate;
-					MyVector3D Move_AD_Result = calcMove(clients[id].getPos(), move_dir * DefaultDir, MOVE_SCALAR);
-					clients[id].setPos(Move_AD_Result);*/
-					/*GS2C_ROTATE_PACKET S2CRotatePacket;
+				case KEY_DOWN:
+					plus_minus = -1;
+					[[fallthrough]];
+				case KEY_UP:
+				{
+					MyVector3D move_dir{ 0, 0, 0 };
+					move_dir = { clients[client_id].getCoordinate().z_coordinate.x * plus_minus,
+						clients[client_id].getCoordinate().z_coordinate.y * plus_minus, clients[client_id].getCoordinate().z_coordinate.z * plus_minus };
 
-					float right_vec_x, right_vec_y, right_vec_z;
-					float up_vec_x, up_vec_y, up_vec_z;
-					float look_vec_x, look_vec_y, look_vec_z;
-
-
-					S2CRotatePacket.id = clients[id].getId();
-					S2CRotatePacket.pos_x = clients[id].getPos().x;
-					S2CRotatePacket.pos_y = clients[id].getPos().y;
-					S2CRotatePacket.pos_z = clients[id].getPos().z;
-					for (int i{}; i < MAX_USER; ++i) {
-						if (clients[i].getState()) {
-							send(clients[i].getSock(), reinterpret_cast<char*>(&S2CMovePacket), sizeof(GS2C_MOVE_PACKET), 0);
-						}
-
-					}*/
-
+					MyVector3D Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR, clients[client_id].getAccel());
+					clients[client_id].setPos(Move_Vertical_Result);
 
 					break;
-				case KEY_WS:
-					move_dir = { clients[id].getCoordinate().z_coordinate.x * DefaultDir,
-						clients[id].getCoordinate().z_coordinate.y * DefaultDir, clients[id].getCoordinate().z_coordinate.z * DefaultDir };
-
-
-					MyVector3D Move_WS_Result = calcMove(clients[id].getPos(), move_dir, MOVE_SCALAR, clients[id].getAccel());
-					clients[id].setPos(Move_WS_Result);
-
-					GS2C_MOVE_PACKET S2CMovePacket;
-					S2CMovePacket.id = clients[id].getId();
-					S2CMovePacket.pos_x = clients[id].getPos().x;
-					S2CMovePacket.pos_y = clients[id].getPos().y;
-					S2CMovePacket.pos_z = clients[id].getPos().z;
-					for (int i{}; i < MAX_USER; ++i) {
-						if (clients[i].getState()) {
-							send(clients[i].getSock(), reinterpret_cast<char*>(&S2CMovePacket), sizeof(GS2C_MOVE_PACKET), 0);
-						}
-
-					}
-
-					break;
+				}
 				case KEY_SPACE:
 					break;
 				default:
 					break;
+				}
+
+				// Send Packet
+				GS2C_UPDATE_PACKET update_pack;
+				update_pack.id = clients[client_id].getId();
+				update_pack.type = GS2C_UPDATE;
+
+				update_pack.pos_x = clients[client_id].getPos().x;
+				update_pack.pos_y = clients[client_id].getPos().y;
+				update_pack.pos_z = clients[client_id].getPos().z;
+
+				update_pack.right_vec_x = clients[client_id].getCoordinate().x_coordinate.x;
+				update_pack.right_vec_y = clients[client_id].getCoordinate().x_coordinate.y;
+				update_pack.right_vec_z = clients[client_id].getCoordinate().x_coordinate.z;
+
+				update_pack.up_vec_x = clients[client_id].getCoordinate().y_coordinate.x;
+				update_pack.up_vec_y = clients[client_id].getCoordinate().y_coordinate.y;
+				update_pack.up_vec_z = clients[client_id].getCoordinate().y_coordinate.z;
+
+				update_pack.look_vec_x = clients[client_id].getCoordinate().z_coordinate.x;
+				update_pack.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
+				update_pack.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
+
+				retval = send(client_sock, (char*)&update_pack, sizeof(GS2C_UPDATE_PACKET), 0);		// 서버로 전송합니다.
+				if (retval == SOCKET_ERROR) {
+					err_display("send()");
 				}
 			}
 		}
@@ -246,8 +283,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 	// 소켓 닫기
 	closesocket(client_sock);
-	printf("[TCP 서버] 클라이언트 종료: IP 주소=%s, 포트 번호=%d\n",
-		addr, ntohs(clientaddr.sin_port));
+	cout << "[TCP 서버] 클라이언트 종료: IP 주소= " << addr << ", 포트 번호 = " << ntohs(clientaddr.sin_port) << endl;
 	return 0;
 }
 
