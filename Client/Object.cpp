@@ -630,24 +630,22 @@ XMFLOAT3 CGameObjcet::GetPosition()
 	return(XMFLOAT3(m_xmf4x4World._41, m_xmf4x4World._42, m_xmf4x4World._43));
 }
 
-XMFLOAT3 CGameObjcet::GetLook()
+XMFLOAT3 CGameObjcet::GetLookVector()
 {
 	XMFLOAT3 a = { m_xmf4x4World._31, m_xmf4x4World._32, m_xmf4x4World._33 };
 	return(Vector3::Normalize(a));
 }
 
 
-XMFLOAT3 CGameObjcet::GetUp()
+XMFLOAT3 CGameObjcet::GetUpVector()
 {
-	return(Vector3::Normalize(XMFLOAT3(m_xmf4x4World._21, m_xmf4x4World._22, m_xmf4x4World._23)));
 	XMFLOAT3 a = { m_xmf4x4World._21, m_xmf4x4World._22, m_xmf4x4World._23 };
 	return(Vector3::Normalize(a));
 }
 
 
-XMFLOAT3 CGameObjcet::GetRight()
+XMFLOAT3 CGameObjcet::GetRightVector()
 {
-	return(Vector3::Normalize(XMFLOAT3(m_xmf4x4World._11, m_xmf4x4World._12, m_xmf4x4World._13)));
 	XMFLOAT3 a = { m_xmf4x4World._11, m_xmf4x4World._12, m_xmf4x4World._13 };
 	return(Vector3::Normalize(a));
 }

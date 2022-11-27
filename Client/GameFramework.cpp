@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "UILayer.h"
-//#include "ObjINFO.h"
+
 queue<short> q_input_key;
 
 //HANDLE networkThread;
@@ -88,7 +88,7 @@ void CGameFramework::CreateDirect2DDevice()
 #if defined(_DEBUG) || defined(DBG)
 	nD2DFactoryOptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 	ID3D12InfoQueue* pd3dInfoQueue = NULL;
-	if (SUCCEEDED(m_pd3d12Device->QueryInterface(IID_PPV_ARGS(&pd3dInfoQueue))))
+	if (SUCCEEDED(m_pd3dDevice->QueryInterface(IID_PPV_ARGS(&pd3dInfoQueue))))
 	{
 		D3D12_MESSAGE_SEVERITY pd3dSeverities[] =
 		{
@@ -758,46 +758,66 @@ void CGameFramework::FrameAdvance()
 //==================================================
 //		Functions for Networking with Server
 //==================================================
-void CGameFramework::myFunc_SetPosition(int n,XMFLOAT3 position) {
-	if (LoginID != n)
+void CGameFramework::myFunc_SetPosition(int n, XMFLOAT3 position) {
+	
+	if (Login_ID == n)
 	{
-		m_pScene->m_ppGameObjects[LoginID]->SetPosition(position);
+		((CMyPlayer*)m_pPlayer)->SetPosition(position);
 	}
 	else
 	{
-		m_pPlayer->SetPosition(position);
-
+		int others_id = -1;
+		switch (Login_ID) {
+		case 0:
+			others_id = n - 1;
+			break;
+		case 1:
+			others_id = n;
+			if (n == 2) others_id -= 1;
+			break;
+		case 2:
+			others_id = n;
+			break;
+		}
+		//m_pScene->m_ppGameObjects[others_id]->SetPosition(position);
+		((CMyPlayer2*)m_pPlayer)->SetPosition(position);
 	}
 }
 
-void CGameFramework::myFunc_SetVectors(int n,XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
-	if (LoginID != n)
+void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
+	
+	if (Login_ID == n)
 	{
-		m_pScene->m_ppGameObjects[LoginID]->myFunc_SetVectors(rightVector, upVector, lookVector);
+		((CMyPlayer*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
 	}
 	else
 	{
-	m_pPlayer->myFunc_SetVectors(rightVector, upVector, lookVector);
-
+		int others_id = -1;
+		switch (Login_ID) {
+		case 0:
+			others_id = n - 1;
+			break;
+		case 1:
+			others_id = n;
+			if (n == 2) others_id -= 1;
+		((CMyPlayer2*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
+			break;
+		case 2:
+			others_id = n;
+		((CMyPlayer3*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
+			break;
+		}
+		//m_pScene->m_ppGameObjects[others_id]->myFunc_SetVectors(rightVector, upVector, lookVector);
 	}
-		
-}
 
-// myFunc_SetBoundingBox(){} -> Main Thread에 연결
+}
 
 void CGameFramework::myFunc_SetOthersPosition(int n, XMFLOAT3 position) {
-
-//	m_pScene->m_ppGameObjects[n]->SetPosition(position);
-
-
+	//m_pScene->m_ppGameObjects[n]->SetPosition(position);
 }
 void CGameFramework::myFunc_SetOthersVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
-	//// 이부분 이따 재성이랑 같이 봐야함.
-	//for (int i = 0; i < 2; i++)
-	//{
-	//	m_pScene->m_ppGameObjects[i]->myFunc_SetVectors(rightVector, upVector, lookVector);
-	////	m_pScene->m_ppGameObjects[i]->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(XMFLOAT3(objinfo.GetPosition()),XMFLOAT3(4.0,4.0,6.0),XMFLOAT4(0.0,0.0,0.0,1.0));
-	//}
+	// 이부분 이따 재성이랑 같이 봐야함.
+	//m_pScene->m_ppGameObjects[n]->myFunc_SetVectors(rightVector, upVector, lookVector);
 }
 
 bool CGameFramework::is_KeyInput_Empty() {

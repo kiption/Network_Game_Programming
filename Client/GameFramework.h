@@ -61,7 +61,7 @@ public:
 	bool is_KeyInput_Empty();
 	short pop_keyvalue();
 
-	int							LoginID;
+	int Login_ID;
 	//==================================================
 private:
 	HINSTANCE					m_hInstance;
@@ -99,8 +99,6 @@ private:
 
 	D3D12_VIEWPORT				m_d3dViewport;
 	D3D12_RECT					m_d3dScissorRect;
-
-
 #ifdef _WITH_DIRECT2D
 	ID3D11On12Device* m_pd3d11On12Device = NULL;
 	ID3D11DeviceContext* m_pd3d11DeviceContext = NULL;

@@ -132,4 +132,83 @@ public:
 
 };
 
+class CMyPlayer2 : public CPlayer
+{
+public:
+	CMyPlayer2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	virtual ~CMyPlayer2();
+
+public:
+	float							m_fBulletEffectiveRange = 600.0f;
+	CBulletObject* pBulletObject = NULL;
+	CTrapObject* m_pTrapObject = NULL;
+	CPlayerObject* m_pPlayerObejct = NULL;
+	CBulletObject* m_ppBullets[BULLETS];
+
+public:
+	float m_fPos = 0.0;
+	bool m_bWheelAnimation = false;
+	CGameObjcet* m_WheelBack_Left;
+	CGameObjcet* m_WheelBack_Right;
+	CGameObjcet* m_WheelFront_Left;
+	CGameObjcet* m_WheelFront_Right;
+
+
+private:
+	virtual void OnInitialize();
+	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
+	virtual void OnPlayerUpdateCallback(float fTimeElapsed);
+
+public:
+	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
+	virtual void OnPrepareRender();
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
+public:
+	void MissileMode(CGameObjcet* pLockedObject);
+	void TrapMode();
+	void BoosterMode();
+	bool m_bbsAct = false;
+
+};
+
+class CMyPlayer3 : public CPlayer
+{
+public:
+	CMyPlayer3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature);
+	virtual ~CMyPlayer3();
+
+public:
+	float							m_fBulletEffectiveRange = 600.0f;
+	CBulletObject* pBulletObject = NULL;
+	CTrapObject* m_pTrapObject = NULL;
+	CPlayerObject* m_pPlayerObejct = NULL;
+	CBulletObject* m_ppBullets[BULLETS];
+
+public:
+	float m_fPos = 0.0;
+	bool m_bWheelAnimation = false;
+	CGameObjcet* m_WheelBack_Left;
+	CGameObjcet* m_WheelBack_Right;
+	CGameObjcet* m_WheelFront_Left;
+	CGameObjcet* m_WheelFront_Right;
+
+
+private:
+	virtual void OnInitialize();
+	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
+	virtual void OnPlayerUpdateCallback(float fTimeElapsed);
+
+public:
+	virtual CCamera* ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed);
+	virtual void OnPrepareRender();
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
+public:
+	void MissileMode(CGameObjcet* pLockedObject);
+	void TrapMode();
+	void BoosterMode();
+	bool m_bbsAct = false;
+
+};
 

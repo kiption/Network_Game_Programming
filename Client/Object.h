@@ -161,10 +161,10 @@ public:
 
 	void UpdateTransform(XMFLOAT4X4* pxmf4x4Parent = NULL);
 
-	XMFLOAT3 GetPosition();
-	XMFLOAT3 GetLook();
-	XMFLOAT3 GetUp();
-	XMFLOAT3 GetRight();
+	virtual XMFLOAT3 GetPosition();
+	virtual XMFLOAT3 GetLookVector();
+	virtual XMFLOAT3 GetUpVector();
+	virtual XMFLOAT3 GetRightVector();
 
 	void Rotate(float fPitch, float fYaw, float fRoll);
 	void Rotate(XMFLOAT3* pxmf3Axis, float fAngle);
@@ -191,10 +191,10 @@ public:
 
 	bool						m_bObjectCollideCheck = false;
 	bool						m_bObjectRising = false;
-	
 public:
-	void myFunc_SetVectors(const XMFLOAT3& xmf3right, const XMFLOAT3& xmf3up, const XMFLOAT3& xmf3look) { XMFLOAT3(m_xmf4x4World._11, m_xmf4x4World._12, m_xmf4x4World._13) = xmf3right; 
-	XMFLOAT3(m_xmf4x4World._21, m_xmf4x4World._22, m_xmf4x4World._23) = xmf3up; 
+	void myFunc_SetVectors( XMFLOAT3& xmf3right,  XMFLOAT3& xmf3up,  XMFLOAT3& xmf3look)
+	{ XMFLOAT3(m_xmf4x4World._11, m_xmf4x4World._12, m_xmf4x4World._13) = xmf3right;
+	XMFLOAT3(m_xmf4x4World._21, m_xmf4x4World._22, m_xmf4x4World._23) = xmf3up;
 	XMFLOAT3(m_xmf4x4World._31, m_xmf4x4World._32, m_xmf4x4World._33) = xmf3look; }
 
 };

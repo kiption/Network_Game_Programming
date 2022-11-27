@@ -166,7 +166,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
 	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race2.bin");
-
 	CPlayerObject* P2 = NULL;
 	P2 = new CPlayerObject();
 	P2->SetChild(pPlayerCars2, true);
@@ -468,13 +467,6 @@ void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 
 void CScene::CheckPlayerByPlayerCollisions(float fTimeElapsed)
 {
-	/*for (int i = 0; i < 2; i++)
-	{
-		if (m_ppGameObjects[i].m_xoobb.PlayerOOBB.Intersects(m_ppGameObjects[j]->m_Boobb)
-		{
-
-		}
-	}*/
 }
 
 void CScene::MissileProcess()
@@ -594,14 +586,14 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		m_pLights[2].m_xmf3Position.z = m_ppGameObjects[0]->GetPosition().z;
 		m_pLights[2].m_xmf3Position.y = m_ppGameObjects[0]->GetPosition().y + 10.0;
 		m_pLights[2].m_xmf3Position.x = m_ppGameObjects[0]->GetPosition().x;
-		m_pLights[2].m_xmf3Direction = m_ppGameObjects[0]->GetLook();
+		m_pLights[2].m_xmf3Direction = m_ppGameObjects[0]->GetLookVector();
 		XMStoreFloat3(&offset, XMVectorAdd(XMLoadFloat3(&m_ppGameObjects[0]->GetPosition()), XMLoadFloat3(&offset)));
 
 		XMFLOAT3 offsetp3 = XMFLOAT3(0, 20, 50);
 		m_pLights[3].m_xmf3Position.z = m_ppGameObjects[1]->GetPosition().z;
 		m_pLights[3].m_xmf3Position.y = m_ppGameObjects[1]->GetPosition().y + 10.0;
 		m_pLights[3].m_xmf3Position.x = m_ppGameObjects[1]->GetPosition().x;
-		m_pLights[3].m_xmf3Direction = m_ppGameObjects[1]->GetLook();
+		m_pLights[3].m_xmf3Direction = m_ppGameObjects[1]->GetLookVector();
 		XMStoreFloat3(&offset, XMVectorAdd(XMLoadFloat3(&m_ppGameObjects[1]->GetPosition()), XMLoadFloat3(&offset)));
 
 	}

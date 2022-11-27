@@ -358,7 +358,7 @@ void CMyPlayer::MissileMode(CGameObjcet* pLockedObject)
 		}
 	}
 
-	XMFLOAT3 PlayerPos = GetLook();
+	XMFLOAT3 PlayerPos = GetLookVector();
 	XMFLOAT3 CameraPos = m_pCamera->GetLookVector();
 	XMFLOAT3 TotalLookVector = Vector3::Normalize(Vector3::Add(PlayerPos, CameraPos));
 
@@ -379,7 +379,7 @@ void CMyPlayer::MissileMode(CGameObjcet* pLockedObject)
 
 void CMyPlayer::TrapMode()
 {
-	XMFLOAT3 PlayerPos = GetLook();
+	XMFLOAT3 PlayerPos = GetLookVector();
 	XMFLOAT3 CameraPos = m_pCamera->GetLookVector();
 	XMFLOAT3 TotalLookVector = Vector3::Normalize(Vector3::Add(PlayerPos, CameraPos));
 	XMFLOAT3 xmf3Position = GetPosition();
@@ -428,3 +428,471 @@ CCamera* CMyPlayer::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
 	return(m_pCamera);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+CMyPlayer2::CMyPlayer2(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+{
+
+	m_pCamera = ChangeCamera(THIRD_PERSON_CAMERA, 0.0f);
+
+
+	CGameObjcet* pBulletMesh = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Roket.bin");
+
+	for (int i = 0; i < BULLETS; i++)
+	{
+		pBulletObject = new CBulletObject(m_fBulletEffectiveRange);
+		pBulletObject->SetChild(pBulletMesh, true);
+		pBulletObject->SetRotationSpeed(40.0f);
+		pBulletObject->SetMovingSpeed(300.0f);
+		pBulletObject->SetActive(false);
+		m_ppBullets[i] = pBulletObject;
+
+	}
+
+	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/NEBOOM.bin");
+
+	m_pTrapObject = new CTrapObject();
+	m_pTrapObject->SetChild(pTrapModel, true);
+	m_pTrapObject->SetRotationSpeed(90.0f);
+	m_pTrapObject->SetMovingSpeed(20.0f);
+	m_pTrapObject->SetActive(false);
+
+
+
+	CGameObjcet* pGameObject = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/race.bin");
+
+	SetChild(pGameObject, true);
+	OnInitialize();
+	pGameObject->Rotate(0.0f, 0.0f, 0.0f);
+	pGameObject->SetScale(6.0f, 6.0, 6.0);
+	pGameObject->SetPosition(0.0, -1.0, 0.0);
+	m_pPlayerObejct = (CPlayerObject*)pGameObject;
+
+	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+}
+
+CMyPlayer2::~CMyPlayer2()
+{
+	for (int i = 0; i < BULLETS; i++) if (m_ppBullets[i]) delete m_ppBullets[i];
+	if (m_pTrapObject) delete m_pTrapObject;
+}
+
+void CMyPlayer2::OnInitialize()
+{
+	m_WheelBack_Left = FindFrame("wheel_backLeft");
+	m_WheelBack_Right = FindFrame("wheel_backRight");
+	m_WheelFront_Left = FindFrame("wheel_frontLeft");
+	m_WheelFront_Right = FindFrame("wheel_frontRight");
+	m_fPos = m_WheelBack_Right->m_xmf4x4Transform._42;
+}
+
+void CMyPlayer2::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
+{
+	if (m_WheelBack_Left)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
+		m_WheelBack_Left->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelBack_Left->m_xmf4x4Transform);
+	}
+	if (m_WheelBack_Right)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
+		m_WheelBack_Right->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelBack_Right->m_xmf4x4Transform);
+	}
+	if (m_WheelFront_Left)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
+		m_WheelFront_Left->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelFront_Left->m_xmf4x4Transform);
+	}
+	if (m_WheelFront_Right)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
+		m_WheelFront_Right->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelFront_Right->m_xmf4x4Transform);
+	}
+
+	if (m_bWheelAnimation == false)
+	{
+		m_WheelBack_Left->m_xmf4x4Transform._42 += 0.008f; m_WheelBack_Right->m_xmf4x4Transform._42 += 0.008f; m_WheelFront_Left->m_xmf4x4Transform._42 += 0.008f; m_WheelFront_Right->m_xmf4x4Transform._42 += 0.008f;
+		if (m_WheelBack_Right->m_xmf4x4Transform._42 > m_fPos + 0.03f) m_bWheelAnimation = true;
+	}
+	if (m_bWheelAnimation == true)
+	{
+		m_WheelBack_Left->m_xmf4x4Transform._42 -= 0.008f; m_WheelBack_Right->m_xmf4x4Transform._42 -= 0.008f; m_WheelFront_Left->m_xmf4x4Transform._42 -= 0.008f; m_WheelFront_Right->m_xmf4x4Transform._42 -= 0.008f;
+		if (m_WheelBack_Right->m_xmf4x4Transform._42 < m_fPos - 0.01f) m_bWheelAnimation = false;
+	}
+
+	for (int i = 0; i < BULLETS; i++)
+	{
+		if (m_ppBullets[i]->m_bActive) {
+			m_ppBullets[i]->Animate(fTimeElapsed);
+			m_ppBullets[i]->Rotate(0.0, 20.0, 0.0);
+		}
+	}
+
+	if (m_pTrapObject->m_bActive)
+	{
+		m_pTrapObject->Animate(fTimeElapsed);
+	}
+
+	if (m_bbsAct == true)
+	{
+		m_pCamera->m_xmf3Position.z -= 1.5f;
+	}
+
+
+	CPlayer::Animate(fTimeElapsed, pxmf4x4Parent);
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(15.0, 10.0, 30.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+}
+
+void CMyPlayer2::OnPrepareRender()
+{
+	CPlayer::OnPrepareRender();
+}
+
+void CMyPlayer2::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	OnPrepareRender();
+	CGameObjcet::Render(pd3dCommandList, pCamera);
+	for (int i = 0; i < BULLETS; i++) if (m_ppBullets[i]->m_bActive) m_ppBullets[i]->Render(pd3dCommandList, pCamera);
+	if (m_pTrapObject->m_bActive) m_pTrapObject->Render(pd3dCommandList, pCamera);
+}
+
+
+void CMyPlayer2::MissileMode(CGameObjcet* pLockedObject)
+{
+
+	CBulletObject* pBulletObject = NULL;
+	for (int i = 0; i < BULLETS; i++)
+	{
+		if (!m_ppBullets[i]->m_bActive)
+		{
+			pBulletObject = m_ppBullets[i];
+			break;
+		}
+	}
+
+	XMFLOAT3 PlayerPos = GetLookVector();
+	XMFLOAT3 CameraPos = m_pCamera->GetLookVector();
+	XMFLOAT3 TotalLookVector = Vector3::Normalize(Vector3::Add(PlayerPos, CameraPos));
+
+	if (pBulletObject)
+	{
+
+		XMFLOAT3 xmf3Position = GetPosition();
+		XMFLOAT3 xmf3Direction = TotalLookVector;
+		XMFLOAT3 xmf3FirePosition = Vector3::Add(xmf3Position, Vector3::ScalarProduct(xmf3Direction, 6.0f, true));
+		pBulletObject->m_xmf4x4Transform = m_xmf4x4World;
+		pBulletObject->SetFirePosition(xmf3FirePosition);
+		pBulletObject->SetMovingDirection(GetLookVector());
+		pBulletObject->Rotate(90.0f, 0.0, 0.0);
+		pBulletObject->SetScale(700.0, 200.0, 700.0);
+		pBulletObject->SetActive(true);
+	}
+}
+
+void CMyPlayer2::TrapMode()
+{
+	XMFLOAT3 PlayerPos = GetLookVector();
+	XMFLOAT3 CameraPos = m_pCamera->GetLookVector();
+	XMFLOAT3 TotalLookVector = Vector3::Normalize(Vector3::Add(PlayerPos, CameraPos));
+	XMFLOAT3 xmf3Position = GetPosition();
+	XMFLOAT3 xmf3Direction = TotalLookVector;
+	XMFLOAT3 xmf3FirePosition = Vector3::Add(xmf3Position, Vector3::ScalarProduct(xmf3Direction, 6.0f, true));
+	m_pTrapObject->m_xmf4x4Transform = m_xmf4x4World;
+	m_pTrapObject->SetCreateTrapPosition(xmf3FirePosition);
+	m_pTrapObject->SetMovingDirection(GetLookVector());
+	m_pTrapObject->Rotate(0.0f, 0.0, 0.0);
+	m_pTrapObject->SetScale(8.3, 8.3, 8.3);
+	m_pTrapObject->SetActive(true);
+
+}
+
+void CMyPlayer2::BoosterMode()
+{
+	m_bbsAct = true;
+}
+void CMyPlayer2::OnPlayerUpdateCallback(float fTimeElapsed)
+{
+	XMFLOAT3 xmf3PlayerPosition = GetPosition();
+	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)m_pPlayerUpdatedContext;
+	/*지형에서 플레이어의 현재 위치 (x, z)의 지형 높이(y)를 구한다. 그리고 플레이어 메쉬의 높이가 12이고 플레이어의
+	중심이 직육면체의 가운데이므로 y 값에 메쉬의 높이의 절반을 더하면 플레이어의 위치가 된다.*/
+
+	float fHeight = pTerrain->GetHeight(xmf3PlayerPosition.x, xmf3PlayerPosition.z) + 2.0f;
+	/*플레이어의 위치 벡터의 y-값이 음수이면(예를 들어, 중력이 적용되는 경우) 플레이어의 위치 벡터의 y-값이 점점
+	작아지게 된다. 이때 플레이어의 현재 위치 벡터의 y 값이 지형의 높이(실제로 지형의 높이 + 6)보다 작으면 플레이어
+	의 일부가 지형 아래에 있게 된다. 이러한 경우를 방지하려면 플레이어의 속도 벡터의 y 값을 0으로 만들고 플레이어
+	의 위치 벡터의 y-값을 지형의 높이(실제로 지형의 높이 + 6)로 설정한다. 그러면 플레이어는 항상 지형 위에 있게 된다.*/
+	if (xmf3PlayerPosition.y < fHeight)
+	{
+		XMFLOAT3 xmf3PlayerVelocity = GetVelocity();
+		xmf3PlayerVelocity.y = 0.0f;
+		SetVelocity(xmf3PlayerVelocity);
+		xmf3PlayerPosition.y = fHeight;
+		SetPosition(xmf3PlayerPosition);
+	}
+
+
+}
+CCamera* CMyPlayer2::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
+{
+	DWORD nCurrentCameraMode = (m_pCamera) ? m_pCamera->GetMode() : 0x00;
+	if (nCurrentCameraMode == nNewCameraMode) return(m_pCamera);
+	switch (nNewCameraMode)
+	{
+	case THIRD_PERSON_CAMERA:
+		SetFriction(50.5f);
+		SetGravity(XMFLOAT3(0.0f, -100.0f, 0.0f));
+		SetMaxVelocityXZ(20.5f);
+		SetMaxVelocityY(2000.0f);
+		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
+		m_pCamera->SetTimeLag(0.8f);
+		m_pCamera->SetOffset(XMFLOAT3(-0.0f, 20.0f, -65.0f));
+		m_pCamera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
+		m_pCamera->GenerateProjectionMatrix(1.01f, 6000.0f, ASPECT_RATIO, 60.0f);
+		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
+		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+		break;
+	default:
+		break;
+	}
+
+
+	Update(fTimeElapsed);
+
+	return(m_pCamera);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+CMyPlayer3::CMyPlayer3(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature)
+{
+
+	m_pCamera = ChangeCamera(THIRD_PERSON_CAMERA, 0.0f);
+
+
+	CGameObjcet* pBulletMesh = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Roket.bin");
+
+	for (int i = 0; i < BULLETS; i++)
+	{
+		pBulletObject = new CBulletObject(m_fBulletEffectiveRange);
+		pBulletObject->SetChild(pBulletMesh, true);
+		pBulletObject->SetRotationSpeed(40.0f);
+		pBulletObject->SetMovingSpeed(300.0f);
+		pBulletObject->SetActive(false);
+		m_ppBullets[i] = pBulletObject;
+
+	}
+
+	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/NEBOOM.bin");
+
+	m_pTrapObject = new CTrapObject();
+	m_pTrapObject->SetChild(pTrapModel, true);
+	m_pTrapObject->SetRotationSpeed(90.0f);
+	m_pTrapObject->SetMovingSpeed(20.0f);
+	m_pTrapObject->SetActive(false);
+
+
+
+	CGameObjcet* pGameObject = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/race.bin");
+
+	SetChild(pGameObject, true);
+	OnInitialize();
+	pGameObject->Rotate(0.0f, 0.0f, 0.0f);
+	pGameObject->SetScale(6.0f, 6.0, 6.0);
+	pGameObject->SetPosition(0.0, -1.0, 0.0);
+	m_pPlayerObejct = (CPlayerObject*)pGameObject;
+
+	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+}
+
+CMyPlayer3::~CMyPlayer3()
+{
+	for (int i = 0; i < BULLETS; i++) if (m_ppBullets[i]) delete m_ppBullets[i];
+	if (m_pTrapObject) delete m_pTrapObject;
+}
+
+void CMyPlayer3::OnInitialize()
+{
+	m_WheelBack_Left = FindFrame("wheel_backLeft");
+	m_WheelBack_Right = FindFrame("wheel_backRight");
+	m_WheelFront_Left = FindFrame("wheel_frontLeft");
+	m_WheelFront_Right = FindFrame("wheel_frontRight");
+	m_fPos = m_WheelBack_Right->m_xmf4x4Transform._42;
+}
+
+void CMyPlayer3::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent)
+{
+	if (m_WheelBack_Left)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
+		m_WheelBack_Left->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelBack_Left->m_xmf4x4Transform);
+	}
+	if (m_WheelBack_Right)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
+		m_WheelBack_Right->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelBack_Right->m_xmf4x4Transform);
+	}
+	if (m_WheelFront_Left)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
+		m_WheelFront_Left->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelFront_Left->m_xmf4x4Transform);
+	}
+	if (m_WheelFront_Right)
+	{
+		XMMATRIX xmmtxRotate = XMMatrixRotationX(XMConvertToRadians(360.0f * 4.0) * fTimeElapsed);
+		m_WheelFront_Right->m_xmf4x4Transform = Matrix4x4::Multiply(xmmtxRotate, m_WheelFront_Right->m_xmf4x4Transform);
+	}
+
+	if (m_bWheelAnimation == false)
+	{
+		m_WheelBack_Left->m_xmf4x4Transform._42 += 0.008f; m_WheelBack_Right->m_xmf4x4Transform._42 += 0.008f; m_WheelFront_Left->m_xmf4x4Transform._42 += 0.008f; m_WheelFront_Right->m_xmf4x4Transform._42 += 0.008f;
+		if (m_WheelBack_Right->m_xmf4x4Transform._42 > m_fPos + 0.03f) m_bWheelAnimation = true;
+	}
+	if (m_bWheelAnimation == true)
+	{
+		m_WheelBack_Left->m_xmf4x4Transform._42 -= 0.008f; m_WheelBack_Right->m_xmf4x4Transform._42 -= 0.008f; m_WheelFront_Left->m_xmf4x4Transform._42 -= 0.008f; m_WheelFront_Right->m_xmf4x4Transform._42 -= 0.008f;
+		if (m_WheelBack_Right->m_xmf4x4Transform._42 < m_fPos - 0.01f) m_bWheelAnimation = false;
+	}
+
+	for (int i = 0; i < BULLETS; i++)
+	{
+		if (m_ppBullets[i]->m_bActive) {
+			m_ppBullets[i]->Animate(fTimeElapsed);
+			m_ppBullets[i]->Rotate(0.0, 20.0, 0.0);
+		}
+	}
+
+	if (m_pTrapObject->m_bActive)
+	{
+		m_pTrapObject->Animate(fTimeElapsed);
+	}
+
+	if (m_bbsAct == true)
+	{
+		m_pCamera->m_xmf3Position.z -= 1.5f;
+	}
+
+
+	CPlayer::Animate(fTimeElapsed, pxmf4x4Parent);
+	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(15.0, 10.0, 30.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+}
+
+void CMyPlayer3::OnPrepareRender()
+{
+	CPlayer::OnPrepareRender();
+}
+
+void CMyPlayer3::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	OnPrepareRender();
+	CGameObjcet::Render(pd3dCommandList, pCamera);
+	for (int i = 0; i < BULLETS; i++) if (m_ppBullets[i]->m_bActive) m_ppBullets[i]->Render(pd3dCommandList, pCamera);
+	if (m_pTrapObject->m_bActive) m_pTrapObject->Render(pd3dCommandList, pCamera);
+}
+
+
+void CMyPlayer3::MissileMode(CGameObjcet* pLockedObject)
+{
+
+	CBulletObject* pBulletObject = NULL;
+	for (int i = 0; i < BULLETS; i++)
+	{
+		if (!m_ppBullets[i]->m_bActive)
+		{
+			pBulletObject = m_ppBullets[i];
+			break;
+		}
+	}
+
+	XMFLOAT3 PlayerPos = GetLookVector();
+	XMFLOAT3 CameraPos = m_pCamera->GetLookVector();
+	XMFLOAT3 TotalLookVector = Vector3::Normalize(Vector3::Add(PlayerPos, CameraPos));
+
+	if (pBulletObject)
+	{
+
+		XMFLOAT3 xmf3Position = GetPosition();
+		XMFLOAT3 xmf3Direction = TotalLookVector;
+		XMFLOAT3 xmf3FirePosition = Vector3::Add(xmf3Position, Vector3::ScalarProduct(xmf3Direction, 6.0f, true));
+		pBulletObject->m_xmf4x4Transform = m_xmf4x4World;
+		pBulletObject->SetFirePosition(xmf3FirePosition);
+		pBulletObject->SetMovingDirection(GetLookVector());
+		pBulletObject->Rotate(90.0f, 0.0, 0.0);
+		pBulletObject->SetScale(700.0, 200.0, 700.0);
+		pBulletObject->SetActive(true);
+	}
+}
+
+void CMyPlayer3::TrapMode()
+{
+	XMFLOAT3 PlayerPos = GetLookVector();
+	XMFLOAT3 CameraPos = m_pCamera->GetLookVector();
+	XMFLOAT3 TotalLookVector = Vector3::Normalize(Vector3::Add(PlayerPos, CameraPos));
+	XMFLOAT3 xmf3Position = GetPosition();
+	XMFLOAT3 xmf3Direction = TotalLookVector;
+	XMFLOAT3 xmf3FirePosition = Vector3::Add(xmf3Position, Vector3::ScalarProduct(xmf3Direction, 6.0f, true));
+	m_pTrapObject->m_xmf4x4Transform = m_xmf4x4World;
+	m_pTrapObject->SetCreateTrapPosition(xmf3FirePosition);
+	m_pTrapObject->SetMovingDirection(GetLookVector());
+	m_pTrapObject->Rotate(0.0f, 0.0, 0.0);
+	m_pTrapObject->SetScale(8.3, 8.3, 8.3);
+	m_pTrapObject->SetActive(true);
+
+}
+
+void CMyPlayer3::BoosterMode()
+{
+	m_bbsAct = true;
+}
+void CMyPlayer3::OnPlayerUpdateCallback(float fTimeElapsed)
+{
+	XMFLOAT3 xmf3PlayerPosition = GetPosition();
+	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)m_pPlayerUpdatedContext;
+	/*지형에서 플레이어의 현재 위치 (x, z)의 지형 높이(y)를 구한다. 그리고 플레이어 메쉬의 높이가 12이고 플레이어의
+	중심이 직육면체의 가운데이므로 y 값에 메쉬의 높이의 절반을 더하면 플레이어의 위치가 된다.*/
+
+	float fHeight = pTerrain->GetHeight(xmf3PlayerPosition.x, xmf3PlayerPosition.z) + 2.0f;
+	/*플레이어의 위치 벡터의 y-값이 음수이면(예를 들어, 중력이 적용되는 경우) 플레이어의 위치 벡터의 y-값이 점점
+	작아지게 된다. 이때 플레이어의 현재 위치 벡터의 y 값이 지형의 높이(실제로 지형의 높이 + 6)보다 작으면 플레이어
+	의 일부가 지형 아래에 있게 된다. 이러한 경우를 방지하려면 플레이어의 속도 벡터의 y 값을 0으로 만들고 플레이어
+	의 위치 벡터의 y-값을 지형의 높이(실제로 지형의 높이 + 6)로 설정한다. 그러면 플레이어는 항상 지형 위에 있게 된다.*/
+	if (xmf3PlayerPosition.y < fHeight)
+	{
+		XMFLOAT3 xmf3PlayerVelocity = GetVelocity();
+		xmf3PlayerVelocity.y = 0.0f;
+		SetVelocity(xmf3PlayerVelocity);
+		xmf3PlayerPosition.y = fHeight;
+		SetPosition(xmf3PlayerPosition);
+	}
+
+
+}
+CCamera* CMyPlayer3::ChangeCamera(DWORD nNewCameraMode, float fTimeElapsed)
+{
+	DWORD nCurrentCameraMode = (m_pCamera) ? m_pCamera->GetMode() : 0x00;
+	if (nCurrentCameraMode == nNewCameraMode) return(m_pCamera);
+	switch (nNewCameraMode)
+	{
+	case THIRD_PERSON_CAMERA:
+		SetFriction(50.5f);
+		SetGravity(XMFLOAT3(0.0f, -100.0f, 0.0f));
+		SetMaxVelocityXZ(20.5f);
+		SetMaxVelocityY(2000.0f);
+		m_pCamera = OnChangeCamera(THIRD_PERSON_CAMERA, nCurrentCameraMode);
+		m_pCamera->SetTimeLag(0.8f);
+		m_pCamera->SetOffset(XMFLOAT3(-0.0f, 20.0f, -65.0f));
+		m_pCamera->SetPosition(Vector3::Add(m_xmf3Position, m_pCamera->GetOffset()));
+		m_pCamera->GenerateProjectionMatrix(1.01f, 6000.0f, ASPECT_RATIO, 60.0f);
+		m_pCamera->SetViewport(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f);
+		m_pCamera->SetScissorRect(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT);
+		break;
+	default:
+		break;
+	}
+
+
+	Update(fTimeElapsed);
+
+	return(m_pCamera);
+}
