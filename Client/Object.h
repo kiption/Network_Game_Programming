@@ -191,6 +191,7 @@ public:
 
 	bool						m_bObjectCollideCheck = false;
 	bool						m_bObjectRising = false;
+	
 };
 
 class CPlayerObject : public CGameObjcet

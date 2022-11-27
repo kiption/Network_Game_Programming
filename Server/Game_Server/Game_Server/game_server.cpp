@@ -14,13 +14,16 @@ DWORD WINAPI ServerTimer(LPVOID arg);
 
 Coordinate basic_coordinate;	// 기본(초기) 좌표계
 
+//==================================================
 // 클라이언트 객체 정보
+//==================================================
+enum { CL_STATE_EMPTY, CL_STATE_RUNNING };
 class ClientINFO {
 private:
 	SOCKET		m_sock;
 
 	int			m_id = 0;
-	bool		m_onlinestate = false;
+	char		m_state;
 
 	float		m_acceleator;
 	float		m_yaw, m_pitch, m_roll;
@@ -32,7 +35,7 @@ public:
 	ClientINFO() {
 		m_id = 0;
 		m_sock = 0;
-		m_onlinestate = false;
+		m_state = CL_STATE_EMPTY;
 		m_pos = { 0.f, 0.f, 0.f };
 		m_yaw = m_pitch = m_roll = 0.f;
 		MyVector3D tmp_rightvec = { 1.f, 0.f, 0.f };
@@ -45,7 +48,7 @@ public:
 	};
 
 	SOCKET		getSock() { return m_sock; }
-	bool		getState() { return m_onlinestate; }
+	char		getState() { return m_state; }
 	int			getId() { return m_id; }
 	float		getAccel() { return m_acceleator; }
 	MyVector3D	getPos() { return m_pos; }
@@ -55,8 +58,8 @@ public:
 	float		getRoll() { return m_roll; }
 	float		getTimer() {}
 
-	void		setSock(SOCKET socket) { m_sock = socket; }
-	void		setState(bool state) { m_onlinestate = state; }
+	void		setSock(SOCKET sock) { m_sock = sock; }
+	void		setState(char state) { m_state = state; }
 	void		setAccel(float accel) { m_acceleator = accel; }
 	void		setID(int id) { m_id = id; }
 	void		setPos(MyVector3D pos) { m_pos = pos; }
@@ -65,10 +68,41 @@ public:
 	void		setPitch(float f) { m_pitch = f; }
 	void		setYaw(float f) { m_yaw = f; }
 	void		setRoll(float f) { m_roll = f; }
+
+public:
+	void		sendLoginInfoPacket(GS2C_LOGIN_INFO_PACKET packet);
+	void		sendAddObjPacket(GS2C_ADD_OBJ_PACKET packet);
+	void		sendUpdatePacket(GS2C_UPDATE_PACKET packet);
 };
 array<ClientINFO, MAX_USER> clients;
+//==================================================
 
-// main( )
+//==================================================
+// Send Packet Functions
+//==================================================
+void ClientINFO::sendLoginInfoPacket(GS2C_LOGIN_INFO_PACKET packet) {
+	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_LOGIN_INFO_PACKET), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send()");
+	}
+}
+void ClientINFO::sendAddObjPacket(GS2C_ADD_OBJ_PACKET packet) {
+	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_ADD_OBJ_PACKET), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send()");
+	}
+}
+void ClientINFO::sendUpdatePacket(GS2C_UPDATE_PACKET packet) {
+	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_UPDATE_PACKET), 0);
+	if (retval == SOCKET_ERROR) {
+		err_display("send()");
+	}
+}
+//==================================================
+
+//==================================================
+// Main( )
+//==================================================
 int main(int argc, char* argv[])
 {
 	int retval;
@@ -132,8 +166,11 @@ int main(int argc, char* argv[])
 	WSACleanup();
 	return 0;
 }
+//==================================================
 
-// 통신 스레드
+//==================================================
+// 통신 스레드 함수
+//==================================================
 DWORD WINAPI ProcessClient(LPVOID arg)
 {
 	int retval;
@@ -149,53 +186,113 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 	// 클라이언트ID 할당
 	int client_id = 0;
-	for (int j = 0; j < MAX_USER; ++j) {
-		if (clients[j].getId() == -1) {
-			client_id = j;
+	for (int i = 0; i < MAX_USER; ++i) {
+		if (clients[i].getState() == CL_STATE_EMPTY) {
+			client_id = i;
 
 			clients[client_id].setID(client_id);
 			clients[client_id].setSock(client_sock);
-			clients[client_id].setState(true);
+			clients[client_id].setState(CL_STATE_RUNNING);
 			
 			break;
 		}
 	}
 
-	// 접속한 클라이언트의 정보를 초기화합니다.
+	// 새로 접속한 클라이언트의 정보를 초기화합니다.
 	clients[client_id].setID(client_id);
 	MyVector3D Pos = { 400 + 50 * client_id, 2, 400 + 50 * client_id };
 	clients[client_id].setPos(Pos);
 
-	// 접속한 클라이언트에게 초기 정보를 전달합니다.
-	GS2C_LOGIN_INFO_PACKET S2CPacket;
-	S2CPacket.size = sizeof(GS2C_LOGIN_INFO_PACKET);
-	S2CPacket.type = GS2C_LOGIN_INFO;
-	S2CPacket.id = clients[client_id].getId();
+	// 새로 접속한 클라이언트에게 자신의 초기 정보를 전달합니다.
+	GS2C_LOGIN_INFO_PACKET login_packet;
+	login_packet.size = sizeof(GS2C_LOGIN_INFO_PACKET);
+	login_packet.type = GS2C_LOGIN_INFO;
+	login_packet.id = clients[client_id].getId();
 
-	S2CPacket.pos_x = clients[client_id].getPos().x;
-	S2CPacket.pos_y = clients[client_id].getPos().y;
-	S2CPacket.pos_z = clients[client_id].getPos().z;
+	login_packet.pos_x = clients[client_id].getPos().x;
+	login_packet.pos_y = clients[client_id].getPos().y;
+	login_packet.pos_z = clients[client_id].getPos().z;
 
-	S2CPacket.right_vec_x = clients[client_id].getCoordinate().x_coordinate.x;
-	S2CPacket.right_vec_y = clients[client_id].getCoordinate().x_coordinate.y;
-	S2CPacket.right_vec_z = clients[client_id].getCoordinate().x_coordinate.z;
+	login_packet.right_vec_x = clients[client_id].getCoordinate().x_coordinate.x;
+	login_packet.right_vec_y = clients[client_id].getCoordinate().x_coordinate.y;
+	login_packet.right_vec_z = clients[client_id].getCoordinate().x_coordinate.z;
 
-	S2CPacket.up_vec_x = clients[client_id].getCoordinate().y_coordinate.x;
-	S2CPacket.up_vec_y = clients[client_id].getCoordinate().y_coordinate.y;
-	S2CPacket.up_vec_z = clients[client_id].getCoordinate().y_coordinate.z;
+	login_packet.up_vec_x = clients[client_id].getCoordinate().y_coordinate.x;
+	login_packet.up_vec_y = clients[client_id].getCoordinate().y_coordinate.y;
+	login_packet.up_vec_z = clients[client_id].getCoordinate().y_coordinate.z;
 
-	S2CPacket.look_vec_x = clients[client_id].getCoordinate().z_coordinate.x;
-	S2CPacket.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
-	S2CPacket.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
+	login_packet.look_vec_x = clients[client_id].getCoordinate().z_coordinate.x;
+	login_packet.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
+	login_packet.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
 
-	retval = send(client_sock, reinterpret_cast<char*>(&S2CPacket), sizeof(GS2C_LOGIN_INFO_PACKET), 0);
-	if (retval == SOCKET_ERROR) {
-		err_display("send()");
+	clients[client_id].sendLoginInfoPacket(login_packet);
+	cout << "Send Client[" << clients[client_id].getId() << "]'s Info - Pos:(" << login_packet.pos_x << ", " << login_packet.pos_y << ", " << login_packet.pos_z << "), "
+		<< "LookVec:(" << login_packet.look_vec_x << ", " << login_packet.look_vec_y << ", " << login_packet.look_vec_z << ")." << endl;
+
+
+	// 새로 접속한 클라이언트에게 현재 접속해 있는 모든 클라이언트들의 객체 정보를 전달합니다.
+	for (int i = 0; i < MAX_USER; i++) {
+		if (clients[i].getState() == CL_STATE_EMPTY) continue;
+		if (i == client_id) continue;
+
+		GS2C_ADD_OBJ_PACKET add_others_packet;
+		add_others_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
+		add_others_packet.type = GS2C_ADD_OBJ;
+		add_others_packet.id = clients[i].getId();
+		add_others_packet.objtype = OBJ_TYPE_PLAYER;
+
+		add_others_packet.pos_x = clients[i].getPos().x;
+		add_others_packet.pos_y = clients[i].getPos().y;
+		add_others_packet.pos_z = clients[i].getPos().z;
+
+		add_others_packet.right_vec_x = clients[i].getCoordinate().x_coordinate.x;
+		add_others_packet.right_vec_y = clients[i].getCoordinate().x_coordinate.y;
+		add_others_packet.right_vec_z = clients[i].getCoordinate().x_coordinate.z;
+
+		add_others_packet.up_vec_x = clients[i].getCoordinate().y_coordinate.x;
+		add_others_packet.up_vec_y = clients[i].getCoordinate().y_coordinate.y;
+		add_others_packet.up_vec_z = clients[i].getCoordinate().y_coordinate.z;
+
+		add_others_packet.look_vec_x = clients[i].getCoordinate().z_coordinate.x;
+		add_others_packet.look_vec_y = clients[i].getCoordinate().z_coordinate.y;
+		add_others_packet.look_vec_z = clients[i].getCoordinate().z_coordinate.z;
+
+		clients[client_id].sendAddObjPacket(add_others_packet);
 	}
-	cout << "Send Client[" << clients[client_id].getId() << "]'s Info - Pos:(" << S2CPacket.pos_x << ", " << S2CPacket.pos_y << ", " << S2CPacket.pos_z << "), "
-		<< "LookVec:(" << S2CPacket.look_vec_x << ", " << S2CPacket.look_vec_y << ", " << S2CPacket.look_vec_z << ")." << endl;
 
-	// Loop
+	// 현재 접속해 있는 모든 클라이언트들에게 새로 접속한 클라이언트의 객체 정보를 전달합니다.
+	GS2C_ADD_OBJ_PACKET add_me_packet;
+	add_me_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
+	add_me_packet.type = GS2C_ADD_OBJ;
+	add_me_packet.id = clients[client_id].getId();
+	add_me_packet.objtype = OBJ_TYPE_PLAYER;
+
+	add_me_packet.pos_x = clients[client_id].getPos().x;
+	add_me_packet.pos_y = clients[client_id].getPos().y;
+	add_me_packet.pos_z = clients[client_id].getPos().z;
+
+	add_me_packet.right_vec_x = clients[client_id].getCoordinate().x_coordinate.x;
+	add_me_packet.right_vec_y = clients[client_id].getCoordinate().x_coordinate.y;
+	add_me_packet.right_vec_z = clients[client_id].getCoordinate().x_coordinate.z;
+
+	add_me_packet.up_vec_x = clients[client_id].getCoordinate().y_coordinate.x;
+	add_me_packet.up_vec_y = clients[client_id].getCoordinate().y_coordinate.y;
+	add_me_packet.up_vec_z = clients[client_id].getCoordinate().y_coordinate.z;
+
+	add_me_packet.look_vec_x = clients[client_id].getCoordinate().z_coordinate.x;
+	add_me_packet.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
+	add_me_packet.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
+
+	for (int i = 0; i < MAX_USER; i++) {
+		if (clients[i].getState() == CL_STATE_EMPTY) continue;
+		if (i == client_id) continue;
+
+		clients[i].sendAddObjPacket(add_me_packet);
+	}
+
+	//==================================================
+	// Loop - Recv & Process Packets
+	//==================================================
 	while (1) {
 		// 이동 함수
 		C2GS_KEYVALUE_PACKET ClientPushKey;
@@ -252,7 +349,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					break;
 				}
 
-				// Send Packet
+				// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
 				GS2C_UPDATE_PACKET update_pack;
 				update_pack.id = clients[client_id].getId();
 				update_pack.type = GS2C_UPDATE;
@@ -273,20 +370,27 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				update_pack.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
 				update_pack.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
 
-				retval = send(client_sock, (char*)&update_pack, sizeof(GS2C_UPDATE_PACKET), 0);		// 서버로 전송합니다.
-				if (retval == SOCKET_ERROR) {
-					err_display("send()");
+				// client_id번째 클라이언트 객체의 변경된 사항을 모든 클라이언트들에게 전달합니다.
+				for (int i = 0; i < MAX_USER; i++) {
+					if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+					clients[i].sendUpdatePacket(update_pack);
 				}
 			}
 		}
 	}
+	//==================================================
 
 	// 소켓 닫기
 	closesocket(client_sock);
 	cout << "[TCP 서버] 클라이언트 종료: IP 주소= " << addr << ", 포트 번호 = " << ntohs(clientaddr.sin_port) << endl;
 	return 0;
 }
+//==================================================
 
+//==================================================
+// 타이머 스레드 함수
+//==================================================
 DWORD WINAPI ServerTimer(LPVOID arg)
 {
 	while (1) {
@@ -300,5 +404,5 @@ DWORD WINAPI ServerTimer(LPVOID arg)
 		}
 	}
 }
-
+//==================================================
 

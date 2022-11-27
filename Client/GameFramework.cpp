@@ -591,61 +591,22 @@ void CGameFramework::ProcessInput()
 	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
 	if (!bProcessedByScene)
 	{
-		DWORD dwDirection = 0;
 		short keyValue = 0b00000;	// 0b[Space][Up][Down][Right][Left]
 		if (pKeysBuffer[VK_UP] & 0xF0) {
-			dwDirection |= DIR_FORWARD;
 			keyValue += 0b01000;
 		}
 		if (pKeysBuffer[VK_DOWN] & 0xF0) {
-			dwDirection |= DIR_BACKWARD;
 			keyValue += 0b00100;
 		}
 		if (pKeysBuffer[VK_RIGHT] & 0xF0) {
-			dwDirection |= DIR_RIGHT;
 			keyValue += 0b00010;
 		}
 		if (pKeysBuffer[VK_LEFT] & 0xF0) {
-			dwDirection |= DIR_LEFT;
 			keyValue += 0b00001;
 		}
 
 		if (keyValue != 0b00000)
 			q_input_key.push(keyValue);
-
-	//	if ((dwDirection != 0))
-	//	{
-	//		if (dwDirection)
-	//		{
-	//			if (m_pScene->m_bCollisionCheck == true)
-	//			{
-	//				Velocity = 1.0f;
-	//				//dwDirection *= -1;
-	//			}
-	//			else
-	//			{
-	//				Velocity = 4.0f;
-	//				if (pKeysBuffer[VK_SHIFT] & 0xF0)
-	//					m_pPlayer->Move(dwDirection, Velocity + 4.0f, false);
-
-	//			}
-	//			m_pPlayer->Move(dwDirection, Velocity, false);
-
-	//			if (pKeysBuffer[VK_RIGHT] & 0xF0)
-	//			{
-
-	//				m_pPlayer->Rotate(0.0, +3.3f, 0.0);
-	//				m_pPlayer->Move(DIR_BACKWARD, Velocity, false);
-	//			}
-	//			else if (pKeysBuffer[VK_LEFT] & 0xF0)
-	//			{
-
-	//				m_pPlayer->Rotate(0.0, -3.3, 0.0f);
-	//				m_pPlayer->Move(DIR_BACKWARD, Velocity, false);
-	//			}
-
-	//		}
-	//	}
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 }
@@ -803,6 +764,14 @@ void CGameFramework::myFunc_SetPosition(XMFLOAT3 position) {
 
 void CGameFramework::myFunc_SetVectors(XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
 	m_pPlayer->myFunc_SetVectors(rightVector, upVector, lookVector);
+}
+
+void CGameFramework::myFunc_SetOthersPosition(int n, XMFLOAT3 position) {
+	m_pScene->m_ppGameObjects[n]->SetPosition(position);
+}
+void CGameFramework::myFunc_SetOthersVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
+	// 이부분 이따 재성이랑 같이 봐야함.
+	//m_pScene->m_ppGameObjects[n]->myFunc_SetVectors(rightVector, upVector, lookVector);
 }
 
 bool CGameFramework::is_KeyInput_Empty() {
