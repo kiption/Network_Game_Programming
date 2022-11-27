@@ -192,6 +192,11 @@ public:
 	bool						m_bObjectCollideCheck = false;
 	bool						m_bObjectRising = false;
 	
+public:
+	void myFunc_SetVectors(const XMFLOAT3& xmf3right, const XMFLOAT3& xmf3up, const XMFLOAT3& xmf3look) { XMFLOAT3(m_xmf4x4World._11, m_xmf4x4World._12, m_xmf4x4World._13) = xmf3right; 
+	XMFLOAT3(m_xmf4x4World._21, m_xmf4x4World._22, m_xmf4x4World._23) = xmf3up; 
+	XMFLOAT3(m_xmf4x4World._31, m_xmf4x4World._32, m_xmf4x4World._33) = xmf3look; }
+
 };
 
 class CPlayerObject : public CGameObjcet

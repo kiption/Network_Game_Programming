@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "GameFramework.h"
 #include "UILayer.h"
-
+//#include "ObjINFO.h"
 queue<short> q_input_key;
 
 //HANDLE networkThread;
@@ -29,7 +29,7 @@ CGameFramework::CGameFramework()
 	m_pd3dFence = NULL;
 	for (int i = 0; i < m_nSwapChainBuffers; i++) m_nFenceValues[i] = 0;
 
-	for (int i = 0; i < m_nSwapChainBuffers; i++) 
+	for (int i = 0; i < m_nSwapChainBuffers; i++)
 	{
 #ifdef _WITH_DIRECT2D
 		m_ppd3d11WrappedBackBuffers[i] = NULL;
@@ -248,7 +248,7 @@ void CGameFramework::CreateDirect3DDevice()
 	{
 		pd3dDebugController->EnableDebugLayer();
 		pd3dDebugController->Release();
-}
+	}
 	nDXGIFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
@@ -719,7 +719,7 @@ void CGameFramework::FrameAdvance()
 #endif
 	D2D1_SIZE_F szRenderTarget = m_ppd2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 12, 37);
-	D2D1_RECT_F rcUpperText = D2D1::RectF(0, 0, szRenderTarget.width*0.25f, szRenderTarget.height * 0.25f);
+	D2D1_RECT_F rcUpperText = D2D1::RectF(0, 0, szRenderTarget.width * 0.25f, szRenderTarget.height * 0.25f);
 	m_pd2dDeviceContext->DrawTextW(m_pszFrameRate, (UINT32)wcslen(m_pszFrameRate), m_pdwFont, &rcUpperText, m_pd2dbrText);
 
 	D2D1_RECT_F rcLowerText = D2D1::RectF(0, szRenderTarget.height * 0.8f, szRenderTarget.width, szRenderTarget.height);
@@ -758,20 +758,46 @@ void CGameFramework::FrameAdvance()
 //==================================================
 //		Functions for Networking with Server
 //==================================================
-void CGameFramework::myFunc_SetPosition(XMFLOAT3 position) {
-	m_pPlayer->SetPosition(position);
+void CGameFramework::myFunc_SetPosition(int n,XMFLOAT3 position) {
+	if (LoginID != n)
+	{
+		m_pScene->m_ppGameObjects[LoginID]->SetPosition(position);
+	}
+	else
+	{
+		m_pPlayer->SetPosition(position);
+
+	}
 }
 
-void CGameFramework::myFunc_SetVectors(XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
+void CGameFramework::myFunc_SetVectors(int n,XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
+	if (LoginID != n)
+	{
+		m_pScene->m_ppGameObjects[LoginID]->myFunc_SetVectors(rightVector, upVector, lookVector);
+	}
+	else
+	{
 	m_pPlayer->myFunc_SetVectors(rightVector, upVector, lookVector);
+
+	}
+		
 }
+
+// myFunc_SetBoundingBox(){} -> Main Thread에 연결
 
 void CGameFramework::myFunc_SetOthersPosition(int n, XMFLOAT3 position) {
-	m_pScene->m_ppGameObjects[n]->SetPosition(position);
+
+//	m_pScene->m_ppGameObjects[n]->SetPosition(position);
+
+
 }
 void CGameFramework::myFunc_SetOthersVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
-	// 이부분 이따 재성이랑 같이 봐야함.
-	//m_pScene->m_ppGameObjects[n]->myFunc_SetVectors(rightVector, upVector, lookVector);
+	//// 이부분 이따 재성이랑 같이 봐야함.
+	//for (int i = 0; i < 2; i++)
+	//{
+	//	m_pScene->m_ppGameObjects[i]->myFunc_SetVectors(rightVector, upVector, lookVector);
+	////	m_pScene->m_ppGameObjects[i]->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(XMFLOAT3(objinfo.GetPosition()),XMFLOAT3(4.0,4.0,6.0),XMFLOAT4(0.0,0.0,0.0,1.0));
+	//}
 }
 
 bool CGameFramework::is_KeyInput_Empty() {
@@ -779,7 +805,7 @@ bool CGameFramework::is_KeyInput_Empty() {
 }
 
 short CGameFramework::pop_keyvalue() {
-	
+
 	short temp = q_input_key.front();
 	q_input_key.pop();
 

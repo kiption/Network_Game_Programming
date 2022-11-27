@@ -27,7 +27,5 @@ void TerrainExitCollision(MyVector3D vec , float veclocity, float scarla);
 int ITemBoxCollision();
 void MissileCollision(MyVector3D vec, float scarla, float elapsedtime);
 void TrapCollision(MyVector3D vec);
-
 void BoosterAnimate(MyVector3D vec, float elapsedtime);
-
 void Animate(MyVector3D vec, float veclocity, float scarla, float elapsedtime);

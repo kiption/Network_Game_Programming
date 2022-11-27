@@ -468,6 +468,13 @@ void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 
 void CScene::CheckPlayerByPlayerCollisions(float fTimeElapsed)
 {
+	/*for (int i = 0; i < 2; i++)
+	{
+		if (m_ppGameObjects[i].m_xoobb.PlayerOOBB.Intersects(m_ppGameObjects[j]->m_Boobb)
+		{
+
+		}
+	}*/
 }
 
 void CScene::MissileProcess()

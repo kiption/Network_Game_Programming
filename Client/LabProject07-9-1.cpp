@@ -49,9 +49,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	SetEvent(h_thread_event_GS);
 
 	// 게임 서버로부터 객체 초기정보를 받을 때까지 대기.
-	while (players_info[myID].m_state != OBJ_ST_RUNNING) {
+	while (my_info.m_state != OBJ_ST_RUNNING) {
+		
 		Sleep(100);
+
 	}
+	gGameFramework.LoginID = myID;
 	//==================================================
 
 
@@ -103,14 +106,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			//==================================================
 			//	    서버로부터 받은 값으로 최신화해줍니다.
 			//==================================================
-			gGameFramework.myFunc_SetPosition(players_info[myID].GetPosition());
-			gGameFramework.myFunc_SetVectors(players_info[myID].GetRightVector(), players_info[myID].GetUpVector(), players_info[myID].GetLookVector());
 			
 			for (int i = 0; i < MAX_USER; i++) {
-				if (i == myID) continue;
+				/*if (i == myID) continue;*/
 				if (players_info[i].m_state != OBJ_ST_RUNNING) continue;
+				gGameFramework.myFunc_SetPosition(i,players_info[i].GetPosition());
+				gGameFramework.myFunc_SetVectors(i,players_info[i].GetRightVector(), players_info[i].GetUpVector(), players_info[i].GetLookVector());
 
-				gGameFramework.myFunc_SetOthersPosition(i, players_info[i].GetPosition());
+				//gGameFramework.myFunc_SetOthersPosition(i, players_info[i].GetPosition());
 				//gGameFramework.myFunc_SetOthersVectors(players_info[myID].GetRightVector(), players_info[myID].GetUpVector(), players_info[myID].GetLookVector());
 			}
 			//==================================================

@@ -37,7 +37,7 @@ struct ObjINFO
 	XMFLOAT3 GetUpVector() { return XMFLOAT3(m_up_vec.x, m_up_vec.y, m_up_vec.z); };
 	XMFLOAT3 GetLookVector() { return XMFLOAT3(m_look_vec.x, m_look_vec.y, m_look_vec.z); };
 };
-ObjINFO objinfo;
+ObjINFO my_info;
 
 int myID;
-std::array<ObjINFO, MAX_USER> players_info;
+std::array<ObjINFO, MAX_USER-1> players_info;
