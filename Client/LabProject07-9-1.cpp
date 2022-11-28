@@ -107,6 +107,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		
 			for (int i = 0; i < MAX_USER; i++) {
 				//if (i == myID) continue;
+
 				if (players_info[i].m_state != OBJ_ST_RUNNING) continue;
 				gGameFramework.myFunc_SetPosition(i,players_info[i].GetPosition());
 				gGameFramework.myFunc_SetVectors(i,players_info[i].GetRightVector(), players_info[i].GetUpVector(), players_info[i].GetLookVector());

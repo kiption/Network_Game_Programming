@@ -561,6 +561,12 @@ void CGameFramework::BuildObjects()
 	m_pCamera = m_pPlayer->GetCamera();
 	m_pPlayer->SetTerrain(m_pScene->m_pTerrain);
 
+	//CMyPlayer2* pPlayer2 = new CMyPlayer2(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
+	//pPlayer2->SetPosition(XMFLOAT3(400.0f, 14.0f, 400.0f));
+	//m_pScene->m_pPlayer = m_pPlayer = pPlayer2;
+	//m_pCamera = m_pPlayer->GetCamera();
+	//m_pPlayer->SetTerrain(m_pScene->m_pTerrain);
+
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
@@ -759,10 +765,10 @@ void CGameFramework::FrameAdvance()
 //		Functions for Networking with Server
 //==================================================
 void CGameFramework::myFunc_SetPosition(int n, XMFLOAT3 position) {
-	
+
 	if (Login_ID == n)
 	{
-		((CMyPlayer*)m_pPlayer)->SetPosition(position);
+		m_pPlayer->SetPosition(position);
 	}
 	else
 	{
@@ -779,13 +785,13 @@ void CGameFramework::myFunc_SetPosition(int n, XMFLOAT3 position) {
 			others_id = n;
 			break;
 		}
-		//m_pScene->m_ppGameObjects[others_id]->SetPosition(position);
-		((CMyPlayer2*)m_pPlayer)->SetPosition(position);
+
+		m_pScene->m_ppGameObjects[others_id]->SetPosition(position);
 	}
 }
 
 void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
-	
+
 	if (Login_ID == n)
 	{
 		((CMyPlayer*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
@@ -796,18 +802,29 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 		switch (Login_ID) {
 		case 0:
 			others_id = n - 1;
+
 			break;
 		case 1:
 			others_id = n;
 			if (n == 2) others_id -= 1;
-		((CMyPlayer2*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
+
 			break;
 		case 2:
 			others_id = n;
-		((CMyPlayer3*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
+
 			break;
 		}
-		//m_pScene->m_ppGameObjects[others_id]->myFunc_SetVectors(rightVector, upVector, lookVector);
+
+		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._11 = rightVector.x;
+		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._12 = rightVector.y;
+		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._13 = rightVector.z;
+		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._21 = upVector.x;
+		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._22 = upVector.y;
+		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._23 = upVector.z;
+		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._31 = lookVector.x;
+		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._32 = lookVector.y;
+		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._33 = lookVector.z;
+		m_pScene->m_ppGameObjects[others_id]->SetScale(5.5,5.5,5.5);
 	}
 
 }

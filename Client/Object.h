@@ -193,9 +193,9 @@ public:
 	bool						m_bObjectRising = false;
 public:
 	void myFunc_SetVectors( XMFLOAT3& xmf3right,  XMFLOAT3& xmf3up,  XMFLOAT3& xmf3look)
-	{ XMFLOAT3(m_xmf4x4World._11, m_xmf4x4World._12, m_xmf4x4World._13) = xmf3right;
-	XMFLOAT3(m_xmf4x4World._21, m_xmf4x4World._22, m_xmf4x4World._23) = xmf3up;
-	XMFLOAT3(m_xmf4x4World._31, m_xmf4x4World._32, m_xmf4x4World._33) = xmf3look; }
+   {XMFLOAT3(m_xmf4x4Transform._11,m_xmf4x4Transform._12, m_xmf4x4Transform._13) = xmf3right;
+	XMFLOAT3(m_xmf4x4Transform._21,m_xmf4x4Transform._22, m_xmf4x4Transform._23) = xmf3up;
+	XMFLOAT3(m_xmf4x4Transform._31,m_xmf4x4Transform._32, m_xmf4x4Transform._33) = xmf3look; }
 
 };
 
