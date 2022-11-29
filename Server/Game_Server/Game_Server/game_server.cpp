@@ -3,7 +3,8 @@
 
 #include <iostream>
 #include <array>
-
+#include <vector>
+#include <queue>
 #include "CalcMove.h"
 #include "Global.h"
 
@@ -18,6 +19,7 @@ Coordinate basic_coordinate;	// 기본(초기) 좌표계
 // 클라이언트 객체 정보
 //==================================================
 enum { CL_STATE_EMPTY, CL_STATE_RUNNING };
+
 class ClientINFO {
 private:
 	SOCKET		m_sock;
@@ -30,6 +32,7 @@ private:
 	MyVector3D	m_pos;
 	Coordinate	m_coordinate;
 	float		m_timer;
+	queue<int>m_myitem;
 
 public:
 	ClientINFO() {
@@ -57,6 +60,7 @@ public:
 	float		getYaw() { return m_yaw; }
 	float		getRoll() { return m_roll; }
 	float		getTimer() {}
+	int			getItemQueue() { return m_myitem.front(); }
 
 	void		setSock(SOCKET sock) { m_sock = sock; }
 	void		setState(char state) { m_state = state; }
@@ -68,12 +72,65 @@ public:
 	void		setPitch(float f) { m_pitch = f; }
 	void		setYaw(float f) { m_yaw = f; }
 	void		setRoll(float f) { m_roll = f; }
+	void		setItemQueue(int type) { m_myitem.push(type); } // 아이템 먹을 시에 사용
+	void		setItemRelease() { m_myitem.pop(); } // 사용한 아이템 방출
 
 public:
 	void		sendLoginInfoPacket(GS2C_LOGIN_INFO_PACKET packet);
 	void		sendAddObjPacket(GS2C_ADD_OBJ_PACKET packet);
 	void		sendUpdatePacket(GS2C_UPDATE_PACKET packet);
 };
+
+enum { Missile, Bomb, Booster };
+
+class ItemObject {
+private:
+	int			m_objtype;
+	int			m_objOwner;
+	float		m_yaw, m_pitch, m_roll;
+	MyVector3D	m_pos;
+	Coordinate	m_coordinate;
+public:
+	ItemObject() {
+		m_objtype = -1;
+		m_objOwner = -1;
+		m_pos = { 0.f, 0.f, 0.f };
+		m_yaw = m_pitch = m_roll = 0.f;
+		MyVector3D tmp_rightvec = { 1.f, 0.f, 0.f };
+		MyVector3D tmp_upvec = { 0.f, 1.f, 0.f };
+		MyVector3D tmp_lookvec = { 0.f, 0.f, 1.f };
+		m_coordinate.x_coordinate = tmp_rightvec;
+		m_coordinate.y_coordinate = tmp_upvec;
+		m_coordinate.z_coordinate = tmp_lookvec;
+	};
+	int			getObjType() { return m_objtype; }
+	int			getObjOwner() { return m_objOwner; }
+	MyVector3D	getPos() { return m_pos; }
+	Coordinate	getCoordinate() { return m_coordinate; }
+	float		getPitch() { return m_pitch; }
+	float		getYaw() { return m_yaw; }
+	float		getRoll() { return m_roll; }
+
+	void		setObjType(int type) { m_objtype = type; }
+	void		setObjOwner(int num) { m_objOwner = num; }
+	void		setPos(MyVector3D pos) { m_pos = pos; }
+	void		setCoordinate(Coordinate co) { m_coordinate = co; }
+	void		setCoordinate(MyVector3D x, MyVector3D y, MyVector3D z) { m_coordinate.x_coordinate = x; m_coordinate.y_coordinate = y; m_coordinate.z_coordinate = z; }
+	void		setPitch(float f) { m_pitch = f; }
+	void		setYaw(float f) { m_yaw = f; }
+	void		setRoll(float f) { m_roll = f; }
+};
+
+struct ItemBox {
+	float		m_yaw, m_pitch, m_roll; // 회전 각도
+	MyVector3D	m_pos;
+	Coordinate	m_coordinate; // 회전 행렬
+	bool		m_visible;
+};
+
+array<ItemBox, ITEMBOXNUM> ItemBoxArray;
+vector<ItemObject> ObjectManager; // 미사일 지뢰 렌더링 정보들 담아두는 곳
+
 array<ClientINFO, MAX_USER> clients;
 //==================================================
 
@@ -105,6 +162,24 @@ void ClientINFO::sendUpdatePacket(GS2C_UPDATE_PACKET packet) {
 //==================================================
 int main(int argc, char* argv[])
 {
+	for (int i{}; i < 3; ++i) {
+		ItemBoxArray[i].m_pos.x = 350 + i * 40;
+		ItemBoxArray[i].m_pos.y = 20;
+		ItemBoxArray[i].m_pos.z = MiddleZ;
+
+		ItemBoxArray[3 + i].m_pos.x = MiddleX;
+		ItemBoxArray[3 + i].m_pos.y = 20;
+		ItemBoxArray[3 + i].m_pos.z = 2220 - i * 40;
+
+		ItemBoxArray[6 + i].m_pos.x = 2240 - i * 40;
+		ItemBoxArray[6 + i].m_pos.y = 20;
+		ItemBoxArray[6 + i].m_pos.z = MiddleZ;
+
+		ItemBoxArray[9 + i].m_pos.x = MiddleX;
+		ItemBoxArray[9 + i].m_pos.y = 20;
+		ItemBoxArray[9 + i].m_pos.z = 400 + i * 40;
+	}
+
 	int retval;
 	::QueryPerformanceFrequency;
 	// 윈속 초기화
@@ -193,7 +268,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			clients[client_id].setID(client_id);
 			clients[client_id].setSock(client_sock);
 			clients[client_id].setState(CL_STATE_RUNNING);
-			
+
 			break;
 		}
 	}
@@ -290,6 +365,25 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		clients[i].sendAddObjPacket(add_me_packet);
 	}
 
+	// 현재 접속해 있는 모든 클라이언트들에게 아이템 박스 정보를 전달합니다.
+	for (int i{}; i < ITEMBOXNUM; ++i) {
+
+		GS2C_ADD_OBJ_PACKET add_itembox_packet;
+		add_itembox_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
+		add_itembox_packet.type = GS2C_ADD_OBJ;
+		add_itembox_packet.id = i;
+		add_itembox_packet.objtype = OBJ_TYPE_ITEMBOX;
+
+		add_itembox_packet.pos_x = ItemBoxArray[i].m_pos.x;
+		add_itembox_packet.pos_y = ItemBoxArray[i].m_pos.y;
+		add_itembox_packet.pos_z = ItemBoxArray[i].m_pos.z;
+
+		for (int j = 0; j < MAX_USER; j++) {
+			if (clients[j].getState() == CL_STATE_EMPTY) continue;
+			
+			clients[j].sendAddObjPacket(add_itembox_packet);
+		}
+	}
 	//==================================================
 	// Loop - Recv & Process Packets
 	//==================================================
@@ -300,7 +394,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		if (retval == SOCKET_ERROR) {
 			err_display("recv()");
 		}
-		
+
 		enum { KEY_LEFT, KEY_RIGHT, KEY_DOWN, KEY_UP, KEY_SPACE };
 		for (int i = KEY_LEFT; i <= KEY_SPACE; ++i) {
 			if ((ClientPushKey.key >> i) & 1) {
@@ -344,8 +438,59 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					break;
 				}
 				case KEY_SPACE:
-					break;
-				default:
+					if (clients[client_id].getItemQueue() == NULL) {
+						break;
+					}
+					else {
+						ItemObject temp;
+						if (clients[client_id].getItemQueue() == Missile) { // 미사일 , 전역변수로 변경
+							temp.setObjType(clients[client_id].getItemQueue());
+							temp.setObjOwner(client_id);
+							temp.setPos(clients[client_id].getPos());
+							temp.setYaw(clients[client_id].getYaw());
+							temp.setRoll(clients[client_id].getRoll());
+							temp.setPitch(clients[client_id].getPitch());
+							temp.setCoordinate(clients[client_id].getCoordinate());
+						}
+						else if (clients[client_id].getItemQueue() == Bomb) { // 지뢰
+							temp.setObjType(clients[client_id].getItemQueue());
+							temp.setObjOwner(client_id);
+							temp.setPos(clients[client_id].getPos());
+						}
+						ObjectManager.push_back(temp);
+					}
+
+					GS2C_ADD_OBJ_PACKET add_obj_packet;
+					add_obj_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
+					add_obj_packet.type = GS2C_ADD_OBJ;
+					add_obj_packet.id = clients[client_id].getId();
+					//if (플레이어.아이템큐.front() == 타입 판단을 해)
+					add_obj_packet.objtype = clients[client_id].getItemQueue();   // 미사일이면 missile
+
+					add_obj_packet.pos_x = clients[client_id].getPos().x;
+					add_obj_packet.pos_y = clients[client_id].getPos().y;
+					add_obj_packet.pos_z = clients[client_id].getPos().z;
+
+					add_obj_packet.right_vec_x = clients[client_id].getCoordinate().x_coordinate.x;
+					add_obj_packet.right_vec_y = clients[client_id].getCoordinate().x_coordinate.y;
+					add_obj_packet.right_vec_z = clients[client_id].getCoordinate().x_coordinate.z;
+
+					add_obj_packet.up_vec_x = clients[client_id].getCoordinate().y_coordinate.x;
+					add_obj_packet.up_vec_y = clients[client_id].getCoordinate().y_coordinate.y;
+					add_obj_packet.up_vec_z = clients[client_id].getCoordinate().y_coordinate.z;
+
+					add_obj_packet.look_vec_x = clients[client_id].getCoordinate().z_coordinate.x;
+					add_obj_packet.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
+					add_obj_packet.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
+
+					// 뿌려주는 부분
+					for (int i = 0; i < MAX_USER; i++) {
+						if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+						clients[i].sendAddObjPacket(add_obj_packet);
+					}
+					// 2-2. 부스터
+					// 나중에 생각			default:
 					break;
 				}
 

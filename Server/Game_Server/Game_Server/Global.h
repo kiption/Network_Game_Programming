@@ -7,6 +7,8 @@
 
 #define MOVE_SCALAR 6.0f
 #define ROTATE_SCALAR 1.5f
+#define MiddleX 1295
+#define MiddleZ 1310
 
 #include <random>
 #include <math.h>
