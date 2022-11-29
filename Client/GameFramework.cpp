@@ -769,6 +769,7 @@ void CGameFramework::myFunc_SetPosition(int n, XMFLOAT3 position) {
 	if (Login_ID == n)
 	{
 		m_pPlayer->SetPosition(position);
+	
 	}
 	else
 	{
@@ -787,7 +788,8 @@ void CGameFramework::myFunc_SetPosition(int n, XMFLOAT3 position) {
 		}
 
 		m_pScene->m_ppGameObjects[others_id]->SetPosition(position);
-	}
+		
+	}	
 }
 
 void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
@@ -795,6 +797,8 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 	if (Login_ID == n)
 	{
 		((CMyPlayer*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
+		((CMyPlayer*)m_pPlayer)->SetScale(3.0, 3.0, 3.0);
+	
 	}
 	else
 	{
@@ -814,17 +818,8 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 
 			break;
 		}
-
-		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._11 = rightVector.x;
-		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._12 = rightVector.y;
-		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._13 = rightVector.z;
-		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._21 = upVector.x;
-		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._22 = upVector.y;
-		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._23 = upVector.z;
-		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._31 = lookVector.x;
-		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._32 = lookVector.y;
-		m_pScene->m_ppGameObjects[others_id]->m_xmf4x4Transform._33 = lookVector.z;
-		m_pScene->m_ppGameObjects[others_id]->SetScale(5.5,5.5,5.5);
+		m_pScene->m_ppGameObjects[others_id]->myFunc_SetVectors(rightVector, upVector, lookVector);
+		m_pScene->m_ppGameObjects[others_id]->SetScale(3.0, 3.0, 3.0);
 	}
 
 }

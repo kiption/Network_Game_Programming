@@ -192,10 +192,8 @@ public:
 	bool						m_bObjectCollideCheck = false;
 	bool						m_bObjectRising = false;
 public:
-	void myFunc_SetVectors( XMFLOAT3& xmf3right,  XMFLOAT3& xmf3up,  XMFLOAT3& xmf3look)
-   {XMFLOAT3(m_xmf4x4Transform._11,m_xmf4x4Transform._12, m_xmf4x4Transform._13) = xmf3right;
-	XMFLOAT3(m_xmf4x4Transform._21,m_xmf4x4Transform._22, m_xmf4x4Transform._23) = xmf3up;
-	XMFLOAT3(m_xmf4x4Transform._31,m_xmf4x4Transform._32, m_xmf4x4Transform._33) = xmf3look; }
+	void myFunc_SetVectors(const XMFLOAT3& xmf3right, const XMFLOAT3& xmf3up, const XMFLOAT3& xmf3look);
+
 
 };
 

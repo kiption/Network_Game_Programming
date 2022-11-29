@@ -1,12 +1,11 @@
 #pragma once
 
-#define FRAME_BUFFER_WIDTH		1240
-#define FRAME_BUFFER_HEIGHT		960
+#define FRAME_BUFFER_WIDTH		960
+#define FRAME_BUFFER_HEIGHT		840
 
 #include "Timer.h"
 #include "Player.h"
 #include "Scene.h"
-
 #include <queue>		// 입력된 키를 저장해둠. (선입력 시스템 비슷한..? 역할)
 
 class UILayer;

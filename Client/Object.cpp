@@ -853,6 +853,14 @@ void CGameObjcet::UpdateBoundingBox()
 	}
 }
 
+void CGameObjcet::myFunc_SetVectors(const XMFLOAT3& xmf3right, const XMFLOAT3& xmf3up, const XMFLOAT3& xmf3look)
+{
+	m_xmf4x4Transform._11 = xmf3right.x; m_xmf4x4Transform._12 = xmf3right.y; m_xmf4x4Transform._13 = xmf3right.z;
+	m_xmf4x4Transform._21 = xmf3up.x; m_xmf4x4Transform._22 = xmf3up.y; m_xmf4x4Transform._23 = xmf3up.z;
+	m_xmf4x4Transform._31 = xmf3look.x; m_xmf4x4Transform._32 = xmf3look.y; m_xmf4x4Transform._33 = xmf3look.z;
+	this->SetScale(6.0, 6.0, 6.0);
+}
+
 CTrapObject::CTrapObject()
 {
 }

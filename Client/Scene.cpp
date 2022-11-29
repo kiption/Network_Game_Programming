@@ -165,21 +165,21 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_nGameObjects = 179;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
-	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race2.bin");
+	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race.bin");
 	CPlayerObject* P2 = NULL;
 	P2 = new CPlayerObject();
 	P2->SetChild(pPlayerCars2, true);
 	P2->OnInitialize();
-	P2->SetScale(6.0f, 6.0, 6.0);
+	P2->SetScale(3.0,3.0,3.0);
 	P2->SetPosition(450.0f, 14.0f, 480.0f);
 	m_ppGameObjects[0] = P2;
 
-	CGameObjcet* pPlayerCars3 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race3.bin");
+	CGameObjcet* pPlayerCars3 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race.bin");
 	CPlayerObject* P3 = NULL;
 	P3 = new CPlayerObject();
 	P3->SetChild(pPlayerCars3, true);
 	P3->OnInitialize();
-	P3->SetScale(6.0f, 6.0, 6.0);
+	P3->SetScale(3.0, 3.0, 3.0);
 	P3->SetPosition(500.0, 14.0, 480.0f);
 	m_ppGameObjects[1] = P3;
 
