@@ -9,7 +9,6 @@
 #define ROTATE_SCALAR 1.5f
 #define MiddleX 1295
 #define MiddleZ 1310
-#define ITEMBOXNUM 12
 
 #include <random>
 #include <math.h>
