@@ -107,7 +107,7 @@ struct GS2C_UPDATE_PACKET {
 	float look_vec_x, look_vec_y, look_vec_z;
 };
 
-enum { OBJ_TYPE_PLAYER, OBJ_TYPE_ITEMBOX, OBJ_TYPE_MISSLE, OBJ_TYPE_BOMB };
+enum {OBJ_TYPE_PLAYER, OBJ_TYPE_MISSLE, OBJ_TYPE_BOMB};
 struct GS2C_ADD_OBJ_PACKET {
 	short size;
 	char type;
