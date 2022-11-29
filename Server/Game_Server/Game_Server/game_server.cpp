@@ -3,19 +3,25 @@
 
 #include <iostream>
 #include <array>
+#include <time.h>
 
 #include "CalcMove.h"
 #include "Global.h"
 
 using namespace std;
 
-DWORD WINAPI ProcessClient(LPVOID arg);
-DWORD WINAPI ServerTimer(LPVOID arg);
+DWORD WINAPI ProcessClient(LPVOID arg);		// 클라이언트 통신 스레드
+DWORD WINAPI TimerThreadFunc(LPVOID arg);	// 타이머 스레드
+DWORD WINAPI ServerTime_Update(LPVOID arg);	// 서버 시간 갱신 스레드
 
 Coordinate basic_coordinate;	// 기본(초기) 좌표계
 
+float START_TIME;						// 서버 프로그램이 켜진 시간
+float SERVER_TIME;						// 서버 시간
+constexpr int TIME_UPDATE_CYCLE = 100;	// 서버 시간 업데이트 주기 (ms단위)
+
 //==================================================
-// 클라이언트 객체 정보
+//           [ 클라이언트 객체 정보 ]
 //==================================================
 enum { CL_STATE_EMPTY, CL_STATE_RUNNING };
 class ClientINFO {
@@ -78,7 +84,7 @@ array<ClientINFO, MAX_USER> clients;
 //==================================================
 
 //==================================================
-// Send Packet Functions
+//           [ Send Packet Functions ]
 //==================================================
 void ClientINFO::sendLoginInfoPacket(GS2C_LOGIN_INFO_PACKET packet) {
 	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_LOGIN_INFO_PACKET), 0);
@@ -101,10 +107,16 @@ void ClientINFO::sendUpdatePacket(GS2C_UPDATE_PACKET packet) {
 //==================================================
 
 //==================================================
-// Main( )
+//                   [ Main( ) ]
 //==================================================
 int main(int argc, char* argv[])
 {
+	// 서버 시간 초기화
+	START_TIME = 0.0f;
+	SERVER_TIME = 0.0f;
+	// 서버시간을 업데이트시켜주는 스레드 생성
+	HANDLE hTimerThread = CreateThread(NULL, 0, ServerTime_Update, 0, 0, NULL);
+
 	int retval;
 	::QueryPerformanceFrequency;
 	// 윈속 초기화
@@ -133,9 +145,7 @@ int main(int argc, char* argv[])
 	SOCKET client_sock;
 	struct sockaddr_in clientaddr;
 	int addrlen;
-	HANDLE hThread, tThread;
-
-	tThread = CreateThread(NULL, 0, ServerTimer, 0, 0, NULL);
+	HANDLE hThread;
 
 	while (1) {
 		// accept()
@@ -169,7 +179,7 @@ int main(int argc, char* argv[])
 //==================================================
 
 //==================================================
-// 통신 스레드 함수
+//             [ 통신 스레드 함수 ]
 //==================================================
 DWORD WINAPI ProcessClient(LPVOID arg)
 {
@@ -327,6 +337,34 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					// right, up, look 벡터 회전결과 적용
 					clients[client_id].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
 
+					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
+					GS2C_UPDATE_PACKET update_pack;
+					update_pack.id = clients[client_id].getId();
+					update_pack.type = GS2C_UPDATE;
+
+					update_pack.pos_x = clients[client_id].getPos().x;
+					update_pack.pos_y = clients[client_id].getPos().y;
+					update_pack.pos_z = clients[client_id].getPos().z;
+
+					update_pack.right_vec_x = clients[client_id].getCoordinate().x_coordinate.x;
+					update_pack.right_vec_y = clients[client_id].getCoordinate().x_coordinate.y;
+					update_pack.right_vec_z = clients[client_id].getCoordinate().x_coordinate.z;
+
+					update_pack.up_vec_x = clients[client_id].getCoordinate().y_coordinate.x;
+					update_pack.up_vec_y = clients[client_id].getCoordinate().y_coordinate.y;
+					update_pack.up_vec_z = clients[client_id].getCoordinate().y_coordinate.z;
+
+					update_pack.look_vec_x = clients[client_id].getCoordinate().z_coordinate.x;
+					update_pack.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
+					update_pack.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
+
+					// client_id번째 클라이언트 객체의 변경된 사항을 모든 클라이언트들에게 전달합니다.
+					for (int i = 0; i < MAX_USER; i++) {
+						if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+						clients[i].sendUpdatePacket(update_pack);
+					}
+
 					break;
 				}
 				case KEY_DOWN:
@@ -341,6 +379,34 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					MyVector3D Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR, clients[client_id].getAccel());
 					clients[client_id].setPos(Move_Vertical_Result);
 
+					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
+					GS2C_UPDATE_PACKET update_pack;
+					update_pack.id = clients[client_id].getId();
+					update_pack.type = GS2C_UPDATE;
+
+					update_pack.pos_x = clients[client_id].getPos().x;
+					update_pack.pos_y = clients[client_id].getPos().y;
+					update_pack.pos_z = clients[client_id].getPos().z;
+
+					update_pack.right_vec_x = clients[client_id].getCoordinate().x_coordinate.x;
+					update_pack.right_vec_y = clients[client_id].getCoordinate().x_coordinate.y;
+					update_pack.right_vec_z = clients[client_id].getCoordinate().x_coordinate.z;
+
+					update_pack.up_vec_x = clients[client_id].getCoordinate().y_coordinate.x;
+					update_pack.up_vec_y = clients[client_id].getCoordinate().y_coordinate.y;
+					update_pack.up_vec_z = clients[client_id].getCoordinate().y_coordinate.z;
+
+					update_pack.look_vec_x = clients[client_id].getCoordinate().z_coordinate.x;
+					update_pack.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
+					update_pack.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
+
+					// client_id번째 클라이언트 객체의 변경된 사항을 모든 클라이언트들에게 전달합니다.
+					for (int i = 0; i < MAX_USER; i++) {
+						if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+						clients[i].sendUpdatePacket(update_pack);
+					}
+
 					break;
 				}
 				case KEY_SPACE:
@@ -349,33 +415,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					break;
 				}
 
-				// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
-				GS2C_UPDATE_PACKET update_pack;
-				update_pack.id = clients[client_id].getId();
-				update_pack.type = GS2C_UPDATE;
 
-				update_pack.pos_x = clients[client_id].getPos().x;
-				update_pack.pos_y = clients[client_id].getPos().y;
-				update_pack.pos_z = clients[client_id].getPos().z;
-
-				update_pack.right_vec_x = clients[client_id].getCoordinate().x_coordinate.x;
-				update_pack.right_vec_y = clients[client_id].getCoordinate().x_coordinate.y;
-				update_pack.right_vec_z = clients[client_id].getCoordinate().x_coordinate.z;
-
-				update_pack.up_vec_x = clients[client_id].getCoordinate().y_coordinate.x;
-				update_pack.up_vec_y = clients[client_id].getCoordinate().y_coordinate.y;
-				update_pack.up_vec_z = clients[client_id].getCoordinate().y_coordinate.z;
-
-				update_pack.look_vec_x = clients[client_id].getCoordinate().z_coordinate.x;
-				update_pack.look_vec_y = clients[client_id].getCoordinate().z_coordinate.y;
-				update_pack.look_vec_z = clients[client_id].getCoordinate().z_coordinate.z;
-
-				// client_id번째 클라이언트 객체의 변경된 사항을 모든 클라이언트들에게 전달합니다.
-				for (int i = 0; i < MAX_USER; i++) {
-					if (clients[i].getState() == CL_STATE_EMPTY) continue;
-
-					clients[i].sendUpdatePacket(update_pack);
-				}
 			}
 		}
 	}
@@ -389,19 +429,29 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 //==================================================
 
 //==================================================
-// 타이머 스레드 함수
+//            [ 타이머 스레드 함수 ]
+//      일정 주기마다 수행해야하는 작업들은
+//             이곳에서 처리합니다.
 //==================================================
-DWORD WINAPI ServerTimer(LPVOID arg)
+DWORD WINAPI TimerThreadFunc(LPVOID arg)
 {
 	while (1) {
-		for (int i{}; i < 3; ++i) {
-			if (clients[i].getState()) {
+		Sleep(100);
+	}
+}
+//==================================================
 
-
-
-
-			}
-		}
+//==================================================
+//   [ 서버 시간을 흐르게 해주는 스레드 함수 ]
+// 		서버 시간을 흐르게 하는 코드입니다.
+//		특별한 일 없으면 건들지 말아주세요.
+//==================================================
+DWORD WINAPI ServerTime_Update(LPVOID arg)
+{
+	START_TIME = (float)clock() / CLOCKS_PER_SEC;
+	while (1) {
+		SERVER_TIME = (float)clock() / CLOCKS_PER_SEC - START_TIME;	// 서버 시간 업데이트
+		Sleep(TIME_UPDATE_CYCLE);									// 0.2초 대기 (서버 시간 업데이트 주기)
 	}
 }
 //==================================================
