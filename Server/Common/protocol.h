@@ -5,6 +5,7 @@ constexpr int BUF_SIZE = 200;
 constexpr int NAME_LEN = 10;
 
 constexpr int MAX_USER = 3;
+constexpr int ITEMBOXNUM = 12;
 
 constexpr int WORLD_X_POS = 2000;
 constexpr int WORLD_Y_POS = 2000;
@@ -97,17 +98,19 @@ struct GS2C_GET_ITME_PACKET {
 	short itemtype;
 };
 
+
+enum { OBJ_TYPE_PLAYER, OBJ_TYPE_MISSLE, OBJ_TYPE_BOMB, OBJ_TYPE_ITEMBOX };
 struct GS2C_UPDATE_PACKET {
 	short size;
 	char type;
 	short id;
+	short objtype;
 	float pos_x, pos_y, pos_z;
 	float right_vec_x, right_vec_y, right_vec_z;
 	float up_vec_x, up_vec_y, up_vec_z;
 	float look_vec_x, look_vec_y, look_vec_z;
 };
 
-enum {OBJ_TYPE_PLAYER, OBJ_TYPE_MISSLE, OBJ_TYPE_BOMB};
 struct GS2C_ADD_OBJ_PACKET {
 	short size;
 	char type;

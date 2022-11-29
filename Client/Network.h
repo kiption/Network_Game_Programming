@@ -230,22 +230,57 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			}
 			if (add_obj_pack.id == myID) break;
 
-			// 추가되는 객체의 id
-			int new_id = add_obj_pack.id;
+			switch (add_obj_pack.objtype) {	// 추가 되는 객체 종류에 따라 다른 작업을 수행합니다.
+			case OBJ_TYPE_PLAYER:
+			{
+				// 추가되는 객체의 id
+				int new_id = add_obj_pack.id;
 
-			// 클라 내 객체정보 컨테이너에 서버로 부터 받은 값을 저장합니다.
-			players_info[new_id].m_id = new_id;
-			players_info[new_id].m_pos = { add_obj_pack.pos_x, add_obj_pack.pos_y, add_obj_pack.pos_z };
-			players_info[new_id].m_right_vec = { add_obj_pack.right_vec_x, add_obj_pack.right_vec_y, add_obj_pack.right_vec_z };
-			players_info[new_id].m_up_vec = { add_obj_pack.up_vec_x, add_obj_pack.up_vec_y, add_obj_pack.up_vec_z };
-			players_info[new_id].m_look_vec = { add_obj_pack.look_vec_x, add_obj_pack.look_vec_y, add_obj_pack.look_vec_z };
-			players_info[new_id].m_state = OBJ_ST_RUNNING;
+				// 클라 내 객체정보 컨테이너에 서버로 부터 받은 값을 저장합니다.
+				players_info[new_id].m_id = new_id;
+				players_info[new_id].m_pos = { add_obj_pack.pos_x, add_obj_pack.pos_y, add_obj_pack.pos_z };
+				players_info[new_id].m_right_vec = { add_obj_pack.right_vec_x, add_obj_pack.right_vec_y, add_obj_pack.right_vec_z };
+				players_info[new_id].m_up_vec = { add_obj_pack.up_vec_x, add_obj_pack.up_vec_y, add_obj_pack.up_vec_z };
+				players_info[new_id].m_look_vec = { add_obj_pack.look_vec_x, add_obj_pack.look_vec_y, add_obj_pack.look_vec_z };
+				players_info[new_id].m_state = OBJ_ST_RUNNING;
 
-			// Test Log
-			cout << "[Recv New Client's Info] ID: " << players_info[new_id].m_id
-				<< ", Pos: (" << players_info[new_id].m_pos.x << ", " << players_info[new_id].m_pos.y << ", " << players_info[new_id].m_pos.z << ")"
-				<< ", LookVec: (" << players_info[new_id].m_look_vec.x << ", " << players_info[new_id].m_look_vec.y << ", " << players_info[new_id].m_look_vec.z << ")" << endl;
+				// Test Log
+				cout << "[Recv New Client's Info] ID: " << players_info[new_id].m_id
+					<< ", Pos: (" << players_info[new_id].m_pos.x << ", " << players_info[new_id].m_pos.y << ", " << players_info[new_id].m_pos.z << ")"
+					<< ", LookVec: (" << players_info[new_id].m_look_vec.x << ", " << players_info[new_id].m_look_vec.y << ", " << players_info[new_id].m_look_vec.z << ")" << endl;
 
+				break;
+			}
+			case OBJ_TYPE_ITEMBOX:
+			{
+				// 추가되는 객체의 id
+				int new_id = add_obj_pack.id;
+
+				// 클라 내 객체정보 컨테이너에 서버로 부터 받은 값을 저장합니다.
+				itembox_arr[new_id].m_id = new_id;
+				itembox_arr[new_id].m_pos = { add_obj_pack.pos_x, add_obj_pack.pos_y, add_obj_pack.pos_z };
+				itembox_arr[new_id].m_right_vec = { add_obj_pack.right_vec_x, add_obj_pack.right_vec_y, add_obj_pack.right_vec_z };
+				itembox_arr[new_id].m_up_vec = { add_obj_pack.up_vec_x, add_obj_pack.up_vec_y, add_obj_pack.up_vec_z };
+				itembox_arr[new_id].m_look_vec = { add_obj_pack.look_vec_x, add_obj_pack.look_vec_y, add_obj_pack.look_vec_z };
+				itembox_arr[new_id].m_state = OBJ_ST_RUNNING;
+
+				// Test Log
+				cout << "[Item Boxes Initialized] ID: " << itembox_arr[new_id].m_id
+					<< ", Pos: (" << itembox_arr[new_id].m_pos.x << ", " << itembox_arr[new_id].m_pos.y << ", " << itembox_arr[new_id].m_pos.z << ")" << endl;
+				break;
+			}
+			case OBJ_TYPE_MISSLE:
+			{
+				break;
+			}
+			case OBJ_TYPE_BOMB:
+			{
+				break;
+			}
+			//caseEnd
+			}
+			//SwitchEnd
+			
 			break;
 		}
 		case GS2C_UPDATE:
@@ -256,23 +291,30 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 				err_display("recv()");
 			}
 
-			if (update_pack.id == myID) {	// 자신의 이동
-				players_info[myID].m_pos = { update_pack.pos_x, update_pack.pos_y, update_pack.pos_z };
+			switch (update_pack.objtype) {	// 추가 되는 객체 종류에 따라 다른 작업을 수행합니다.
+			case OBJ_TYPE_PLAYER:
+			{
+				if (update_pack.id == myID) {	// 자신의 이동
+					players_info[myID].m_pos = { update_pack.pos_x, update_pack.pos_y, update_pack.pos_z };
 
-				players_info[myID].m_right_vec = { update_pack.right_vec_x, update_pack.right_vec_y, update_pack.right_vec_z };
-				players_info[myID].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
-				players_info[myID].m_look_vec = { update_pack.look_vec_x, update_pack.look_vec_y, update_pack.look_vec_z };
+					players_info[myID].m_right_vec = { update_pack.right_vec_x, update_pack.right_vec_y, update_pack.right_vec_z };
+					players_info[myID].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
+					players_info[myID].m_look_vec = { update_pack.look_vec_x, update_pack.look_vec_y, update_pack.look_vec_z };
 
-				// Test Log
-				//cout << "My Car moves to Pos(" << players_info[myID].m_pos.x << ", " << players_info[myID].m_pos.y << ", " << players_info[myID].m_pos.z << ")." << endl;
+					// Test Log
+					//cout << "My Car moves to Pos(" << players_info[myID].m_pos.x << ", " << players_info[myID].m_pos.y << ", " << players_info[myID].m_pos.z << ")." << endl;
+				}
+				else if (update_pack.id >= 0 && update_pack.id <= MAX_USER) {	// 다른 플레이어의 이동
+					players_info[update_pack.id].m_pos = { update_pack.pos_x, update_pack.pos_y, update_pack.pos_z };
+
+					players_info[update_pack.id].m_right_vec = { update_pack.right_vec_x, update_pack.right_vec_y, update_pack.right_vec_z };
+					players_info[update_pack.id].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
+					players_info[update_pack.id].m_look_vec = { update_pack.look_vec_x, update_pack.look_vec_y, update_pack.look_vec_z };
+				}
 			}
-			else if (update_pack.id >= 0 && update_pack.id <= MAX_USER) {	// 다른 플레이어의 이동
-				players_info[update_pack.id].m_pos = { update_pack.pos_x, update_pack.pos_y, update_pack.pos_z };
-
-				players_info[update_pack.id].m_right_vec = { update_pack.right_vec_x, update_pack.right_vec_y, update_pack.right_vec_z };
-				players_info[update_pack.id].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
-				players_info[update_pack.id].m_look_vec = { update_pack.look_vec_x, update_pack.look_vec_y, update_pack.look_vec_z };
+			//caseEnd
 			}
+			//switchEnd
 
 			break;
 		}
