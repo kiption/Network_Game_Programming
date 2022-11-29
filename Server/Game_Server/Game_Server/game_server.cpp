@@ -200,7 +200,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 	// 새로 접속한 클라이언트의 정보를 초기화합니다.
 	clients[client_id].setID(client_id);
-	MyVector3D Pos = { 400 + 50 * client_id, 2, 400 + 50 * client_id };
+	MyVector3D Pos = { 400 + 50 * client_id, 14.0, 400 + 50 * client_id };
 	clients[client_id].setPos(Pos);
 
 	// 새로 접속한 클라이언트에게 자신의 초기 정보를 전달합니다.
