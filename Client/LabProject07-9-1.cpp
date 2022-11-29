@@ -109,7 +109,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				if (players_info[i].m_state != OBJ_ST_RUNNING) continue;
 				gGameFramework.myFunc_SetPosition(i,players_info[i].GetPosition());
 				gGameFramework.myFunc_SetVectors(i,players_info[i].GetRightVector(), players_info[i].GetUpVector(), players_info[i].GetLookVector());
-
+				gGameFramework.myFunc_SetBoundingBox(i, players_info[i].GetPosition());
+				gGameFramework.m_pPlayer->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+				gGameFramework.m_pScene->m_ppGameObjects[i]->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 				//gGameFramework.myFunc_SetOthersPosition(i, players_info[i].GetPosition());
 				//gGameFramework.myFunc_SetOthersVectors(players_info[myID].GetRightVector(), players_info[myID].GetUpVector(), players_info[myID].GetLookVector());
 			}

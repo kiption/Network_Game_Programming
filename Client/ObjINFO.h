@@ -36,6 +36,7 @@ struct ObjINFO
 	XMFLOAT3 GetRightVector() { return XMFLOAT3(m_right_vec.x, m_right_vec.y, m_right_vec.z); };
 	XMFLOAT3 GetUpVector() { return XMFLOAT3(m_up_vec.x, m_up_vec.y, m_up_vec.z); };
 	XMFLOAT3 GetLookVector() { return XMFLOAT3(m_look_vec.x, m_look_vec.y, m_look_vec.z); };
+	
 };
 ObjINFO objinfo;
 

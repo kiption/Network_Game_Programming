@@ -395,65 +395,66 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 
 void CScene::CheckPlayerByRandomBoxCollisions()
 {
-	//objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-	//objinfo.m_xoobb.ItemboxOOBB = BoundingOrientedBox(XMFLOAT3(350.0f + (2 * 40), 20.0f, 800.0f), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-
-	for (int i = 2; i < 3; ++i) {
-
-		m_ppGameObjects[2]->SetRotationSpeed(2.0f);
-		m_ppGameObjects[2]->Rotate(0, m_ppGameObjects[2]->m_fRotationSpeed, 0);
-
-		//if (objinfo.m_xoobb.ItemboxOOBB.Intersects(objinfo.m_xoobb.PlayerOOBB)) {
-		//	m_ppGameObjects[2]->m_bObjectCollideCheck = true;
-		//}
-		if (m_ppGameObjects[2]->m_bObjectCollideCheck) {
-			m_ppGameObjects[2]->m_xmf4x4Transform._42 -= 0.5f;
-			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 < -100.0) {
-				m_ppGameObjects[2]->m_bObjectCollideCheck = false;
-				m_ppGameObjects[2]->m_bObjectRising = true;
-				int RandomItemVal = PresentItemVal(ItemRanVal);
-				m_pPlayer->m_iItemVal = RandomItemVal;
-			}
-		}
-
-		else {
-			if (m_ppGameObjects[2]->m_bObjectRising) {
-				m_ppGameObjects[2]->m_xmf4x4Transform._42 += 1.5f;
-			}
-			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 >= 20.0f) {
-				m_ppGameObjects[2]->m_xmf4x4Transform._42 = 20.0f;
-				m_ppGameObjects[2]->m_bObjectRising = false;
-			}
-		}
-	}
-
-	if (m_pPlayer->m_iItemVal == 1)
-	{
-		m_bMissileActive = true;
-		m_bTrapActive = false;
-		m_bBoosterActive = false;
-		MissileProcess();
-	}
-	else if (m_pPlayer->m_iItemVal == 2)
-	{
-		m_bTrapActive = true;
-		m_bMissileActive = false;
-		m_bBoosterActive = false;
-		TrapProcess();
-	}
-	else if (m_pPlayer->m_iItemVal == 3)
-	{
-		m_bBoosterActive = true;
-		m_bMissileActive = false;
-		m_bTrapActive = false;
-		BoosterProcess();
-	}
+//	//objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+//	//objinfo.m_xoobb.ItemboxOOBB = BoundingOrientedBox(XMFLOAT3(350.0f + (2 * 40), 20.0f, 800.0f), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+//
+//	for (int i = 2; i < 3; ++i) {
+//
+//		m_ppGameObjects[2]->SetRotationSpeed(2.0f);
+//		m_ppGameObjects[2]->Rotate(0, m_ppGameObjects[2]->m_fRotationSpeed, 0);
+//
+//		//if (objinfo.m_xoobb.ItemboxOOBB.Intersects(objinfo.m_xoobb.PlayerOOBB)) {
+//		//	m_ppGameObjects[2]->m_bObjectCollideCheck = true;
+//		//}
+//		if (m_ppGameObjects[2]->m_bObjectCollideCheck) {
+//			m_ppGameObjects[2]->m_xmf4x4Transform._42 -= 0.5f;
+//			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 < -100.0) {
+//				m_ppGameObjects[2]->m_bObjectCollideCheck = false;
+//				m_ppGameObjects[2]->m_bObjectRising = true;
+//				int RandomItemVal = PresentItemVal(ItemRanVal);
+//				m_pPlayer->m_iItemVal = RandomItemVal;
+//			}
+//		}
+//
+//		else {
+//			if (m_ppGameObjects[2]->m_bObjectRising) {
+//				m_ppGameObjects[2]->m_xmf4x4Transform._42 += 1.5f;
+//			}
+//			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 >= 20.0f) {
+//				m_ppGameObjects[2]->m_xmf4x4Transform._42 = 20.0f;
+//				m_ppGameObjects[2]->m_bObjectRising = false;
+//			}
+//		}
+//	}
+//
+//	if (m_pPlayer->m_iItemVal == 1)
+//	{
+//		m_bMissileActive = true;
+//		m_bTrapActive = false;
+//		m_bBoosterActive = false;
+//		MissileProcess();
+//	}
+//	else if (m_pPlayer->m_iItemVal == 2)
+//	{
+//		m_bTrapActive = true;
+//		m_bMissileActive = false;
+//		m_bBoosterActive = false;
+//		TrapProcess();
+//	}
+//	else if (m_pPlayer->m_iItemVal == 3)
+//	{
+//		m_bBoosterActive = true;
+//		m_bMissileActive = false;
+//		m_bTrapActive = false;
+//		BoosterProcess();
+//	}
+//
 }
 
 void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 {
 
-	if (m_pPlayer->m_xmf3Position.y < 12.0)
+	/*if (m_pPlayer->m_xmf3Position.y < 12.0)
 	{
 		m_pPlayer->m_xmf3Position.y -= 0.05f;
 		m_bCollisionCheck = true;
@@ -461,7 +462,7 @@ void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)
 	else
 	{
 		m_bCollisionCheck = false;
-	}
+	}*/
 
 }
 
@@ -478,25 +479,25 @@ void CScene::MissileProcess()
 void CScene::CheckMissileByPlayerCollisions(float fTimeElapsed)
 {
 
-	CBulletObject** ppBullets = ((CMyPlayer*)m_pPlayer)->m_ppBullets;
-	//objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	//CBulletObject** ppBullets = ((CMyPlayer*)m_pPlayer)->m_ppBullets;
+	////objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 
-	for (int i = 0; i < 2; i++) {
-		for (int j = 0; j < BULLETS; j++)
-		{
-			// Coordinate None Recv
-			// ppBullets[j]->m_Boobb = objinfo.m_xoobb.MissileOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(2.0, 2.0, 4.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	//for (int i = 0; i < 2; i++) {
+	//	for (int j = 0; j < BULLETS; j++)
+	//	{
+	//		// Coordinate None Recv
+	//		// ppBullets[j]->m_Boobb = objinfo.m_xoobb.MissileOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(2.0, 2.0, 4.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 
-			//if (ppBullets[j]->m_bActive && (objinfo.m_xoobb.PlayerOOBB.Intersects(ppBullets[j]->m_Boobb)))
-			//{
-			//	cout << "Collision!!-Missile" << endl;
-			//	m_bMissileCollision = true;
+	//		//if (ppBullets[j]->m_bActive && (objinfo.m_xoobb.PlayerOOBB.Intersects(ppBullets[j]->m_Boobb)))
+	//		//{
+	//		//	cout << "Collision!!-Missile" << endl;
+	//		//	m_bMissileCollision = true;
 
-			//}
-		}
-	}
+	//		//}
+	//	}
+	//}
 
-	if (m_bMissileCollision == true)
+	/*if (m_bMissileCollision == true)
 	{
 		m_ppGameObjects[0]->m_xmf4x4Transform._42 += 80.0 * fTimeElapsed;
 		m_ppGameObjects[0]->Rotate(20.0, 0.0, 0.0);
@@ -514,7 +515,7 @@ void CScene::CheckMissileByPlayerCollisions(float fTimeElapsed)
 			m_ppGameObjects[0]->m_xmf4x4Transform._42 -= 80.0 * fTimeElapsed;
 			m_ppGameObjects[0]->Rotate(-20.5, 0.0, 0.0);
 		}
-	}
+	}*/
 
 }
 
@@ -527,38 +528,38 @@ void CScene::TrapProcess()
 
 void CScene::CheckTrapByPlayerCollisions(float fTimeElapsed)
 {
-	CTrapObject* ppTrap = ((CMyPlayer*)m_pPlayer)->m_pTrapObject;
-	//objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-	//for (int i = 0; i < 2; i++)
+	//CTrapObject* ppTrap = ((CMyPlayer*)m_pPlayer)->m_pTrapObject;
+	////objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	////for (int i = 0; i < 2; i++)
+	////{
+	////	if ((objinfo.m_xoobb.PlayerOOBB.Intersects(ppTrap->m_Boobb)))
+	////	{
+	////		m_bTrapCollision = true;
+	////	}
+	////}
+
+	//if (m_bTrapCollision == true)
 	//{
-	//	if ((objinfo.m_xoobb.PlayerOOBB.Intersects(ppTrap->m_Boobb)))
+	//	m_ppGameObjects[0]->m_xmf4x4Transform._41 += 10.0 * fTimeElapsed;
+	//	m_ppGameObjects[0]->m_xmf4x4Transform._42 += 30.0 * fTimeElapsed;
+	//	m_ppGameObjects[0]->Rotate(0.0, 10.0, 0.0);
+	//	if (m_ppGameObjects[0]->m_xmf4x4Transform._42 > 8.0)
 	//	{
-	//		m_bTrapCollision = true;
+	//		m_bTrapCollision = false;
 	//	}
 	//}
 
-	if (m_bTrapCollision == true)
-	{
-		m_ppGameObjects[0]->m_xmf4x4Transform._41 += 10.0 * fTimeElapsed;
-		m_ppGameObjects[0]->m_xmf4x4Transform._42 += 30.0 * fTimeElapsed;
-		m_ppGameObjects[0]->Rotate(0.0, 10.0, 0.0);
-		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 > 8.0)
-		{
-			m_bTrapCollision = false;
-		}
-	}
-
-	if (m_bTrapCollision == false)
-	{
-		if (m_ppGameObjects[0]->m_xmf4x4Transform._42 < 2.0 + 0.1) {
-			m_ppGameObjects[0]->Rotate(0.0, 0.0, 0.0);
-			m_ppGameObjects[0]->m_xmf4x4Transform._42 = 2.0f;
-		}
-		else
-		{
-			m_ppGameObjects[0]->m_xmf4x4Transform._42 -= 30.0 * fTimeElapsed;
-		}
-	}
+	//if (m_bTrapCollision == false)
+	//{
+	//	if (m_ppGameObjects[0]->m_xmf4x4Transform._42 < 2.0 + 0.1) {
+	//		m_ppGameObjects[0]->Rotate(0.0, 0.0, 0.0);
+	//		m_ppGameObjects[0]->m_xmf4x4Transform._42 = 2.0f;
+	//	}
+	//	else
+	//	{
+	//		m_ppGameObjects[0]->m_xmf4x4Transform._42 -= 30.0 * fTimeElapsed;
+	//	}
+	//}
 }
 
 void CScene::BoosterProcess()

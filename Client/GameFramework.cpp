@@ -624,6 +624,7 @@ void CGameFramework::AnimateObjects()
 	if (m_pScene) m_pScene->AnimateObjects(fTimeElapsed);
 
 	m_pPlayer->Animate(fTimeElapsed, NULL);
+	CollisionAnimate();
 
 }
 
@@ -769,7 +770,7 @@ void CGameFramework::myFunc_SetPosition(int n, XMFLOAT3 position) {
 	if (Login_ID == n)
 	{
 		m_pPlayer->SetPosition(position);
-	
+
 	}
 	else
 	{
@@ -788,8 +789,8 @@ void CGameFramework::myFunc_SetPosition(int n, XMFLOAT3 position) {
 		}
 
 		m_pScene->m_ppGameObjects[others_id]->SetPosition(position);
-		
-	}	
+
+	}
 }
 
 void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
@@ -798,7 +799,7 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 	{
 		((CMyPlayer*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
 		((CMyPlayer*)m_pPlayer)->SetScale(3.0, 3.0, 3.0);
-	
+
 	}
 	else
 	{
@@ -830,6 +831,50 @@ void CGameFramework::myFunc_SetOthersPosition(int n, XMFLOAT3 position) {
 void CGameFramework::myFunc_SetOthersVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
 	// 이부분 이따 재성이랑 같이 봐야함.
 	//m_pScene->m_ppGameObjects[n]->myFunc_SetVectors(rightVector, upVector, lookVector);
+}
+
+void CGameFramework::myFunc_SetBoundingBox(int n, XMFLOAT3 position)
+{
+	if (Login_ID == n)
+	{
+		((CMyPlayer*)m_pPlayer)->m_Boobb = BoundingOrientedBox(position, XMFLOAT3(0.0, 0.0, 0.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+		//	cout << position.x << " " << position.y << " " << position.z << endl;
+	}
+	else
+	{
+		int others_id = -1;
+		switch (Login_ID) {
+		case 0:
+			others_id = n - 1;
+
+			break;
+		case 1:
+			others_id = n;
+			if (n == 2) others_id -= 1;
+
+			break;
+		case 2:
+			others_id = n;
+
+			break;
+		}
+		m_pScene->m_ppGameObjects[others_id]->m_Boobb = BoundingOrientedBox(position, XMFLOAT3(0.0, 0.0, 0.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+		//	cout << position.x<<" "<<position.y<<" "<<position.z << endl;
+
+	}
+
+}
+
+void CGameFramework::CollisionAnimate()
+{
+	for (int i = 0; i < 3; i++)
+	{
+
+		if ((m_pPlayer->m_Boobb.Intersects(m_pScene->m_ppGameObjects[i]->m_Boobb)))
+		{
+			cout << "Collision Complete!!" << endl;
+		}
+	}
 }
 
 bool CGameFramework::is_KeyInput_Empty() {
