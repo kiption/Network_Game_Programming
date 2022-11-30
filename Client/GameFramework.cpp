@@ -820,7 +820,7 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 			break;
 		}
 		m_pScene->m_ppGameObjects[others_id]->myFunc_SetVectors(rightVector, upVector, lookVector);
-		m_pScene->m_ppGameObjects[others_id]->SetScale(3.0, 3.0, 3.0);
+	/*	m_pScene->m_ppGameObjects[others_id]->SetScale(6.0, 6.0, 6.0);*/
 	}
 
 }
