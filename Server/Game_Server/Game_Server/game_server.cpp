@@ -11,6 +11,8 @@
 using namespace std;
 
 DWORD WINAPI ProcessClient(LPVOID arg);		// 클라이언트 통신 스레드
+DWORD WINAPI TimerThreadFunc(LPVOID arg);	// 타이머 스레드
+DWORD WINAPI ServerTime_Update(LPVOID arg);	// 서버 시간 갱신 스레드
 
 Coordinate basic_coordinate;	// 기본(초기) 좌표계
 
@@ -205,6 +207,15 @@ void sendUpdatePacket_toAllClient(int c_id) {	// 모든 클라이언트에게 보내는 함수
 //==================================================
 int main(int argc, char* argv[])
 {
+	// 서버 시간 초기화
+	START_TIME = 0.0f;
+	SERVER_TIME = 0.0f;
+	// 서버시간을 업데이트시켜주는 스레드 생성
+	HANDLE hTimeUpdateThread = CreateThread(NULL, 0, ServerTime_Update, 0, 0, NULL);
+
+	// 주기적인 작업을 수행하는 스레드 생성
+	HANDLE hTimerThreadThread = CreateThread(NULL, 0, TimerThreadFunc, 0, 0, NULL);
+
 	// 아이템 박스의 위치값을 설정합니다.
 	for (int i{}; i < 3; ++i) {
 		ItemBoxArray[i].m_pos.x = 350 + i * 40;
@@ -420,7 +431,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 		for (int j = 0; j < MAX_USER; j++) {
 			if (clients[j].getState() == CL_STATE_EMPTY) continue;
-			
+
 			clients[j].sendAddObjPacket(add_itembox_packet);
 		}
 	}
@@ -551,7 +562,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				//CaseEnd
 				}
 				//SwitchEnd
-				
+
 			}
 		}
 	}
@@ -563,3 +574,32 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	return 0;
 }
 //==================================================
+
+//==================================================
+//            [ 타이머 스레드 함수 ]
+//      일정 주기마다 수행해야하는 작업들은
+//             이곳에서 처리합니다.
+//==================================================
+DWORD WINAPI TimerThreadFunc(LPVOID arg)
+{
+	while (1) {
+		Sleep(100);
+	}
+}
+//==================================================
+
+//==================================================
+//   [ 서버 시간을 흐르게 해주는 스레드 함수 ]
+// 		서버 시간을 흐르게 하는 코드입니다.
+//		특별한 일 없으면 건들지 말아주세요.
+//==================================================
+DWORD WINAPI ServerTime_Update(LPVOID arg)
+{
+	START_TIME = (float)clock() / CLOCKS_PER_SEC;
+	while (1) {
+		SERVER_TIME = (float)clock() / CLOCKS_PER_SEC - START_TIME;	// 서버 시간 업데이트
+		Sleep(TIME_UPDATE_CYCLE);									// 0.2초 대기 (서버 시간 업데이트 주기)
+	}
+}
+//==================================================
+
