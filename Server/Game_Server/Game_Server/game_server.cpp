@@ -444,7 +444,8 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		C2GS_KEYVALUE_PACKET ClientPushKey;
 		retval = recv(client_sock, reinterpret_cast<char*>(&ClientPushKey), sizeof(C2GS_KEYVALUE_PACKET), 0);
 		if (retval == SOCKET_ERROR) {
-			err_display("recv()");
+			//err_display("recv()");
+			closesocket(client_sock);
 		}
 
 		enum { KEY_LEFT, KEY_RIGHT, KEY_DOWN, KEY_UP, KEY_SPACE };

@@ -2,7 +2,8 @@
 #include "../Server/Common/Common.h"
 #include "ObjINFO.h"
 
-char* SERVERIP = (char*)"127.0.0.1";
+char* SERVERIP = (char*)"127.0.0.1";	// 로컬 테스트용
+//char* SERVERIP = (char*)"192.168.0.30";	// 리모트 주소
 
 bool g_registerd = false;
 bool g_gamestart = false;
