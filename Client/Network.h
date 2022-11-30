@@ -2,8 +2,8 @@
 #include "../Server/Common/Common.h"
 #include "ObjINFO.h"
 
-//char* SERVERIP = (char*)"127.0.0.1";	// 로컬 테스트용
-char* SERVERIP = (char*)"192.168.20.51";	// 리모트 주소
+char* SERVERIP = (char*)"127.0.0.1";	// 로컬 테스트용
+//char* SERVERIP = (char*)"192.168.20.51";	// 리모트 주소
 
 bool g_registerd = false;
 bool g_gamestart = false;
@@ -229,11 +229,12 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			if (retval == SOCKET_ERROR) {
 				err_display("recv()");
 			}
-			if (add_obj_pack.id == myID) break;
 
 			switch (add_obj_pack.objtype) {	// 추가 되는 객체 종류에 따라 다른 작업을 수행합니다.
 			case OBJ_TYPE_PLAYER:
 			{
+				if (add_obj_pack.id == myID) break;
+
 				// 추가되는 객체의 id
 				int new_id = add_obj_pack.id;
 
@@ -256,6 +257,7 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			{
 				// 추가되는 객체의 id
 				int new_id = add_obj_pack.id;
+				cout << "ID: " << new_id << " ";
 
 				// 클라 내 객체정보 컨테이너에 서버로 부터 받은 값을 저장합니다.
 				itembox_arr[new_id].m_id = new_id;

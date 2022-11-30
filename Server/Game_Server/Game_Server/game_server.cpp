@@ -155,19 +155,19 @@ array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 void ClientINFO::sendLoginInfoPacket(GS2C_LOGIN_INFO_PACKET packet) {
 	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_LOGIN_INFO_PACKET), 0);
 	if (retval == SOCKET_ERROR) {
-		err_display("send()");
+		//err_display("send()");
 	}
 }
 void ClientINFO::sendAddObjPacket(GS2C_ADD_OBJ_PACKET packet) {
 	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_ADD_OBJ_PACKET), 0);
 	if (retval == SOCKET_ERROR) {
-		err_display("send()");
+		//err_display("send()");
 	}
 }
 void ClientINFO::sendUpdatePacket(GS2C_UPDATE_PACKET packet) {
 	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_UPDATE_PACKET), 0);
 	if (retval == SOCKET_ERROR) {
-		err_display("send()");
+		//err_display("send()");
 	}
 }
 void sendUpdatePacket_toAllClient(int c_id) {	// 모든 클라이언트에게 보내는 함수
@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
 		addrlen = sizeof(clientaddr);
 		client_sock = accept(listen_sock, (struct sockaddr*)&clientaddr, &addrlen);
 		if (client_sock == INVALID_SOCKET) {
-			err_display("accept()");
+			//err_display("accept()");
 			break;
 		}
 
@@ -417,7 +417,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	}
 
 	// 현재 접속해 있는 모든 클라이언트들에게 아이템 박스 정보를 전달합니다.
-	for (int i{}; i < ITEMBOXNUM; ++i) {
+	for (int i{}; i < ITEMBOXNUM; i++) {
 
 		GS2C_ADD_OBJ_PACKET add_itembox_packet;
 		add_itembox_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
