@@ -54,7 +54,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	}
 	gGameFramework.Login_ID = myID;
 	//==================================================
-
+	
 
 
 	UNREFERENCED_PARAMETER(hPrevInstance);
@@ -70,6 +70,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	if (!InitInstance(hInstance, nCmdShow)) return(FALSE);
 
 	hAccelTable = ::LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_LABPROJECT0791));
+
+
 
 	while (1)
 	{
@@ -115,8 +117,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				//gGameFramework.myFunc_SetOthersPosition(i, players_info[i].GetPosition());
 				//gGameFramework.myFunc_SetOthersVectors(players_info[myID].GetRightVector(), players_info[myID].GetUpVector(), players_info[myID].GetLookVector());
 			}
-			//==================================================
 
+			//==================================================
+			// ItemBox 서버로부터 받은 값 출력합니다.
+			//==================================================
+			for (int i = 0; i < ITEMBOXNUM; i++) {
+				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetPosition(itembox_arr[i].GetPosition());
+			}
 			gGameFramework.FrameAdvance();
 		
 		}

@@ -162,7 +162,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pCollisionTerrain->SetMaterial(pCollisonMaterial);
 
 
-	m_nGameObjects = 179;
+	m_nGameObjects = 188;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
 	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race.bin");
@@ -185,7 +185,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	CGameObjcet* pBoxModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Mystery_box.bin");
 
-	for (int i = 2; i <= 4; i++)
+	for (int i = 2; i < 14; i++)
 	{
 		m_ppGameObjects[i] = new CObstacleObject();
 		m_ppGameObjects[i]->SetChild(pBoxModel, true);
@@ -202,7 +202,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pArrow1->SetScale(3.0f, 3.0f, 3.0f);
 	pArrow1->SetPosition(305.0f, 25.0f, 2400.0f);
 	pArrow1->Rotate(0.0f, 180.0f, 0.0f);
-	m_ppGameObjects[5] = pArrow1;
+	m_ppGameObjects[14] = pArrow1;
 
 	CObstacleObject* pArrow2 = NULL;
 	pArrow2 = new CObstacleObject();
@@ -211,7 +211,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pArrow2->SetScale(3.0f, 3.0f, 3.0f);
 	pArrow2->SetPosition(2330, 25.0f, 2200.0f);
 	pArrow2->Rotate(0.0f, 270.0f, 0.0f);
-	m_ppGameObjects[6] = pArrow2;
+	m_ppGameObjects[15] = pArrow2;
 
 	CObstacleObject* pArrow3 = NULL;
 	pArrow3 = new CObstacleObject();
@@ -220,7 +220,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pArrow3->SetScale(3.0f, 3.0f, 3.0f);
 	pArrow3->SetPosition(2225.0f, 25.0f, 230.0f);
 	pArrow3->Rotate(0.0f, 0.0f, 0.0f);
-	m_ppGameObjects[7] = pArrow3;
+	m_ppGameObjects[16] = pArrow3;
 
 	CObstacleObject* pArrow4 = NULL;
 	pArrow4 = new CObstacleObject();
@@ -229,21 +229,21 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pArrow4->SetScale(3.0f, 3.0f, 3.0f);
 	pArrow4->SetPosition(330.0f, 25.0f, 340.0f);
 	pArrow4->Rotate(0.0f, 90.0f, 0.0f);
-	m_ppGameObjects[8] = pArrow4;
+	m_ppGameObjects[17] = pArrow4;
 
 
 	CGameObjcet* pMiddleLineModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Tree.bin");
-	for (int i = 9; i < 179; i++)
+	for (int i = 18; i < 188; i++)
 	{
 		m_ppGameObjects[i] = new CObstacleObject();
 		m_ppGameObjects[i]->SetChild(pMiddleLineModel, true);
 		m_ppGameObjects[i]->SetScale(3.0f, 10.0f, 3.0f);
 	}
-	for (int i = 9; i < 50; i++)m_ppGameObjects[i]->SetPosition(280.0, 6.0f, 0.0f + (float)i * 45);
-	for (int i = 50; i < 56; i++)m_ppGameObjects[i]->SetPosition(((float)(i - 50) * 25) + 220.0 + cos(radian) * 70.0, 6.0f, ((float)(i - 50) * 25) + 2230.0 + sin(radian) * 70.0);
-	for (int i = 56; i < 97; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 56) * 45.0), 6.0f, 2350.0);
-	for (int i = 97; i < 138; i++)m_ppGameObjects[i]->SetPosition(2300.0, 6.0f, 0.0f + 280.0 + (float)((i - 97) * 45));
-	for (int i = 138; i < 179; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 138) * 45.0), 6.0f, 250.0);
+	for (int i = 18; i < 59; i++)m_ppGameObjects[i]->SetPosition(280.0, 6.0f, 0.0f + (float)i * 45);
+	for (int i = 59; i < 65; i++)m_ppGameObjects[i]->SetPosition(((float)(i - 50) * 25) + 220.0 + cos(radian) * 70.0, 6.0f, ((float)(i - 50) * 25) + 2230.0 + sin(radian) * 70.0);
+	for (int i = 65; i < 106; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 56) * 45.0), 6.0f, 2350.0);
+	for (int i = 106; i < 147; i++)m_ppGameObjects[i]->SetPosition(2300.0, 6.0f, 0.0f + 280.0 + (float)((i - 97) * 45));
+	for (int i = 147; i < 188; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 138) * 45.0), 6.0f, 250.0);
 
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
