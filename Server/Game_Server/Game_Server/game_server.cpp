@@ -7,12 +7,15 @@
 #include <queue>
 #include "CalcMove.h"
 #include "Global.h"
+#include "Collision.h"
 
 using namespace std;
 
 DWORD WINAPI ProcessClient(LPVOID arg);		// 클라이언트 통신 스레드
 DWORD WINAPI TimerThreadFunc(LPVOID arg);	// 타이머 스레드
 DWORD WINAPI ServerTime_Update(LPVOID arg);	// 서버 시간 갱신 스레드
+
+void ITemBoxCollision(int client_id);
 
 Coordinate basic_coordinate;	// 기본(초기) 좌표계
 
@@ -37,8 +40,9 @@ private:
 	MyVector3D	m_pos;
 	Coordinate	m_coordinate;
 	float		m_timer;
-
 	queue<int>m_myitem;
+public:
+	BoundingOrientedBox xoobb;
 
 public:
 	ClientINFO() {
@@ -54,6 +58,7 @@ public:
 		m_coordinate.y_coordinate = tmp_upvec;
 		m_coordinate.z_coordinate = tmp_lookvec;
 		m_acceleator = 2.0f;
+		xoobb = { XMFLOAT3(m_pos.x,m_pos.y,m_pos.z), XMFLOAT3(6.0f,6.0f,6.0f), XMFLOAT4(0.0f,0.0f,0.0f,1.0f) };
 	};
 
 	SOCKET		getSock() { return m_sock; }
@@ -96,13 +101,17 @@ array<ClientINFO, MAX_USER> clients;
 //             [ 아이템 객체 정보 ]
 //==================================================
 enum { ITEM_Booster, ITEM_Missile, ITEM_Bomb };
+random_device ItemVal;
+default_random_engine ItemRanVal(ItemVal());
+uniform_int_distribution<>PresentItemVal(ITEM_Booster, ITEM_Bomb);
 class ItemObject {
-private:
 	int			m_objtype;
 	int			m_objOwner;
 	float		m_yaw, m_pitch, m_roll;
 	MyVector3D	m_pos;
 	Coordinate	m_coordinate;
+public:
+	BoundingOrientedBox xoobb;
 public:
 	ItemObject() {
 		m_objtype = -1;
@@ -143,7 +152,8 @@ struct ItemBox {
 	float		m_yaw, m_pitch, m_roll; // 회전 각도
 	MyVector3D	m_pos;
 	Coordinate	m_coordinate; // 회전 행렬
-	bool		m_visible;
+	bool		m_visible = true;
+	BoundingOrientedBox xoobb;
 };
 array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //==================================================
@@ -233,6 +243,12 @@ int main(int argc, char* argv[])
 		ItemBoxArray[9 + i].m_pos.x = MiddleX;
 		ItemBoxArray[9 + i].m_pos.y = 20;
 		ItemBoxArray[9 + i].m_pos.z = 400 + i * 40;
+	}
+	// 아이템 박스의 bb를 설정합니다.
+	for (int i = 0; i < ITEMBOXNUM; i++) {
+		ItemBoxArray[i].xoobb = BoundingOrientedBox(XMFLOAT3(ItemBoxArray[i].m_pos.x, ItemBoxArray[i].m_pos.y, ItemBoxArray[i].m_pos.z),
+			XMFLOAT3(20.0f, 20.0f, 20.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+		cout << "Create itembox's oobb - " << i << endl;
 	}
 
 	// 통신 관련 초기작업들
@@ -471,8 +487,12 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
 						, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
 
+
+
 					// right, up, look 벡터 회전결과 적용
 					clients[client_id].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
+
+
 
 					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
 					sendUpdatePacket_toAllClient(client_id);
@@ -489,8 +509,22 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						clients[client_id].getCoordinate().z_coordinate.y * plus_minus, clients[client_id].getCoordinate().z_coordinate.z * plus_minus };
 
 					MyVector3D Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR, clients[client_id].getAccel());
+
+					clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(Move_Vertical_Result.x, Move_Vertical_Result.y, Move_Vertical_Result.z),
+						XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+
+					/*for (int i{}; i < ITEMBOXNUM; ++i) {
+
+						if (clients[client_id].xoobb.Intersects(ItemBoxArray[i].xoobb)) {
+							cout << "collide" << endl;
+						}
+					}*/
+					ITemBoxCollision(client_id);
+
 					clients[client_id].setPos(Move_Vertical_Result);
 
+
+					//cout << "Client box - " << clients[client_id].xoobb.Center.x << ',' << clients[client_id].xoobb.Center.y << ',' << clients[client_id].xoobb.Center.z << endl;
 					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
 					sendUpdatePacket_toAllClient(client_id);
 
@@ -503,6 +537,10 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 					switch (clients[client_id].getItemQueue()) {
 					case ITEM_Missile:
+						cout << "Release Item is - " << clients[client_id].getItemQueue() << endl;
+						clients[client_id].setItemRelease();
+						break;
+
 					case ITEM_Bomb:
 					{
 						// 서버에서 관리하는 아이템객체(미사일, 지뢰) 컨테이너에 새롭게 추가되는 객체 정보 저장
@@ -517,6 +555,10 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						temp.setCoordinate(clients[client_id].getCoordinate());
 
 						ObjectManager.push_back(temp);
+
+						cout << "Release Item is - " << clients[client_id].getItemQueue() << endl;
+						clients[client_id].setItemRelease();
+						//
 
 						// 새롭게 추가되는 객체 정보를 모든 클라이언트에게 전달
 						GS2C_ADD_OBJ_PACKET add_obj_packet;
@@ -552,6 +594,8 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					case ITEM_Booster:
 					{
 						// 부스터는 나중에...
+						cout << "Release Item is - " << clients[client_id].getItemQueue() << endl;
+						clients[client_id].setItemRelease();
 						break;
 					}
 					//CaseEnd
@@ -603,4 +647,87 @@ DWORD WINAPI ServerTime_Update(LPVOID arg)
 	}
 }
 //==================================================
+
+void TerrainExitCollision(MyVector3D vec, float veclocity, float scarla)
+{
+	float Currentvelocity = veclocity / 2;
+	vec.x = Currentvelocity;
+	vec.z = Currentvelocity;
+
+	if (vec.y != 10.0)
+	{
+		vec.y -= scarla;
+	}
+
+}
+
+void ITemBoxCollision(int client_id)
+{
+
+	/*
+	save pos = ItemBoxArray[i].m_pos.y
+	*/
+	for (int i = 0; i < ITEMBOXNUM; i++)
+	{
+		if (ItemBoxArray[i].m_visible) {
+			if (ItemBoxArray[i].xoobb.Intersects(clients[client_id].xoobb))
+			{
+				clients[client_id].setItemQueue(PresentItemVal(ItemVal));
+				cout << "Collide ItemBox - " << i << endl;
+
+				cout << "ItemType - " << clients[client_id].getItemQueue() << endl;
+				ItemBoxArray[i].m_visible = false;
+			}
+		}
+	}
+
+}
+//
+//void MissileCollision(MyVector3D vec, float scarla, float elapsedtime)
+//{
+//
+//	if (AABB.MissileOOBB.Intersects(AABB.PlayerOOBB))
+//	{
+//		vec.y += scarla * elapsedtime;
+//		calcRotate(vec, 20.0, 0.0, 0.0);
+//		if (vec.y > 80.0)
+//		{
+//			vec.y -= scarla * elapsedtime;
+//			calcRotate(vec, -20.0, 0.0, 0.0);
+//		}
+//	}
+//
+//}
+//
+//void TrapCollision(MyVector3D vec)
+//{
+//
+//	if (AABB.TrapOOBB.Intersects(AABB.PlayerOOBB))
+//	{
+//		calcRotate(vec, 0.0, 20.0, 0.0);
+//	}
+//}
+//
+//void BoosterAnimate(MyVector3D vec, float elapsedtime)
+//{
+//	//logic -> to kiption
+//}
+//
+//void Animate(MyVector3D vec, float veclocity, float scarla, float elapsedtime)
+//{
+//	switch (iteminfo.item_value)
+//	{
+//	case 1:
+//		MissileCollision(vec, scarla, elapsedtime);
+//		break;
+//	case 2:
+//		TrapCollision(vec);
+//		break;
+//	case 3:
+//		BoosterAnimate(vec, elapsedtime);
+//		break;
+//	default:
+//		break;
+//	}
+//}
 

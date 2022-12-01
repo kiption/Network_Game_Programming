@@ -144,7 +144,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CalcMove.cpp" />
-    <ClCompile Include="Collision.cpp" />
     <ClCompile Include="game_server.cpp" />
   </ItemGroup>
   <ItemGroup>
