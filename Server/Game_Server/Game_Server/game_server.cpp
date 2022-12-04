@@ -22,7 +22,7 @@ float SERVER_TIME;							// ¼­¹ö ½Ã°£
 constexpr int TIME_UPDATE_CYCLE = 100;		// ¼­¹ö ½Ã°£ ¾÷µ¥ÀÌÆ® ÁÖ±â (ms´ÜÀ§)
 
 void ITemBoxCollision(int client_id);
-
+void collisioncheck_PlayerByPlayer(int client_id);
 //==================================================
 //           [ Å¬¶óÀÌ¾ðÆ® °´Ã¼ Á¤º¸ ]
 //==================================================
@@ -35,12 +35,12 @@ private:
 	char		m_state;
 
 	float		m_acceleator;
-	float		m_yaw, m_pitch, m_roll;
-	MyVector3D	m_pos;
 	Coordinate	m_coordinate;
 	float		m_timer;
 	queue<int>m_myitem;
 public:
+	float		m_yaw, m_pitch, m_roll;
+	MyVector3D	m_pos;
 	BoundingOrientedBox xoobb;
 
 public:
@@ -88,7 +88,9 @@ public:
 	void		setItemQueue(int type) { m_myitem.push(type); } // ¾ÆÀÌÅÛ ¸ÔÀ» ½Ã¿¡ »ç¿ë
 	void		setItemRelease() { m_myitem.pop(); } // »ç¿ëÇÑ ¾ÆÀÌÅÛ ¹æÃâ
 
+
 public:
+
 	void		sendLoginInfoPacket(GS2C_LOGIN_INFO_PACKET packet);
 	void		sendAddObjPacket(GS2C_ADD_OBJ_PACKET packet);
 	void		sendUpdatePacket(GS2C_UPDATE_PACKET packet);
@@ -194,7 +196,7 @@ void setServerEvent(char type, int sec, char target, int t_num, int ex_info, cha
 		temp->auto_ev_end = false;
 	else
 		temp->auto_ev_end = true;
-		
+
 
 	ServerEventQueue.push(*temp);
 }
@@ -251,6 +253,7 @@ void sendPlayerUpdatePacket_toAllClient(int c_id) {	// ¸ðµç Å¬¶óÀÌ¾ðÆ®¿¡°Ô c_id¹
 	update_packet.look_vec_y = clients[c_id].getCoordinate().z_coordinate.y;
 	update_packet.look_vec_z = clients[c_id].getCoordinate().z_coordinate.z;
 
+
 	// client_id¹øÂ° Å¬¶óÀÌ¾ðÆ® °´Ã¼ÀÇ º¯°æµÈ »çÇ×À» ¸ðµç Å¬¶óÀÌ¾ðÆ®µé¿¡°Ô Àü´ÞÇÕ´Ï´Ù.
 	for (int i = 0; i < MAX_USER; i++) {
 		if (clients[i].getState() == CL_STATE_EMPTY) continue;
@@ -281,6 +284,8 @@ void sendItemBoxUpdatePacket_toAllClient(int itembox_id) {	// ¸ðµç Å¬¶óÀÌ¾ðÆ®¿¡°
 	update_packet.look_vec_y = ItemBoxArray[itembox_id].m_coordinate.z_coordinate.y;
 	update_packet.look_vec_z = ItemBoxArray[itembox_id].m_coordinate.z_coordinate.z;
 
+
+
 	// itembox_id¹øÂ° ¾ÆÀÌÅÛ¹Ú½º °´Ã¼ÀÇ º¯°æµÈ »çÇ×À» ¸ðµç Å¬¶óÀÌ¾ðÆ®µé¿¡°Ô Àü´ÞÇÕ´Ï´Ù.
 	for (int i = 0; i < MAX_USER; i++) {
 		if (clients[i].getState() == CL_STATE_EMPTY) continue;
@@ -288,6 +293,8 @@ void sendItemBoxUpdatePacket_toAllClient(int itembox_id) {	// ¸ðµç Å¬¶óÀÌ¾ðÆ®¿¡°
 		clients[i].sendUpdatePacket(update_packet);
 	}
 }
+
+
 //==================================================
 
 //==================================================
@@ -712,7 +719,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 		}
 
 		ServerEvent new_event = getFirstEvent();	// pop & get front event
-		
+
 		int target = new_event.target_num;
 		switch (new_event.ev_type) {
 		case EV_TYPE_REFRESH:
@@ -802,7 +809,7 @@ void ITemBoxCollision(int client_id)
 			cout << "Collide ItemBox - " << i << endl;
 
 			cout << "ItemType - " << clients[client_id].getItemQueue() << endl;
-			
+
 			ItemBoxArray[i].m_pos.y = ItemBoxArray[i].m_pos.y - 500;
 			ItemBoxArray[i].m_visible = false;
 
@@ -813,6 +820,28 @@ void ITemBoxCollision(int client_id)
 		}
 	}
 
+}
+
+void collisioncheck_PlayerByPlayer(int client_id)
+{
+	for (int i{}; i < MAX_USER; ++i)
+	{
+		/* ÇöÀç ID¿Í ´Ù¸¥ ÇÃ·¹ÀÌ¾î ID¸¦ ºñ±³ÇØ¾ßÇÔ */
+
+		if (clients[client_id].xoobb.Intersects(clients[client_id+1].xoobb))
+		{
+			cout << "Collide Player : " << client_id << "&" << client_id + 1 << endl;
+			clients[client_id].m_pos.x = clients[client_id].m_pos.x * (-1.0f);
+			clients[client_id].m_pos.z = clients[client_id].m_pos.z * (-1.0f);
+			clients[client_id+1].m_pos.z = clients[client_id+1].m_pos.z * (-1.0f);
+			clients[client_id+1].m_pos.z = clients[client_id+1].m_pos.z * (-1.0f);
+
+			// ÇÃ·¹ÀÌ¾îÀÇ º¯°æ»çÇ×À» ¸ðµç Å¬¶óÀÌ¾ðÆ®¿¡°Ô Àü´ÞÇÕ´Ï´Ù.
+			sendPlayerUpdatePacket_toAllClient(i);
+
+			setServerEvent(EV_TYPE_MOVE, 5.0f, EV_TARGET_CLIENTS, i, 0, 0);	// 5000ms ÈÄ¿¡ ItemBoxArrayÀÇ Á¤º¸¸¦ ÃÊ±â»óÅÂ·Î µ¹·Á³õ½À´Ï´Ù.
+		}
+	}
 }
 //
 //void MissileCollision(MyVector3D vec, float scarla, float elapsedtime)
