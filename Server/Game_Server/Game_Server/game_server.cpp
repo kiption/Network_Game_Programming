@@ -15,19 +15,18 @@ DWORD WINAPI ProcessClient(LPVOID arg);		// 클라이언트 통신 스레드
 DWORD WINAPI TimerThreadFunc(LPVOID arg);	// 타이머 스레드
 DWORD WINAPI ServerTime_Update(LPVOID arg);	// 서버 시간 갱신 스레드
 
+Coordinate basic_coordinate;				// 기본(초기) 좌표계
+
+float START_TIME;							// 서버 프로그램이 켜진 시간
+float SERVER_TIME;							// 서버 시간
+constexpr int TIME_UPDATE_CYCLE = 100;		// 서버 시간 업데이트 주기 (ms단위)
+
 void ITemBoxCollision(int client_id);
-
-Coordinate basic_coordinate;	// 기본(초기) 좌표계
-
-float START_TIME;						// 서버 프로그램이 켜진 시간
-float SERVER_TIME;						// 서버 시간
-constexpr int TIME_UPDATE_CYCLE = 100;	// 서버 시간 업데이트 주기 (ms단위)
 
 //==================================================
 //           [ 클라이언트 객체 정보 ]
 //==================================================
 enum { CL_STATE_EMPTY, CL_STATE_RUNNING };
-
 class ClientINFO {
 private:
 	SOCKET		m_sock;
@@ -158,6 +157,55 @@ struct ItemBox {
 array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //==================================================
 
+//==================================================
+//            [ 서버 이벤트 관련 ]
+//==================================================
+enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE };				// 이벤트 타입
+enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };	// 이벤트 적용 대상
+struct ServerEvent {	// 타이머스레드에서 처리할 이벤트
+	// setServerEvent함수 인자에 입력해야하는 정보
+	char	ev_type;																// 이벤트 종류
+	float	ev_duration;															// 이벤트 지속시간 (이벤트 종료조건을 수동으로 주고싶다면 0을 넣고, flag에 NoCount를 넣어주세요.)
+	char	ev_target;																// 이벤트 적용 대상
+	int		target_num;																// 적용 대상이 배열, 벡터 등에서 몇번째 칸에 있는 지
+	int		extra_info;																// 추가적인 정보가 필요한 경우 입력하세요.
+
+	// setServerEvent함수를 통해 자동으로 입력되는 정보
+	float	ev_start_time;
+	bool	auto_ev_end;
+};
+queue<ServerEvent> ServerEventQueue;		// 서버 이벤트 큐
+
+enum { NoFlag, NoCount, SetStartTimeToExInfo };
+void setServerEvent(char type, int sec, char target, int t_num, int ex_info, char flag) {
+	ServerEvent* temp = new ServerEvent;
+	temp->ev_type = type;
+	temp->ev_duration = sec;
+	temp->ev_target = target;
+	temp->target_num = t_num;
+	temp->extra_info = ex_info;
+
+	if (flag == SetStartTimeToExInfo)
+		temp->ev_start_time = ex_info;
+	else
+		temp->ev_start_time = SERVER_TIME;
+
+	if (flag == NoCount)
+		temp->auto_ev_end = false;
+	else
+		temp->auto_ev_end = true;
+		
+
+	ServerEventQueue.push(*temp);
+}
+ServerEvent getFirstEvent() {
+	ServerEvent temp = ServerEventQueue.front();
+	ServerEventQueue.pop();
+
+	return temp;
+}
+//==================================================
+
 
 //==================================================
 //           [ Send Packet Functions ]
@@ -180,7 +228,7 @@ void ClientINFO::sendUpdatePacket(GS2C_UPDATE_PACKET packet) {
 		//err_display("send()");
 	}
 }
-void sendUpdatePacket_toAllClient(int c_id) {	// 모든 클라이언트에게 보내는 함수
+void sendPlayerUpdatePacket_toAllClient(int c_id) {	// 모든 클라이언트에게 c_id번째 클라이언트의 업데이트 정보를 보내는 함수
 	GS2C_UPDATE_PACKET update_packet;
 	// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
 	update_packet.id = clients[c_id].getId();
@@ -204,6 +252,36 @@ void sendUpdatePacket_toAllClient(int c_id) {	// 모든 클라이언트에게 보내는 함수
 	update_packet.look_vec_z = clients[c_id].getCoordinate().z_coordinate.z;
 
 	// client_id번째 클라이언트 객체의 변경된 사항을 모든 클라이언트들에게 전달합니다.
+	for (int i = 0; i < MAX_USER; i++) {
+		if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+		clients[i].sendUpdatePacket(update_packet);
+	}
+}
+void sendItemBoxUpdatePacket_toAllClient(int itembox_id) {	// 모든 클라이언트에게 c_id번째 클라이언트의 업데이트 정보를 보내는 함수
+	GS2C_UPDATE_PACKET update_packet;
+	// itembox_id번째 아이템박스 객체의 변경사항을 보낼 패킷에 담습니다.
+	update_packet.id = itembox_id;
+	update_packet.type = GS2C_UPDATE;
+	update_packet.objtype = OBJ_TYPE_ITEMBOX;
+
+	update_packet.pos_x = ItemBoxArray[itembox_id].m_pos.x;
+	update_packet.pos_y = ItemBoxArray[itembox_id].m_pos.y;
+	update_packet.pos_z = ItemBoxArray[itembox_id].m_pos.z;
+
+	update_packet.right_vec_x = ItemBoxArray[itembox_id].m_coordinate.x_coordinate.x;
+	update_packet.right_vec_y = ItemBoxArray[itembox_id].m_coordinate.x_coordinate.y;
+	update_packet.right_vec_z = ItemBoxArray[itembox_id].m_coordinate.x_coordinate.z;
+
+	update_packet.up_vec_x = ItemBoxArray[itembox_id].m_coordinate.y_coordinate.x;
+	update_packet.up_vec_y = ItemBoxArray[itembox_id].m_coordinate.y_coordinate.y;
+	update_packet.up_vec_z = ItemBoxArray[itembox_id].m_coordinate.y_coordinate.z;
+
+	update_packet.look_vec_x = ItemBoxArray[itembox_id].m_coordinate.z_coordinate.x;
+	update_packet.look_vec_y = ItemBoxArray[itembox_id].m_coordinate.z_coordinate.y;
+	update_packet.look_vec_z = ItemBoxArray[itembox_id].m_coordinate.z_coordinate.z;
+
+	// itembox_id번째 아이템박스 객체의 변경된 사항을 모든 클라이언트들에게 전달합니다.
 	for (int i = 0; i < MAX_USER; i++) {
 		if (clients[i].getState() == CL_STATE_EMPTY) continue;
 
@@ -495,7 +573,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 
 					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
-					sendUpdatePacket_toAllClient(client_id);
+					sendPlayerUpdatePacket_toAllClient(client_id);
 
 					break;
 				}
@@ -526,7 +604,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 					//cout << "Client box - " << clients[client_id].xoobb.Center.x << ',' << clients[client_id].xoobb.Center.y << ',' << clients[client_id].xoobb.Center.z << endl;
 					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
-					sendUpdatePacket_toAllClient(client_id);
+					sendPlayerUpdatePacket_toAllClient(client_id);
 
 					break;
 				}
@@ -628,6 +706,41 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 DWORD WINAPI TimerThreadFunc(LPVOID arg)
 {
 	while (1) {
+		if (ServerEventQueue.empty()) {
+			Sleep(100);
+			continue;
+		}
+
+		ServerEvent new_event = getFirstEvent();	// pop & get front event
+		
+		int target = new_event.target_num;
+		switch (new_event.ev_type) {
+		case EV_TYPE_REFRESH:
+			cout << "CurTime: " << SERVER_TIME << ", EV_StarTime: " << new_event.ev_start_time << ", EV_Duration: " << new_event.ev_duration << endl;//test
+			if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
+				// 이벤트 시간이 끝났다면 타겟 타입에 맞는 후처리 작업을 해줍니다.
+				if (new_event.ev_target == EV_TARGET_ITEMBOX) {
+					cout << "ItemBox[" << target << "] is Refreshed." << endl;//test
+					ItemBoxArray[target].m_pos.y = 20.0f;
+					ItemBoxArray[target].m_visible = true;
+
+					// 아이템 박스의 변경사항을 모든 클라이언트에게 전달합니다.
+					sendItemBoxUpdatePacket_toAllClient(target);
+				}
+			}
+			else {
+				// 아직 이벤트 시간이 끝나지 않았다면 정보를 그대로 유지한채 이벤트 큐에 다시 넣어줍니다.
+				setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.target_num, new_event.ev_start_time, SetStartTimeToExInfo);
+			}
+			break;
+		case EV_TYPE_MOVE:
+			break;
+		case EV_TYPE_ROTATE:
+			break;
+		case EV_TYPE_REMOVE:
+			break;
+		}
+
 		Sleep(100);
 	}
 }
@@ -643,11 +756,15 @@ DWORD WINAPI ServerTime_Update(LPVOID arg)
 	START_TIME = (float)clock() / CLOCKS_PER_SEC;
 	while (1) {
 		SERVER_TIME = (float)clock() / CLOCKS_PER_SEC - START_TIME;	// 서버 시간 업데이트
-		Sleep(TIME_UPDATE_CYCLE);									// 0.2초 대기 (서버 시간 업데이트 주기)
+		Sleep(TIME_UPDATE_CYCLE);									// 잠시 대기 (서버 시간 업데이트 주기)
 	}
 }
 //==================================================
 
+//==================================================
+//             [ 충돌 관련 함수들 ]
+// 	  충돌 체크 및 후처리에 관련된 함수들입니다.
+//==================================================
 void TerrainExitCollision(MyVector3D vec, float veclocity, float scarla)
 {
 	float Currentvelocity = veclocity / 2;
@@ -663,21 +780,36 @@ void TerrainExitCollision(MyVector3D vec, float veclocity, float scarla)
 
 void ITemBoxCollision(int client_id)
 {
-
 	/*
 	save pos = ItemBoxArray[i].m_pos.y
 	*/
 	for (int i = 0; i < ITEMBOXNUM; i++)
 	{
-		if (ItemBoxArray[i].m_visible) {
-			if (ItemBoxArray[i].xoobb.Intersects(clients[client_id].xoobb))
-			{
-				clients[client_id].setItemQueue(PresentItemVal(ItemVal));
-				cout << "Collide ItemBox - " << i << endl;
+		// 플레이어에게서 너무 멀리 떨어져있는 아이템박스는 충돌체크 대상에서 제외합니다.
+		if (ItemBoxArray[i].m_pos.x < clients[client_id].getPos().x - 300
+			|| ItemBoxArray[i].m_pos.x > clients[client_id].getPos().x + 300) continue;
+		if (ItemBoxArray[i].m_pos.y < clients[client_id].getPos().y - 100
+			|| ItemBoxArray[i].m_pos.y > clients[client_id].getPos().y + 100) continue;
+		if (ItemBoxArray[i].m_pos.z < clients[client_id].getPos().z - 300
+			|| ItemBoxArray[i].m_pos.z > clients[client_id].getPos().z + 300) continue;
+		// 이미 누군가가 최근에 충돌한 적있는 아이템박스는 충돌체크 대상에서 제외합니다.
+		if (!ItemBoxArray[i].m_visible) continue;
 
-				cout << "ItemType - " << clients[client_id].getItemQueue() << endl;
-				ItemBoxArray[i].m_visible = false;
-			}
+		// 충돌체크 & 후처리
+		if (ItemBoxArray[i].xoobb.Intersects(clients[client_id].xoobb))
+		{
+			clients[client_id].setItemQueue(PresentItemVal(ItemVal));
+			cout << "Collide ItemBox - " << i << endl;
+
+			cout << "ItemType - " << clients[client_id].getItemQueue() << endl;
+			
+			ItemBoxArray[i].m_pos.y = ItemBoxArray[i].m_pos.y - 500;
+			ItemBoxArray[i].m_visible = false;
+
+			// 아이템 박스의 변경사항을 모든 클라이언트에게 전달합니다.
+			sendItemBoxUpdatePacket_toAllClient(i);
+
+			setServerEvent(EV_TYPE_REFRESH, 5.0f, EV_TARGET_ITEMBOX, i, 0, 0);	// 5000ms 후에 ItemBoxArray의 정보를 초기상태로 돌려놓습니다.
 		}
 	}
 
@@ -730,4 +862,6 @@ void ITemBoxCollision(int client_id)
 //		break;
 //	}
 //}
+
+//==================================================
 

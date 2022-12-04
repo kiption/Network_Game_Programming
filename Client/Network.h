@@ -314,6 +314,15 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 					players_info[update_pack.id].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
 					players_info[update_pack.id].m_look_vec = { update_pack.look_vec_x, update_pack.look_vec_y, update_pack.look_vec_z };
 				}
+				break;
+			}
+			case OBJ_TYPE_ITEMBOX:
+			{
+				itembox_arr[update_pack.id].m_pos = { update_pack.pos_x, update_pack.pos_y, update_pack.pos_z };
+
+				itembox_arr[update_pack.id].m_right_vec = { update_pack.right_vec_x, update_pack.right_vec_y, update_pack.right_vec_z };
+				itembox_arr[update_pack.id].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
+				itembox_arr[update_pack.id].m_look_vec = { update_pack.look_vec_x, update_pack.look_vec_y, update_pack.look_vec_z };
 			}
 			//caseEnd
 			}
