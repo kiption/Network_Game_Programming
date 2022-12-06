@@ -611,6 +611,10 @@ void CGameFramework::ProcessInput()
 			keyValue += 0b00001;
 		}
 
+		if (pKeysBuffer[VK_SPACE] & 0xF0) {
+			keyValue += 0b10000;
+		}
+
 		if (keyValue != 0b00000)
 			q_input_key.push(keyValue);
 	}

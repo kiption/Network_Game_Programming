@@ -5,6 +5,7 @@
 #include <array>
 #include <vector>
 #include <queue>
+#include <time.h>
 #include "CalcMove.h"
 #include "Global.h"
 #include "Collision.h"
@@ -74,6 +75,7 @@ public:
 		if (m_myitem.empty()) return -1;	// 큐가 비어있으면 -1을
 		return m_myitem.front();			// 아이템이 있다면 아이템의 고유번호를 반환합니다.
 	}
+	int			getHowManyItem() { return m_myitem.size(); }
 
 	void		setSock(SOCKET sock) { m_sock = sock; }
 	void		setState(char state) { m_state = state; }
@@ -102,9 +104,7 @@ array<ClientINFO, MAX_USER> clients;
 //             [ 아이템 객체 정보 ]
 //==================================================
 enum { ITEM_Booster, ITEM_Missile, ITEM_Bomb };
-random_device ItemVal;
-default_random_engine ItemRanVal(ItemVal());
-uniform_int_distribution<>PresentItemVal(ITEM_Booster, ITEM_Bomb);
+constexpr int ITEM_VARIETY = 3; // 아이템 종류 수
 class ItemObject {
 	int			m_objtype;
 	int			m_objOwner;
@@ -283,8 +283,6 @@ void sendItemBoxUpdatePacket_toAllClient(int itembox_id) {	// 모든 클라이언트에�
 	update_packet.look_vec_x = ItemBoxArray[itembox_id].m_coordinate.z_coordinate.x;
 	update_packet.look_vec_y = ItemBoxArray[itembox_id].m_coordinate.z_coordinate.y;
 	update_packet.look_vec_z = ItemBoxArray[itembox_id].m_coordinate.z_coordinate.z;
-
-
 
 	// itembox_id번째 아이템박스 객체의 변경된 사항을 모든 클라이언트들에게 전달합니다.
 	for (int i = 0; i < MAX_USER; i++) {
@@ -598,40 +596,31 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(Move_Vertical_Result.x, Move_Vertical_Result.y, Move_Vertical_Result.z),
 						XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 
-					/*for (int i{}; i < ITEMBOXNUM; ++i) {
 
-						if (clients[client_id].xoobb.Intersects(ItemBoxArray[i].xoobb)) {
-							cout << "collide" << endl;
-						}
-					}*/
 					ITemBoxCollision(client_id);
 
 					clients[client_id].setPos(Move_Vertical_Result);
 
-
-					//cout << "Client box - " << clients[client_id].xoobb.Center.x << ',' << clients[client_id].xoobb.Center.y << ',' << clients[client_id].xoobb.Center.z << endl;
-					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
 					sendPlayerUpdatePacket_toAllClient(client_id);
 
 					break;
 				}
 				case KEY_SPACE:
 				{
-					if (clients[client_id].getItemQueue() == -1) // 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
+					if (clients[client_id].getItemQueue() == -1)	// 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
 						break;
 
-					switch (clients[client_id].getItemQueue()) {
+					int used_item = clients[client_id].getItemQueue();
+					clients[client_id].setItemRelease();
+
+					switch (used_item) {
 					case ITEM_Missile:
-						cout << "Release Item is - " << clients[client_id].getItemQueue() << endl;
-						clients[client_id].setItemRelease();
-						break;
-
 					case ITEM_Bomb:
 					{
 						// 서버에서 관리하는 아이템객체(미사일, 지뢰) 컨테이너에 새롭게 추가되는 객체 정보 저장
 						ItemObject temp;
 
-						temp.setObjType(clients[client_id].getItemQueue());
+						temp.setObjType(used_item);
 						temp.setObjOwner(client_id);
 						temp.setPos(clients[client_id].getPos());
 						temp.setYaw(clients[client_id].getYaw());
@@ -641,8 +630,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 						ObjectManager.push_back(temp);
 
-						cout << "Release Item is - " << clients[client_id].getItemQueue() << endl;
-						clients[client_id].setItemRelease();
+						cout << "Use Item[" << used_item << "]." << endl;
 						//
 
 						// 새롭게 추가되는 객체 정보를 모든 클라이언트에게 전달
@@ -651,7 +639,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						add_obj_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
 						add_obj_packet.type = GS2C_ADD_OBJ;
 						add_obj_packet.id = clients[client_id].getId();
-						add_obj_packet.objtype = clients[client_id].getItemQueue();
+						add_obj_packet.objtype = used_item;
 
 						add_obj_packet.pos_x = temp.getPos().x;
 						add_obj_packet.pos_y = temp.getPos().y;
@@ -679,8 +667,8 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					case ITEM_Booster:
 					{
 						// 부스터는 나중에...
-						cout << "Release Item is - " << clients[client_id].getItemQueue() << endl;
-						clients[client_id].setItemRelease();
+						cout << "Use Item[" << used_item << "]." << endl;
+
 						break;
 					}
 					//CaseEnd
@@ -723,7 +711,6 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 		int target = new_event.target_num;
 		switch (new_event.ev_type) {
 		case EV_TYPE_REFRESH:
-			cout << "CurTime: " << SERVER_TIME << ", EV_StarTime: " << new_event.ev_start_time << ", EV_Duration: " << new_event.ev_duration << endl;//test
 			if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
 				// 이벤트 시간이 끝났다면 타겟 타입에 맞는 후처리 작업을 해줍니다.
 				if (new_event.ev_target == EV_TARGET_ITEMBOX) {
@@ -805,18 +792,27 @@ void ITemBoxCollision(int client_id)
 		// 충돌체크 & 후처리
 		if (ItemBoxArray[i].xoobb.Intersects(clients[client_id].xoobb))
 		{
-			clients[client_id].setItemQueue(PresentItemVal(ItemVal));
-			cout << "Collide ItemBox - " << i << endl;
-
-			cout << "ItemType - " << clients[client_id].getItemQueue() << endl;
-
+			// 아이템 박스를 안보이게 위치를 조정하고, 충돌체크 대상에서 제외되도록 설정합니다.
 			ItemBoxArray[i].m_pos.y = ItemBoxArray[i].m_pos.y - 500;
 			ItemBoxArray[i].m_visible = false;
 
 			// 아이템 박스의 변경사항을 모든 클라이언트에게 전달합니다.
 			sendItemBoxUpdatePacket_toAllClient(i);
 
-			setServerEvent(EV_TYPE_REFRESH, 5.0f, EV_TARGET_ITEMBOX, i, 0, 0);	// 5000ms 후에 ItemBoxArray의 정보를 초기상태로 돌려놓습니다.
+			// 충돌한 아이템박스는 5000ms 후에 초기상태로 돌아옵니다.
+			setServerEvent(EV_TYPE_REFRESH, 5.0f, EV_TARGET_ITEMBOX, i, 0, 0);
+
+			// 충돌한 플레이어는 갖고 있는 아이템이 2개 미만일 때에만 새로운 아이템을 얻을 수 있습니다.
+			if (clients[client_id].getHowManyItem() < 2) {
+				srand(static_cast<unsigned int>(SERVER_TIME) * i);
+				int new_item = rand() % ITEM_VARIETY;
+				clients[client_id].setItemQueue(new_item);
+				cout << "Collide ItemBox - " << i << endl;
+				cout << "Get New Item(type: " << new_item << ")." << endl;
+			}
+			else {
+				cout << "You Have Too Many Items..." << endl;
+			}
 		}
 	}
 
