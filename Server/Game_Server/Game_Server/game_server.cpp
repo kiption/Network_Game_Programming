@@ -1004,7 +1004,7 @@ void ITemBoxCollision(int client_id)
 			// 충돌한 플레이어는 갖고 있는 아이템이 2개 미만일 때에만 새로운 아이템을 얻을 수 있습니다.
 			if (clients[client_id].getHowManyItem() < 2) {
 				srand(static_cast<unsigned int>(SERVER_TIME) * i);
-				int new_item = rand() % ITEM_VARIETY;
+				int new_item =1;
 				clients[client_id].setItemQueue(new_item);
 				cout << "Collide ItemBox - " << i << endl;
 				cout << "Get New Item(type: " << new_item << ")." << endl;

@@ -54,7 +54,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	}
 	gGameFramework.Login_ID = myID;
 	//==================================================
-	
+
 
 
 	UNREFERENCED_PARAMETER(hPrevInstance);
@@ -106,11 +106,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			//==================================================
 			//	    서버로부터 받은 값으로 최신화해줍니다.
 			//==================================================
-		
+
 			for (int i = 0; i < MAX_USER; i++) {
 				if (players_info[i].m_state != OBJ_ST_RUNNING) continue;
-				gGameFramework.myFunc_SetPosition(i,players_info[i].GetPosition());
-				gGameFramework.myFunc_SetVectors(i,players_info[i].GetRightVector(), players_info[i].GetUpVector(), players_info[i].GetLookVector());
+				gGameFramework.myFunc_SetPosition(i, players_info[i].GetPosition());
+				gGameFramework.myFunc_SetVectors(i, players_info[i].GetRightVector(), players_info[i].GetUpVector(), players_info[i].GetLookVector());
 				gGameFramework.myFunc_SetBoundingBox(i, players_info[i].GetPosition());
 				gGameFramework.m_pPlayer->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 				gGameFramework.m_pScene->m_ppGameObjects[i]->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
@@ -124,8 +124,16 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			for (int i = 0; i < ITEMBOXNUM; i++) {
 				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetPosition(itembox_arr[i].GetPosition());
 			}
+			for (int i = 0; i < MissileNum; i++) {
+
+				if (missile_arr[i].m_state == OBJ_ST_RUNNING)
+				{
+					gGameFramework.MissileMode(players_info[i].GetPosition(), players_info[i].GetLookVector());
+				}
+			}
+
 			gGameFramework.FrameAdvance();
-		
+
 		}
 	}
 	gGameFramework.OnDestroy();
@@ -159,7 +167,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	ghAppInstance = hInstance;
 
-	RECT rc ={ 0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT };
+	RECT rc = { 0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT };
 	DWORD dwStyle = WS_OVERLAPPED | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU | WS_BORDER;
 	AdjustWindowRect(&rc, dwStyle, FALSE);
 	HWND hMainWnd = CreateWindow(szWindowClass, szTitle, dwStyle, CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, hInstance, NULL);

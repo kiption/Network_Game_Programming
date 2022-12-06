@@ -44,13 +44,13 @@ public:
 	void OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	void OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
 	LRESULT OnProcessingWindowMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam);
-	
 	void UpdateUI();
 	void GetPosition();
 
 	//==================================================
 	//		Functions for Networking with Server
 	//==================================================
+	void MissileMode(XMFLOAT3 position, XMFLOAT3 lookVector);
 	void myFunc_SetPosition(int n,XMFLOAT3 position);
 	void myFunc_SetVectors(int n,XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector);
 
@@ -136,6 +136,7 @@ public:
 
 	CGameTimer					m_GameTimer;
 	CPlayer						*m_pPlayer = NULL;
+	
 	CScene						*m_pScene = NULL;
 	UILayer						*m_pUILayer = NULL;
 	CCamera						*m_pCamera = NULL;

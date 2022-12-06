@@ -613,6 +613,8 @@ void CGameFramework::ProcessInput()
 
 		if (pKeysBuffer[VK_SPACE] & 0xF0) {
 			keyValue += 0b10000;
+			/*((CMyPlayer*)m_pPlayer)->MissileMode(NULL);*/
+			MissileMode(((CMyPlayer*)m_pPlayer)->GetPosition(), ((CMyPlayer*)m_pPlayer)->GetLookVector());
 		}
 
 		if (keyValue != 0b00000)
@@ -868,7 +870,25 @@ void CGameFramework::myFunc_SetBoundingBox(int n, XMFLOAT3 position)
 	}
 
 }
+void CGameFramework::MissileMode(XMFLOAT3 position, XMFLOAT3 lookVector)
+{
 
+	CBulletObject* pBulletObject = NULL;
+
+	XMFLOAT3 PlayerPos = ((CMyPlayer*)m_pPlayer)-> GetLookVector()= lookVector;
+	if (pBulletObject)
+	{
+
+		XMFLOAT3 xmf3Position = ((CMyPlayer*)m_pPlayer)->GetPosition()= position;
+		XMFLOAT3 xmf3FirePosition = Vector3::Add(xmf3Position, Vector3::ScalarProduct(PlayerPos, 6.0f, true));
+		pBulletObject->m_xmf4x4Transform = pBulletObject->m_xmf4x4World;
+		pBulletObject->SetFirePosition(xmf3FirePosition);
+		pBulletObject->SetMovingDirection(PlayerPos);
+		pBulletObject->Rotate(90.0f, 0.0, 0.0);
+		pBulletObject->SetScale(700.0, 200.0, 700.0);
+	/*	pBulletObject->SetActive(true);*/
+	}
+}
 void CGameFramework::CollisionAnimate()
 {
 	for (int i = 0; i < 3; i++)

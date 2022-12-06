@@ -7,6 +7,8 @@
 #define DIR_UP					0x10
 #define DIR_DOWN				0x20
 
+#define BULLETS					100
+
 #include "Object.h"
 #include "Camera.h"
 
@@ -83,6 +85,9 @@ public:
 	virtual void OnPrepareRender();
 	virtual void Render(ID3D12GraphicsCommandList *pd3dCommandList, CCamera *pCamera = NULL);
 
+	CBulletObject* pBulletObject = NULL;
+	CBulletObject* m_ppBullets[BULLETS];
+
 	//==================================================
 	//		Functions for Networking with Server
 	//==================================================
@@ -90,7 +95,7 @@ public:
 	//==================================================
 };
 
-#define BULLETS					6
+
 
 class CMyPlayer : public CPlayer
 {
@@ -101,9 +106,9 @@ public:
 public:
 	float							m_fBulletEffectiveRange = 600.0f;
 	CBulletObject*					pBulletObject = NULL;
+	CBulletObject* m_ppBullets[BULLETS];
 	CTrapObject*					m_pTrapObject = NULL;
 	CPlayerObject*					m_pPlayerObejct = NULL;
-	CBulletObject* m_ppBullets[BULLETS];
 
 public:
 	float m_fPos = 0.0;

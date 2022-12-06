@@ -831,14 +831,14 @@ void CBulletObject::Reset()
 
 void CBulletObject::Animate(float fElapsedTime)
 {
-	float fDistance = m_fMovingSpeed * fElapsedTime;
-	XMFLOAT4X4 mtxRotate = Matrix4x4::RotationYawPitchRoll(0.0f, m_fRotationSpeed * fElapsedTime, 0.0f);
-	m_xmf4x4World = Matrix4x4::Multiply(mtxRotate, m_xmf4x4Transform);
-	XMFLOAT3 xmf3Movement = Vector3::ScalarProduct(m_xmf3MovingDirection, fDistance, false);
-	XMFLOAT3 xmf3Position = GetPosition();
-	xmf3Position = Vector3::Add(xmf3Position, xmf3Movement);
-	SetPosition(xmf3Position);
-	m_fMovingDistance += fDistance;
+	float fDistance = m_fMovingSpeed * fElapsedTime;											// Speed
+	XMFLOAT4X4 mtxRotate = Matrix4x4::RotationYawPitchRoll(0.0f, m_fRotationSpeed * fElapsedTime, 0.0f); // 회전
+	m_xmf4x4World = Matrix4x4::Multiply(mtxRotate, m_xmf4x4Transform);							// 회전 량을 벡터에 넣어주는
+	XMFLOAT3 xmf3Movement = Vector3::ScalarProduct(m_xmf3MovingDirection, fDistance, false);	// Speed 만큼 어떤 방향으로 이동했는지
+	XMFLOAT3 xmf3Position = GetPosition();		// 위치
+	xmf3Position = Vector3::Add(xmf3Position, xmf3Movement);									// 이동한 거리만큼의 현재 위치
+	SetPosition(xmf3Position);																	// 그 현재 위치로 주기적인 Setting을 실시
+	m_fMovingDistance += fDistance;																// 움직인 양을 저장 => 총알 범위 이상넘어가면 사라지게 하기 위함.
 	m_Boobb = BoundingOrientedBox(GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 	if ((m_fMovingDistance > m_fBulletEffectiveRange) ) Reset();
 }
