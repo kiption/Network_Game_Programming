@@ -123,6 +123,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			//==================================================
 			for (int i = 0; i < ITEMBOXNUM; i++) {
 				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetPosition(itembox_arr[i].GetPosition());
+				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->myFunc_SetVectors(itembox_arr[i].GetRightVector(), itembox_arr[i].GetUpVector(), itembox_arr[i].GetLookVector());
+				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetScale(15.0f, 15.0f, 15.0f);
 			}
 			for (int i = 0; i < MissileNum; i++) {
 

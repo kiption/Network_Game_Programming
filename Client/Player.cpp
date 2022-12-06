@@ -252,7 +252,7 @@ CMyPlayer::CMyPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCo
 	SetChild(pGameObject, true);
 	OnInitialize();
 	pGameObject->Rotate(0.0f, 0.0f, 0.0f);
-	pGameObject->SetScale(3.0f, 3.0, 3.0);
+	pGameObject->SetScale(6.0f, 6.0, 6.0);
 	pGameObject->SetPosition(0.0, -1.0, 0.0);
 	m_pPlayerObejct = (CPlayerObject*)pGameObject;
 

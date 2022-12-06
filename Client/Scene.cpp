@@ -170,7 +170,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	P2 = new CPlayerObject();
 	P2->SetChild(pPlayerCars2, true);
 	P2->OnInitialize();
-	pPlayerCars2->SetScale(0.3, 0.3, 0.3);
+	pPlayerCars2->SetScale(0.95f, 0.95f, 0.95f);
 	P2->SetPosition(450.0f, 14.0f, 480.0f);
 	m_ppGameObjects[0] = P2;
 
@@ -179,7 +179,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	P3 = new CPlayerObject();
 	P3->SetChild(pPlayerCars3, true);
 	P3->OnInitialize();
-	pPlayerCars3->SetScale(0.3, 0.3, 0.3);
+	pPlayerCars3->SetScale(0.95f, 0.95f, 0.95f);
 	P3->SetPosition(500.0, 14.0, 480.0f);
 	m_ppGameObjects[1] = P3;
 

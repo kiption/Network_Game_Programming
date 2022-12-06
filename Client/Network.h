@@ -415,6 +415,12 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 				itembox_arr[update_pack.id].m_right_vec = { update_pack.right_vec_x, update_pack.right_vec_y, update_pack.right_vec_z };
 				itembox_arr[update_pack.id].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
 				itembox_arr[update_pack.id].m_look_vec = { update_pack.look_vec_x, update_pack.look_vec_y, update_pack.look_vec_z };
+
+				// Test Log
+				//cout << "ItemBox[" << update_pack.id << "] Rotated to LookVec(" <<
+				//	itembox_arr[update_pack.id].m_look_vec.x << ", " <<
+				//	itembox_arr[update_pack.id].m_look_vec.y << ", " <<
+				//	itembox_arr[update_pack.id].m_look_vec.z << ")." << endl;
 			}
 			//caseEnd
 			}

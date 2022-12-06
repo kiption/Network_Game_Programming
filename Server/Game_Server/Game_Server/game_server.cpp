@@ -202,7 +202,8 @@ array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //==================================================
 enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE };				// 이벤트 타입
 enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };	// 이벤트 적용 대상
-enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER};				// Extra Info
+enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER };				// Extra Info
+constexpr int EV_DTARGET_ALL = 999;	// Extra Info
 struct ServerEvent {	// 타이머스레드에서 처리할 이벤트
 	// setServerEvent함수 인자에 입력해야하는 정보
 	char	ev_type;																// 이벤트 종류
@@ -582,6 +583,8 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			clients[j].sendAddObjPacket(add_itembox_packet);
 		}
 	}
+	// 아이템 박스가 제자리에서 계속 회전을 하도록 타이머에 이벤트로 넣어줍니다.
+	setServerEvent(EV_TYPE_ROTATE, 999999.0f, EV_TARGET_ITEMBOX, EV_DTARGET_ALL, 0, 0, NoCount);
 
 	//==================================================
 	// Loop - Recv & Process Packets
@@ -855,6 +858,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 		int target = new_event.target_num;
 		switch (new_event.ev_type) {
 		case EV_TYPE_REFRESH:
+		{
 			if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
 				// 이벤트 시간이 끝났다면 타겟 타입에 맞는 후처리 작업을 해줍니다.
 				switch (new_event.ev_target) {
@@ -887,7 +891,9 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 					, new_event.ev_start_time, SetStartTimeToExInfo);
 			}
 			break;
+		}
 		case EV_TYPE_MOVE:
+		{
 			switch (new_event.ev_target) {
 			case EV_TARGET_MISSILE:
 				if (SERVER_TIME < new_event.ev_start_time + new_event.ev_duration) {	// 지속시간이 끝날 때까지 지속적으로 움직입니다.
@@ -960,17 +966,76 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 				}
 				break;
 			}
-
 			break;
+		}
 		case EV_TYPE_ROTATE:
+		{
+			switch (new_event.ev_target) {
+			case EV_TARGET_ITEMBOX:
+				// 아이템박스를 회전시킵니다.
+				// yaw 설정
+				for (int i = 0; i < ITEMBOXNUM; i++) {
+					ItemBoxArray[i].m_yaw = (ItemBoxArray[i].m_yaw + ITEMBOX_ROTATE_SCALAR * PI / 360.0f);
+
+					// right, up, look 벡터 회전계산
+					MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
+						, ItemBoxArray[i].m_roll, ItemBoxArray[i].m_pitch, ItemBoxArray[i].m_yaw);
+					MyVector3D rotate_result_y = calcRotate(basic_coordinate.y_coordinate
+						, ItemBoxArray[i].m_roll, ItemBoxArray[i].m_pitch, ItemBoxArray[i].m_yaw);
+					MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
+						, ItemBoxArray[i].m_roll, ItemBoxArray[i].m_pitch, ItemBoxArray[i].m_yaw);
+
+					// right, up, look 벡터 회전결과 적용
+					ItemBoxArray[i].m_coordinate.x_coordinate = rotate_result_x;
+					ItemBoxArray[i].m_coordinate.y_coordinate = rotate_result_y;
+					ItemBoxArray[i].m_coordinate.z_coordinate = rotate_result_z;
+
+					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
+					GS2C_UPDATE_PACKET itembox_update_pack;
+
+					itembox_update_pack.id = i;
+					itembox_update_pack.type = GS2C_UPDATE;
+					itembox_update_pack.objtype = OBJ_TYPE_ITEMBOX;
+
+					itembox_update_pack.pos_x = ItemBoxArray[i].m_pos.x;
+					itembox_update_pack.pos_y = ItemBoxArray[i].m_pos.y;
+					itembox_update_pack.pos_z = ItemBoxArray[i].m_pos.z;
+
+					itembox_update_pack.right_vec_x = ItemBoxArray[i].m_coordinate.x_coordinate.x;
+					itembox_update_pack.right_vec_y = ItemBoxArray[i].m_coordinate.x_coordinate.y;
+					itembox_update_pack.right_vec_z = ItemBoxArray[i].m_coordinate.x_coordinate.z;
+
+					itembox_update_pack.up_vec_x = ItemBoxArray[i].m_coordinate.y_coordinate.x;
+					itembox_update_pack.up_vec_y = ItemBoxArray[i].m_coordinate.y_coordinate.y;
+					itembox_update_pack.up_vec_z = ItemBoxArray[i].m_coordinate.y_coordinate.z;
+
+					itembox_update_pack.look_vec_x = ItemBoxArray[i].m_coordinate.z_coordinate.x;
+					itembox_update_pack.look_vec_y = ItemBoxArray[i].m_coordinate.z_coordinate.y;
+					itembox_update_pack.look_vec_z = ItemBoxArray[i].m_coordinate.z_coordinate.z;
+
+					for (int i = 0; i < MAX_USER; i++) {
+						if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+						clients[i].sendUpdatePacket(itembox_update_pack);
+					}
+				}
+
+				// 회전을 마치면 다시 큐에 넣습니다.
+				setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.ev_target_detail, new_event.target_num
+					, new_event.ev_start_time, SetStartTimeToExInfo);
+
+				break;
+			}
 			break;
+		}
 		case EV_TYPE_REMOVE:
+		{
 			if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
 				// 이벤트 시간이 끝났다면 타겟 타입에 맞는 후처리 작업을 해줍니다.
 				switch (new_event.ev_target) {
 				case EV_TARGET_BOMB:
 					cout << "Bomb[" << target << "] is Removed." << endl;//test
-					
+
 					BombArray[target].returnToInitialState();
 
 					// 제거 패킷을 모든 클라이언트에게 전달합니다.
@@ -996,6 +1061,9 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 			}
 			break;
 		}
+		//case end
+		}
+		//switch end
 
 		Sleep(100);
 	}
