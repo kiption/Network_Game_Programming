@@ -804,7 +804,7 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 	if (Login_ID == n)
 	{
 		((CMyPlayer*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
-		((CMyPlayer*)m_pPlayer)->SetScale(3.0, 3.0, 3.0);
+		((CMyPlayer*)m_pPlayer)->SetScale(1.0, 1.0, 1.0);
 
 	}
 	else
@@ -829,14 +829,6 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 	/*	m_pScene->m_ppGameObjects[others_id]->SetScale(6.0, 6.0, 6.0);*/
 	}
 
-}
-
-void CGameFramework::myFunc_SetOthersPosition(int n, XMFLOAT3 position) {
-	//m_pScene->m_ppGameObjects[n]->SetPosition(position);
-}
-void CGameFramework::myFunc_SetOthersVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector) {
-	// 이부분 이따 재성이랑 같이 봐야함.
-	//m_pScene->m_ppGameObjects[n]->myFunc_SetVectors(rightVector, upVector, lookVector);
 }
 
 void CGameFramework::myFunc_SetBoundingBox(int n, XMFLOAT3 position)

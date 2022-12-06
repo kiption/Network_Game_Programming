@@ -363,6 +363,10 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			switch (update_pack.objtype) {	// 추가 되는 객체 종류에 따라 다른 작업을 수행합니다.
 			case OBJ_TYPE_PLAYER:
 			{
+				// 동작하고 있는 객체가 아니라면 빠져나갑니다.
+				if (players_info[update_pack.id].m_state != OBJ_ST_RUNNING)
+					break;
+
 				if (update_pack.id == myID) {	// 자신의 이동
 					players_info[myID].m_pos = { update_pack.pos_x, update_pack.pos_y, update_pack.pos_z };
 
@@ -382,8 +386,31 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 				}
 				break;
 			}
+			case OBJ_TYPE_MISSILE:
+			{
+				// 동작하고 있는 객체가 아니라면 빠져나갑니다.
+				if (missile_arr[update_pack.id].m_state != OBJ_ST_RUNNING)
+					break;
+
+				// 클라 내 객체정보 컨테이너에 서버로 부터 받은 값을 저장합니다.
+				missile_arr[update_pack.id].m_pos = { update_pack.pos_x, update_pack.pos_y, update_pack.pos_z };
+				missile_arr[update_pack.id].m_right_vec = { update_pack.right_vec_x, update_pack.right_vec_y, update_pack.right_vec_z };
+				missile_arr[update_pack.id].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
+				missile_arr[update_pack.id].m_look_vec = { update_pack.look_vec_x, update_pack.look_vec_y, update_pack.look_vec_z };
+
+				// Test Log
+				//cout << "Missile[" << update_pack.id << "] moves to Pos(" <<
+				//	missile_arr[update_pack.id].m_pos.x << ", " <<
+				//	missile_arr[update_pack.id].m_pos.y << ", " << 
+				//	missile_arr[update_pack.id].m_pos.z << ")." << endl;
+				break;
+			}
 			case OBJ_TYPE_ITEMBOX:
 			{
+				// 동작하고 있는 객체가 아니라면 빠져나갑니다.
+				if (itembox_arr[update_pack.id].m_state != OBJ_ST_RUNNING)
+					break;
+
 				itembox_arr[update_pack.id].m_pos = { update_pack.pos_x, update_pack.pos_y, update_pack.pos_z };
 				itembox_arr[update_pack.id].m_right_vec = { update_pack.right_vec_x, update_pack.right_vec_y, update_pack.right_vec_z };
 				itembox_arr[update_pack.id].m_up_vec = { update_pack.up_vec_x, update_pack.up_vec_y, update_pack.up_vec_z };
