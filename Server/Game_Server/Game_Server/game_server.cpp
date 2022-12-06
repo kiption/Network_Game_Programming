@@ -22,6 +22,8 @@ float START_TIME;							// 서버 프로그램이 켜진 시간
 float SERVER_TIME;							// 서버 시간
 constexpr int TIME_UPDATE_CYCLE = 100;		// 서버 시간 업데이트 주기 (ms단위)
 
+bool g_item_cooldown;						// 아이템 사용 쿨타임
+
 void ITemBoxCollision(int client_id);
 void collisioncheck_PlayerByPlayer(int client_id);
 //==================================================
@@ -106,15 +108,18 @@ array<ClientINFO, MAX_USER> clients;
 enum { ITEM_Booster, ITEM_Missile, ITEM_Bomb };
 constexpr int ITEM_VARIETY = 3; // 아이템 종류 수
 class ItemObject {
+	int			m_id;
 	int			m_objtype;
 	int			m_objOwner;
 	float		m_yaw, m_pitch, m_roll;
 	MyVector3D	m_pos;
 	Coordinate	m_coordinate;
+	bool		m_running;
 public:
 	BoundingOrientedBox xoobb;
 public:
 	ItemObject() {
+		m_id = -1;
 		m_objtype = -1;
 		m_objOwner = -1;
 		m_pos = { 0.f, 0.f, 0.f };
@@ -125,7 +130,9 @@ public:
 		m_coordinate.x_coordinate = tmp_rightvec;
 		m_coordinate.y_coordinate = tmp_upvec;
 		m_coordinate.z_coordinate = tmp_lookvec;
+		m_running = false;
 	};
+	int			getID() { return m_id; }
 	int			getObjType() { return m_objtype; }
 	int			getObjOwner() { return m_objOwner; }
 	MyVector3D	getPos() { return m_pos; }
@@ -133,7 +140,9 @@ public:
 	float		getPitch() { return m_pitch; }
 	float		getYaw() { return m_yaw; }
 	float		getRoll() { return m_roll; }
+	bool		getRunning() { return m_running; }
 
+	void		setID(int id) { m_id = id; }
 	void		setObjType(int type) { m_objtype = type; }
 	void		setObjOwner(int num) { m_objOwner = num; }
 	void		setPos(MyVector3D pos) { m_pos = pos; }
@@ -142,8 +151,11 @@ public:
 	void		setPitch(float f) { m_pitch = f; }
 	void		setYaw(float f) { m_yaw = f; }
 	void		setRoll(float f) { m_roll = f; }
+	void		setRunning(bool b) { m_running = b; }
 };
-vector<ItemObject> ObjectManager; // 미사일 지뢰 렌더링 정보들 담아두는 곳
+//vector<ItemObject> ObjectManager; // 미사일 지뢰 렌더링 정보들 담아두는 곳
+array<ItemObject, MissileNum> MissileArray;
+array<ItemObject, BombNum> BombArray;
 //==================================================
 
 //==================================================
@@ -162,8 +174,8 @@ array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //==================================================
 //            [ 서버 이벤트 관련 ]
 //==================================================
-enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE };				// 이벤트 타입
-enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };	// 이벤트 적용 대상
+enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE };										// 이벤트 타입
+enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX, EV_TARGET_ITEMCOOLDOWN };	// 이벤트 적용 대상
 struct ServerEvent {	// 타이머스레드에서 처리할 이벤트
 	// setServerEvent함수 인자에 입력해야하는 정보
 	char	ev_type;																// 이벤트 종류
@@ -333,6 +345,9 @@ int main(int argc, char* argv[])
 			XMFLOAT3(20.0f, 20.0f, 20.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 		cout << "Create itembox's oobb - " << i << endl;
 	}
+
+	// 아이템 사용 쿨타임 초기값 설정
+	g_item_cooldown = true;
 
 	// 통신 관련 초기작업들
 	int retval;
@@ -607,68 +622,138 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				}
 				case KEY_SPACE:
 				{
+					if (!g_item_cooldown)	// 아이템 사용 쿨타임 상태라면 아무일도 일어나지 않는다.
+						break;
 					if (clients[client_id].getItemQueue() == -1)	// 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
 						break;
 
 					int used_item = clients[client_id].getItemQueue();
 					clients[client_id].setItemRelease();
 
+					g_item_cooldown = false;
+					setServerEvent(EV_TYPE_REFRESH, 1.0f, EV_TARGET_ITEMCOOLDOWN, 0, 0, 0);
+
 					switch (used_item) {
-					case ITEM_Missile:
-					case ITEM_Bomb:
+					case ITEM_Booster:
 					{
-						// 서버에서 관리하는 아이템객체(미사일, 지뢰) 컨테이너에 새롭게 추가되는 객체 정보 저장
-						ItemObject temp;
+						// 부스터는 나중에...
+						cout << "Use Item[Booster, " << used_item << "]." << endl;
 
-						temp.setObjType(used_item);
-						temp.setObjOwner(client_id);
-						temp.setPos(clients[client_id].getPos());
-						temp.setYaw(clients[client_id].getYaw());
-						temp.setRoll(clients[client_id].getRoll());
-						temp.setPitch(clients[client_id].getPitch());
-						temp.setCoordinate(clients[client_id].getCoordinate());
+						break;
+					}
+					case ITEM_Missile:
+					{
+						cout << "Use Item[Missile, " << used_item << "]." << endl;
 
-						ObjectManager.push_back(temp);
+						// id 할당
+						int missile_id = -1;
+						for (int i = 0; i < MissileNum; i++) {
+							if (!MissileArray[i].getRunning()) {	// 빈칸을 찾았으면 id를 설정하고, for루프를 빠져나옵니다.
+								missile_id = i;
+								break;
+							}
+						}
+						cout << "missile id: " << missile_id << endl;//test
 
-						cout << "Use Item[" << used_item << "]." << endl;
-						//
+						// 새롭게 추가되는 미사일의 정보 저장
+						MissileArray[missile_id].setID(missile_id);
+						MissileArray[missile_id].setObjType(used_item);
+						MissileArray[missile_id].setObjOwner(client_id);
+						MissileArray[missile_id].setPos(clients[client_id].getPos());
+						MissileArray[missile_id].setYaw(clients[client_id].getYaw());
+						MissileArray[missile_id].setRoll(clients[client_id].getRoll());
+						MissileArray[missile_id].setPitch(clients[client_id].getPitch());
+						MissileArray[missile_id].setCoordinate(clients[client_id].getCoordinate());
+						MissileArray[missile_id].setRunning(true);
 
-						// 새롭게 추가되는 객체 정보를 모든 클라이언트에게 전달
-						GS2C_ADD_OBJ_PACKET add_obj_packet;
 
-						add_obj_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
-						add_obj_packet.type = GS2C_ADD_OBJ;
-						add_obj_packet.id = clients[client_id].getId();
-						add_obj_packet.objtype = used_item;
+						// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
+						GS2C_ADD_OBJ_PACKET add_missile_packet;
 
-						add_obj_packet.pos_x = temp.getPos().x;
-						add_obj_packet.pos_y = temp.getPos().y;
-						add_obj_packet.pos_z = temp.getPos().z;
+						add_missile_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
+						add_missile_packet.type = GS2C_ADD_OBJ;
+						add_missile_packet.id = MissileArray[missile_id].getID();
+						add_missile_packet.objtype = used_item;
 
-						add_obj_packet.right_vec_x = temp.getCoordinate().x_coordinate.x;
-						add_obj_packet.right_vec_y = temp.getCoordinate().x_coordinate.y;
-						add_obj_packet.right_vec_z = temp.getCoordinate().x_coordinate.z;
+						add_missile_packet.pos_x = MissileArray[missile_id].getPos().x;
+						add_missile_packet.pos_y = MissileArray[missile_id].getPos().y;
+						add_missile_packet.pos_z = MissileArray[missile_id].getPos().z;
 
-						add_obj_packet.up_vec_x = temp.getCoordinate().y_coordinate.x;
-						add_obj_packet.up_vec_y = temp.getCoordinate().y_coordinate.y;
-						add_obj_packet.up_vec_z = temp.getCoordinate().y_coordinate.z;
+						add_missile_packet.right_vec_x = MissileArray[missile_id].getCoordinate().x_coordinate.x;
+						add_missile_packet.right_vec_y = MissileArray[missile_id].getCoordinate().x_coordinate.y;
+						add_missile_packet.right_vec_z = MissileArray[missile_id].getCoordinate().x_coordinate.z;
 
-						add_obj_packet.look_vec_x = temp.getCoordinate().z_coordinate.x;
-						add_obj_packet.look_vec_y = temp.getCoordinate().z_coordinate.y;
-						add_obj_packet.look_vec_z = temp.getCoordinate().z_coordinate.z;
+						add_missile_packet.up_vec_x = MissileArray[missile_id].getCoordinate().y_coordinate.x;
+						add_missile_packet.up_vec_y = MissileArray[missile_id].getCoordinate().y_coordinate.y;
+						add_missile_packet.up_vec_z = MissileArray[missile_id].getCoordinate().y_coordinate.z;
+
+						add_missile_packet.look_vec_x = MissileArray[missile_id].getCoordinate().z_coordinate.x;
+						add_missile_packet.look_vec_y = MissileArray[missile_id].getCoordinate().z_coordinate.y;
+						add_missile_packet.look_vec_z = MissileArray[missile_id].getCoordinate().z_coordinate.z;
 
 						for (int i = 0; i < MAX_USER; i++) {
 							if (clients[i].getState() == CL_STATE_EMPTY) continue;
 
-							clients[i].sendAddObjPacket(add_obj_packet);
+							clients[i].sendAddObjPacket(add_missile_packet);
 						}
 						break;
 					}
-					case ITEM_Booster:
+					case ITEM_Bomb:
 					{
-						// 부스터는 나중에...
-						cout << "Use Item[" << used_item << "]." << endl;
+						cout << "Use Item[Bomb, " << used_item << "]." << endl;
 
+						// id 할당
+						int bomb_id = -1;
+						for (int i = 0; i < BombNum; i++) {
+							if (!BombArray[i].getRunning()) {	// 빈칸을 찾았으면 id를 설정하고, for루프를 빠져나옵니다.
+								bomb_id = i;
+								break;
+							}
+						}
+
+						cout << "bomb id: " << bomb_id << endl;//test
+
+						// 새롭게 추가되는 미사일의 정보 저장
+						BombArray[bomb_id].setID(bomb_id);
+						BombArray[bomb_id].setObjType(used_item);
+						BombArray[bomb_id].setObjOwner(client_id);
+						BombArray[bomb_id].setPos(clients[client_id].getPos());
+						BombArray[bomb_id].setYaw(clients[client_id].getYaw());
+						BombArray[bomb_id].setRoll(clients[client_id].getRoll());
+						BombArray[bomb_id].setPitch(clients[client_id].getPitch());
+						BombArray[bomb_id].setCoordinate(clients[client_id].getCoordinate());
+						BombArray[bomb_id].setRunning(true);
+
+
+						// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
+						GS2C_ADD_OBJ_PACKET add_bomb_packet;
+
+						add_bomb_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
+						add_bomb_packet.type = GS2C_ADD_OBJ;
+						add_bomb_packet.id = BombArray[bomb_id].getID();
+						add_bomb_packet.objtype = used_item;
+
+						add_bomb_packet.pos_x = BombArray[bomb_id].getPos().x;
+						add_bomb_packet.pos_y = BombArray[bomb_id].getPos().y;
+						add_bomb_packet.pos_z = BombArray[bomb_id].getPos().z;
+
+						add_bomb_packet.right_vec_x = BombArray[bomb_id].getCoordinate().x_coordinate.x;
+						add_bomb_packet.right_vec_y = BombArray[bomb_id].getCoordinate().x_coordinate.y;
+						add_bomb_packet.right_vec_z = BombArray[bomb_id].getCoordinate().x_coordinate.z;
+
+						add_bomb_packet.up_vec_x = BombArray[bomb_id].getCoordinate().y_coordinate.x;
+						add_bomb_packet.up_vec_y = BombArray[bomb_id].getCoordinate().y_coordinate.y;
+						add_bomb_packet.up_vec_z = BombArray[bomb_id].getCoordinate().y_coordinate.z;
+
+						add_bomb_packet.look_vec_x = BombArray[bomb_id].getCoordinate().z_coordinate.x;
+						add_bomb_packet.look_vec_y = BombArray[bomb_id].getCoordinate().z_coordinate.y;
+						add_bomb_packet.look_vec_z = BombArray[bomb_id].getCoordinate().z_coordinate.z;
+
+						for (int i = 0; i < MAX_USER; i++) {
+							if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+							clients[i].sendAddObjPacket(add_bomb_packet);
+						}
 						break;
 					}
 					//CaseEnd
@@ -713,13 +798,20 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 		case EV_TYPE_REFRESH:
 			if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
 				// 이벤트 시간이 끝났다면 타겟 타입에 맞는 후처리 작업을 해줍니다.
-				if (new_event.ev_target == EV_TARGET_ITEMBOX) {
+				switch (new_event.ev_target) {
+				case EV_TARGET_ITEMBOX:
 					cout << "ItemBox[" << target << "] is Refreshed." << endl;//test
 					ItemBoxArray[target].m_pos.y = 20.0f;
 					ItemBoxArray[target].m_visible = true;
 
 					// 아이템 박스의 변경사항을 모든 클라이언트에게 전달합니다.
 					sendItemBoxUpdatePacket_toAllClient(target);
+					break;
+
+				case EV_TARGET_ITEMCOOLDOWN:
+					g_item_cooldown = true;
+					cout << "Item Cooldown is End." << endl;
+					break;
 				}
 			}
 			else {

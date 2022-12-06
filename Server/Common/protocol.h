@@ -6,6 +6,8 @@ constexpr int NAME_LEN = 10;
 
 constexpr int MAX_USER = 3;
 constexpr int ITEMBOXNUM = 12;
+constexpr int MissileNum = 100;
+constexpr int BombNum = 100;
 
 constexpr int WORLD_X_POS = 2000;
 constexpr int WORLD_Y_POS = 2000;
