@@ -98,6 +98,7 @@ public:
 	void		sendLoginInfoPacket(GS2C_LOGIN_INFO_PACKET packet);
 	void		sendAddObjPacket(GS2C_ADD_OBJ_PACKET packet);
 	void		sendUpdatePacket(GS2C_UPDATE_PACKET packet);
+	void		sendRemoveObjPacket(GS2C_REMOVE_OBJ_PACKET packet);
 };
 array<ClientINFO, MAX_USER> clients;
 //==================================================
@@ -152,6 +153,21 @@ public:
 	void		setYaw(float f) { m_yaw = f; }
 	void		setRoll(float f) { m_roll = f; }
 	void		setRunning(bool b) { m_running = b; }
+
+	void		returnToInitialState() {	// 초기상태로 복구하는 함수
+		m_id = -1;
+		m_objtype = -1;
+		m_objOwner = -1;
+		m_pos = { 0.f, 0.f, 0.f };
+		m_yaw = m_pitch = m_roll = 0.f;
+		MyVector3D tmp_rightvec = { 1.f, 0.f, 0.f };
+		MyVector3D tmp_upvec = { 0.f, 1.f, 0.f };
+		MyVector3D tmp_lookvec = { 0.f, 0.f, 1.f };
+		m_coordinate.x_coordinate = tmp_rightvec;
+		m_coordinate.y_coordinate = tmp_upvec;
+		m_coordinate.z_coordinate = tmp_lookvec;
+		m_running = false;
+	}
 };
 //vector<ItemObject> ObjectManager; // 미사일 지뢰 렌더링 정보들 담아두는 곳
 array<ItemObject, MissileNum> MissileArray;
@@ -242,6 +258,13 @@ void ClientINFO::sendUpdatePacket(GS2C_UPDATE_PACKET packet) {
 		//err_display("send()");
 	}
 }
+void ClientINFO::sendRemoveObjPacket(GS2C_REMOVE_OBJ_PACKET packet) {
+	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_REMOVE_OBJ_PACKET), 0);
+	if (retval == SOCKET_ERROR) {
+		//err_display("send()");
+	}
+}
+
 void sendPlayerUpdatePacket_toAllClient(int c_id) {	// 모든 클라이언트에게 c_id번째 클라이언트의 업데이트 정보를 보내는 함수
 	GS2C_UPDATE_PACKET update_packet;
 	// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
@@ -612,10 +635,14 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 
 
+					// 충돌체크
 					ITemBoxCollision(client_id);
+					collisioncheck_PlayerByPlayer(client_id);
 
+					// 좌표 업데이트
 					clients[client_id].setPos(Move_Vertical_Result);
 
+					// 클라이언트에게 전달
 					sendPlayerUpdatePacket_toAllClient(client_id);
 
 					break;
@@ -659,7 +686,10 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						MissileArray[missile_id].setID(missile_id);
 						MissileArray[missile_id].setObjType(used_item);
 						MissileArray[missile_id].setObjOwner(client_id);
-						MissileArray[missile_id].setPos(clients[client_id].getPos());
+						MyVector3D missile_first_pos = clients[client_id].getPos();
+						MyVector3D missile_lookvec = clients[client_id].getCoordinate().z_coordinate;
+						MyVector3D missile_final_pos = calcMove(missile_first_pos, missile_lookvec, 10.f, 0);
+						MissileArray[missile_id].setPos(missile_final_pos);
 						MissileArray[missile_id].setYaw(clients[client_id].getYaw());
 						MissileArray[missile_id].setRoll(clients[client_id].getRoll());
 						MissileArray[missile_id].setPitch(clients[client_id].getPitch());
@@ -696,6 +726,12 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 							clients[i].sendAddObjPacket(add_missile_packet);
 						}
+
+
+						// 미사일의 타이머 설정
+						setServerEvent(EV_TYPE_REMOVE, MISSILE_DURATION, EV_TARGET_MISSILE, missile_id, 0, 0); // 미사일 유지 시간
+						setServerEvent(EV_TYPE_MOVE, MISSILE_DURATION - 0.5f, EV_TARGET_MISSILE, missile_id, 0, 0); // 미사일 이동
+
 						break;
 					}
 					case ITEM_Bomb:
@@ -711,13 +747,14 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							}
 						}
 
-						cout << "bomb id: " << bomb_id << endl;//test
-
-						// 새롭게 추가되는 미사일의 정보 저장
+						// 새롭게 추가되는 지뢰의 정보 저장
 						BombArray[bomb_id].setID(bomb_id);
 						BombArray[bomb_id].setObjType(used_item);
 						BombArray[bomb_id].setObjOwner(client_id);
-						BombArray[bomb_id].setPos(clients[client_id].getPos());
+						MyVector3D bomb_first_pos = clients[client_id].getPos();
+						MyVector3D bomb_lookvec = clients[client_id].getCoordinate().z_coordinate;
+						MyVector3D bomb_final_pos = calcMove(bomb_first_pos, bomb_lookvec, 10.f, 0);
+						BombArray[bomb_id].setPos(bomb_final_pos);
 						BombArray[bomb_id].setYaw(clients[client_id].getYaw());
 						BombArray[bomb_id].setRoll(clients[client_id].getRoll());
 						BombArray[bomb_id].setPitch(clients[client_id].getPitch());
@@ -754,6 +791,10 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 							clients[i].sendAddObjPacket(add_bomb_packet);
 						}
+
+
+						// 지뢰의 타이머 설정
+						setServerEvent(EV_TYPE_REMOVE, BOMB_DURATION, EV_TARGET_BOMB, bomb_id, 0, 0);
 						break;
 					}
 					//CaseEnd
@@ -820,10 +861,76 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 			}
 			break;
 		case EV_TYPE_MOVE:
+			switch (new_event.ev_target) {
+			case EV_TARGET_MISSILE:
+				if (SERVER_TIME < new_event.ev_start_time + new_event.ev_duration) {	// 지속시간이 끝날 때까지 지속적으로 움직입니다.
+					// 미사일을 앞으로 움직입니다.
+					MyVector3D move_dir{ 0, 0, 0 };
+					move_dir = { MissileArray[target].getCoordinate().z_coordinate.x,
+								 MissileArray[target].getCoordinate().z_coordinate.y,
+								 MissileArray[target].getCoordinate().z_coordinate.z };
+
+					MyVector3D Missile_Move_Result = calcMove(MissileArray[target].getPos(), move_dir, MISSILE_MOVE_SCALAR, 0);
+
+					MissileArray[target].setPos(Missile_Move_Result);
+
+					// 변경된 좌표로 업데이트합니다.
+
+				}
+				break;
+			}
+
 			break;
 		case EV_TYPE_ROTATE:
 			break;
 		case EV_TYPE_REMOVE:
+			if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
+				// 이벤트 시간이 끝났다면 타겟 타입에 맞는 후처리 작업을 해줍니다.
+				switch (new_event.ev_target) {
+				case EV_TARGET_MISSILE:
+					cout << "Missile[" << target << "] is Removed." << endl;//test
+
+					MissileArray[target].returnToInitialState();
+
+					// 제거 패킷을 모든 클라이언트에게 전달합니다.
+					GS2C_REMOVE_OBJ_PACKET rm_missile_packet;
+					rm_missile_packet.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
+					rm_missile_packet.type = GS2C_REMOVE_OBJ;
+					rm_missile_packet.id = target;
+					rm_missile_packet.objtype = OBJ_TYPE_MISSILE;
+
+					for (int i = 0; i < MAX_USER; i++) {
+						if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+						clients[i].sendRemoveObjPacket(rm_missile_packet);
+					}
+
+					break;
+				case EV_TARGET_BOMB:
+					cout << "Bomb[" << target << "] is Removed." << endl;//test
+					
+					BombArray[target].returnToInitialState();
+
+					// 제거 패킷을 모든 클라이언트에게 전달합니다.
+					GS2C_REMOVE_OBJ_PACKET rm_bomb_packet;
+					rm_bomb_packet.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
+					rm_bomb_packet.type = GS2C_REMOVE_OBJ;
+					rm_bomb_packet.id = target;
+					rm_bomb_packet.objtype = OBJ_TYPE_BOMB;
+
+					for (int i = 0; i < MAX_USER; i++) {
+						if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+						clients[i].sendRemoveObjPacket(rm_bomb_packet);
+					}
+
+					break;
+				}
+			}
+			else {
+				// 아직 이벤트 시간이 끝나지 않았다면 정보를 그대로 유지한채 이벤트 큐에 다시 넣어줍니다.
+				setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.target_num, new_event.ev_start_time, SetStartTimeToExInfo);
+			}
 			break;
 		}
 
@@ -912,22 +1019,22 @@ void ITemBoxCollision(int client_id)
 
 void collisioncheck_PlayerByPlayer(int client_id)
 {
-	for (int i{}; i < MAX_USER; ++i)
+	for (int i{}; i < MAX_USER; i++)
 	{
-		/* 현재 ID와 다른 플레이어 ID를 비교해야함 */
+		if (i == client_id) continue;
 
-		if (clients[client_id].xoobb.Intersects(clients[client_id+1].xoobb))
+		if (clients[client_id].xoobb.Intersects(clients[i].xoobb))
 		{
-			cout << "Collide Player : " << client_id << "&" << client_id + 1 << endl;
-			clients[client_id].m_pos.x = clients[client_id].m_pos.x * (-1.0f);
-			clients[client_id].m_pos.z = clients[client_id].m_pos.z * (-1.0f);
-			clients[client_id+1].m_pos.z = clients[client_id+1].m_pos.z * (-1.0f);
-			clients[client_id+1].m_pos.z = clients[client_id+1].m_pos.z * (-1.0f);
+			cout << "Collide Player : " << client_id << "&" << i << endl;
+			clients[client_id].m_pos.x = clients[client_id].m_pos.x + (-5.0f);
+			clients[client_id].m_pos.z = clients[client_id].m_pos.z + (-5.0f);
+			clients[i].m_pos.x = clients[i].m_pos.x + (5.0f);
+			clients[i].m_pos.z = clients[i].m_pos.z + (5.0f);
 
 			// 플레이어의 변경사항을 모든 클라이언트에게 전달합니다.
-			sendPlayerUpdatePacket_toAllClient(i);
+			sendPlayerUpdatePacket_toAllClient(client_id);
 
-			setServerEvent(EV_TYPE_MOVE, 5.0f, EV_TARGET_CLIENTS, i, 0, 0);	// 5000ms 후에 ItemBoxArray의 정보를 초기상태로 돌려놓습니다.
+			//setServerEvent(EV_TYPE_MOVE, 5.0f, EV_TARGET_CLIENTS, i, 0, 0);	// 5000ms 후에 ItemBoxArray의 정보를 초기상태로 돌려놓습니다.
 		}
 	}
 }

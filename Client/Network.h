@@ -253,7 +253,7 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 
 				break;
 			}
-			case OBJ_TYPE_MISSLE:
+			case OBJ_TYPE_MISSILE:
 			{
 				// 추가되는 객체의 id
 				int new_id = add_obj_pack.id;
@@ -322,6 +322,34 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			}
 			//SwitchEnd
 			
+			break;
+		}
+		case GS2C_REMOVE_OBJ:
+		{
+			GS2C_REMOVE_OBJ_PACKET remove_pack;
+			retval = recv(sock_forGS, (char*)&remove_pack, sizeof(GS2C_REMOVE_OBJ_PACKET), MSG_WAITALL);
+			if (retval == SOCKET_ERROR) {
+				err_display("recv()");
+			}
+
+			int rmID = remove_pack.id;
+			switch (remove_pack.objtype) {
+			case OBJ_TYPE_PLAYER:
+				break;
+			case OBJ_TYPE_MISSILE:
+				if (missile_arr[rmID].m_state == OBJ_ST_RUNNING)
+					missile_arr[rmID].returnToInitialState();	// 초기상태로 만듭니다.
+				cout << "Missile[" << rmID << "] is Removed." << endl;
+				break;
+			case OBJ_TYPE_BOMB:
+				if (bomb_arr[rmID].m_state == OBJ_ST_RUNNING)
+					bomb_arr[rmID].returnToInitialState();	// 초기상태로 만듭니다.
+				cout << "Bomb[" << rmID << "] is Removed." << endl;
+				break;
+			case OBJ_TYPE_ITEMBOX:
+				break;
+			}
+
 			break;
 		}
 		case GS2C_UPDATE:

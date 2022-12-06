@@ -37,6 +37,14 @@ struct ObjINFO
 	XMFLOAT3 GetUpVector() { return XMFLOAT3(m_up_vec.x, m_up_vec.y, m_up_vec.z); };
 	XMFLOAT3 GetLookVector() { return XMFLOAT3(m_look_vec.x, m_look_vec.y, m_look_vec.z); };
 	
+	void returnToInitialState() {	// 초기상태로 만드는 함수
+		m_id = -1;
+		m_pos = { 0.0f, 0.0f, 0.0f };
+		m_right_vec = { 1.0f, 0.0f, 0.0f };
+		m_up_vec = { 0.0f, 1.0f, 0.0f };
+		m_look_vec = { 0.0f, 0.0f, 1.0f };
+		m_state = OBJ_ST_EMPTY;
+	}
 };
 ObjINFO objinfo;
 

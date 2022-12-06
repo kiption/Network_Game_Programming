@@ -27,9 +27,10 @@ constexpr char C2GS_LOGIN = 4;
 constexpr char C2GS_KEYVALUE = 5;
 // GS -> C
 constexpr char GS2C_LOGIN_INFO = 6;
-constexpr char GS2C_GET_ITME = 7;
-constexpr char GS2C_UPDATE = 8;
-constexpr char GS2C_ADD_OBJ = 9;
+constexpr char GS2C_ADD_OBJ = 7;
+constexpr char GS2C_REMOVE_OBJ = 8;
+constexpr char GS2C_UPDATE = 9;
+constexpr char GS2C_GET_ITME = 10;
 
 
 //===================================
@@ -94,14 +95,25 @@ struct GS2C_LOGIN_INFO_PACKET {
 	float look_vec_x, look_vec_y, look_vec_z;
 };
 
-struct GS2C_GET_ITME_PACKET {
+enum { OBJ_TYPE_PLAYER, OBJ_TYPE_MISSILE, OBJ_TYPE_BOMB, OBJ_TYPE_ITEMBOX };
+struct GS2C_ADD_OBJ_PACKET {
 	short size;
 	char type;
-	short itemtype;
+	short id;
+	short objtype;
+	float pos_x, pos_y, pos_z;
+	float right_vec_x, right_vec_y, right_vec_z;
+	float up_vec_x, up_vec_y, up_vec_z;
+	float look_vec_x, look_vec_y, look_vec_z;
 };
 
+struct GS2C_REMOVE_OBJ_PACKET {
+	short size;
+	char type;
+	short id;
+	short objtype;
+};
 
-enum { OBJ_TYPE_PLAYER, OBJ_TYPE_MISSLE, OBJ_TYPE_BOMB, OBJ_TYPE_ITEMBOX };
 struct GS2C_UPDATE_PACKET {
 	short size;
 	char type;
@@ -113,15 +125,10 @@ struct GS2C_UPDATE_PACKET {
 	float look_vec_x, look_vec_y, look_vec_z;
 };
 
-struct GS2C_ADD_OBJ_PACKET {
+struct GS2C_GET_ITME_PACKET {
 	short size;
 	char type;
-	short id;
-	short objtype;
-	float pos_x, pos_y, pos_z;
-	float right_vec_x, right_vec_y, right_vec_z;
-	float up_vec_x, up_vec_y, up_vec_z;
-	float look_vec_x, look_vec_y, look_vec_z;
+	short itemtype;
 };
 
 #pragma pack (pop)
