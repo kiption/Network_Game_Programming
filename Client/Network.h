@@ -253,6 +253,52 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 
 				break;
 			}
+			case OBJ_TYPE_MISSLE:
+			{
+				// 추가되는 객체의 id
+				int new_id = add_obj_pack.id;
+
+				// id번째 칸에 이미 동작하고 있는 다른 객체가 있다면 나갑니다.
+				if (missile_arr[new_id].m_state == OBJ_ST_RUNNING)
+					break;
+
+				// 클라 내 객체정보 컨테이너에 서버로 부터 받은 값을 저장합니다.
+				missile_arr[new_id].m_id = new_id;
+				missile_arr[new_id].m_pos = { add_obj_pack.pos_x, add_obj_pack.pos_y, add_obj_pack.pos_z };
+				missile_arr[new_id].m_right_vec = { add_obj_pack.right_vec_x, add_obj_pack.right_vec_y, add_obj_pack.right_vec_z };
+				missile_arr[new_id].m_up_vec = { add_obj_pack.up_vec_x, add_obj_pack.up_vec_y, add_obj_pack.up_vec_z };
+				missile_arr[new_id].m_look_vec = { add_obj_pack.look_vec_x, add_obj_pack.look_vec_y, add_obj_pack.look_vec_z };
+				missile_arr[new_id].m_state = OBJ_ST_RUNNING;
+
+				// Test Log
+				cout << "[Recv New Missile's Info] ID: " << missile_arr[new_id].m_id
+					<< ", Pos: (" << missile_arr[new_id].m_pos.x << ", " << missile_arr[new_id].m_pos.y << ", " << missile_arr[new_id].m_pos.z << ")"
+					<< ", LookVec: (" << missile_arr[new_id].m_look_vec.x << ", " << missile_arr[new_id].m_look_vec.y << ", " << missile_arr[new_id].m_look_vec.z << ")" << endl;
+				break;
+			}
+			case OBJ_TYPE_BOMB:
+			{
+				// 추가되는 객체의 id
+				int new_id = add_obj_pack.id;
+
+				// id번째 칸에 이미 동작하고 있는 다른 객체가 있다면 나갑니다.
+				if (bomb_arr[new_id].m_state == OBJ_ST_RUNNING)
+					break;
+
+				// 클라 내 객체정보 컨테이너에 서버로 부터 받은 값을 저장합니다.
+				bomb_arr[new_id].m_id = new_id;
+				bomb_arr[new_id].m_pos = { add_obj_pack.pos_x, add_obj_pack.pos_y, add_obj_pack.pos_z };
+				bomb_arr[new_id].m_right_vec = { add_obj_pack.right_vec_x, add_obj_pack.right_vec_y, add_obj_pack.right_vec_z };
+				bomb_arr[new_id].m_up_vec = { add_obj_pack.up_vec_x, add_obj_pack.up_vec_y, add_obj_pack.up_vec_z };
+				bomb_arr[new_id].m_look_vec = { add_obj_pack.look_vec_x, add_obj_pack.look_vec_y, add_obj_pack.look_vec_z };
+				bomb_arr[new_id].m_state = OBJ_ST_RUNNING;
+
+				// Test Log
+				cout << "[Recv New Bomb's Info] ID: " << bomb_arr[new_id].m_id
+					<< ", Pos: (" << bomb_arr[new_id].m_pos.x << ", " << bomb_arr[new_id].m_pos.y << ", " << bomb_arr[new_id].m_pos.z << ")"
+					<< ", LookVec: (" << bomb_arr[new_id].m_look_vec.x << ", " << bomb_arr[new_id].m_look_vec.y << ", " << bomb_arr[new_id].m_look_vec.z << ")" << endl;
+				break;
+			}
 			case OBJ_TYPE_ITEMBOX:
 			{
 				// 추가되는 객체의 id
@@ -270,14 +316,6 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 				// Test Log
 				cout << "[Item Boxes Initialized] ID: " << itembox_arr[new_id].m_id
 					<< ", Pos: (" << itembox_arr[new_id].m_pos.x << ", " << itembox_arr[new_id].m_pos.y << ", " << itembox_arr[new_id].m_pos.z << ")" << endl;
-				break;
-			}
-			case OBJ_TYPE_MISSLE:
-			{
-				break;
-			}
-			case OBJ_TYPE_BOMB:
-			{
 				break;
 			}
 			//caseEnd

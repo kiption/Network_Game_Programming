@@ -43,3 +43,5 @@ ObjINFO objinfo;
 int myID;
 std::array<ObjINFO, MAX_USER> players_info;
 std::array<ObjINFO, ITEMBOXNUM> itembox_arr;
+std::array<ObjINFO, MissileNum> missile_arr;
+std::array<ObjINFO, BombNum> bomb_arr;
