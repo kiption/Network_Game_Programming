@@ -804,8 +804,7 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 	if (Login_ID == n)
 	{
 		((CMyPlayer*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
-		((CMyPlayer*)m_pPlayer)->SetScale(1.0, 1.0, 1.0);
-
+	
 	}
 	else
 	{
@@ -826,7 +825,7 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 			break;
 		}
 		m_pScene->m_ppGameObjects[others_id]->myFunc_SetVectors(rightVector, upVector, lookVector);
-	/*	m_pScene->m_ppGameObjects[others_id]->SetScale(6.0, 6.0, 6.0);*/
+		
 	}
 
 }
