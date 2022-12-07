@@ -7,6 +7,7 @@
 
 #define MOVE_SCALAR 3.8f
 #define BOOSTER_SCALAR 7.0f
+#define REFLECT_SCALAR 20.0f
 #define MISSILE_MOVE_SCALAR 9.0f
 #define ROTATE_SCALAR 1.5f
 #define ITEMBOX_ROTATE_SCALAR 15.0f
@@ -17,7 +18,7 @@
 #define ITEM_COOLDOWN_DURATION 1.0f
 #define MISSILE_DURATION 10.0f
 #define BOMB_DURATION 60.0f
-#define BOOSTER_DURATION 2.0f
+#define BOOSTER_DURATION 1.5f
 
 #include <random>
 #include <math.h>

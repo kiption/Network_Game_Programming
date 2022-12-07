@@ -12,9 +12,10 @@
 
 using namespace std;
 
-DWORD WINAPI ProcessClient(LPVOID arg);		// 클라이언트 통신 스레드
-DWORD WINAPI TimerThreadFunc(LPVOID arg);	// 타이머 스레드
-DWORD WINAPI ServerTime_Update(LPVOID arg);	// 서버 시간 갱신 스레드
+DWORD WINAPI ProcessClient(LPVOID arg);				// 클라이언트 통신 스레드
+DWORD WINAPI TimerThreadFunc(LPVOID arg);			// 타이머 스레드
+DWORD WINAPI ServerTime_Update(LPVOID arg);			// 서버 시간 갱신 스레드
+DWORD WINAPI CollideCheck_ThreadFunc(LPVOID arg);	// 충돌 검사 스레드
 
 Coordinate basic_coordinate;				// 기본(초기) 좌표계
 
@@ -42,6 +43,7 @@ private:
 
 	bool		m_item_cooldown;	// 아이템 사용 쿨타임
 	bool		m_booster_on;		// 부스터 사용 여부
+	bool		m_lose_control;		// 조작 가능 여부 (충돌 연출때에는 조작이 불가능합니다.)
 
 public:
 	float		m_yaw, m_pitch, m_roll;
@@ -49,6 +51,7 @@ public:
 	BoundingOrientedBox xoobb;
 
 public:
+	// Initialize
 	ClientINFO() {
 		m_id = 0;
 		m_sock = 0;
@@ -66,8 +69,12 @@ public:
 
 		m_item_cooldown = false;
 		m_booster_on = false;
+		m_lose_control = false;
 	};
 
+public:
+	// Accessor Func
+	// 1. Get
 	SOCKET		getSock() { return m_sock; }
 	char		getState() { return m_state; }
 	int			getId() { return m_id; }
@@ -85,8 +92,9 @@ public:
 	int			getHowManyItem() { return m_myitem.size(); }
 	bool		getItemCooldown() { return m_item_cooldown; }
 	bool		getBoosterOn() { return m_booster_on; }
+	bool		getLoseControl() { return m_lose_control; }
 
-
+	// 2. Set
 	void		setSock(SOCKET sock) { m_sock = sock; }
 	void		setState(char state) { m_state = state; }
 	void		setAccel(float accel) { m_acceleator = accel; }
@@ -101,10 +109,10 @@ public:
 	void		setItemRelease() { m_myitem.pop(); } // 사용한 아이템 방출
 	void		setItemCooldown(bool b) { m_item_cooldown = b; }
 	void		setBoosterOn(bool b) { m_booster_on = b; }
-
+	void		setLoseControl(bool b) { m_lose_control = b; }
 
 public:
-
+	// Networking Func
 	void		sendLoginInfoPacket(GS2C_LOGIN_INFO_PACKET packet);
 	void		sendAddObjPacket(GS2C_ADD_OBJ_PACKET packet);
 	void		sendUpdatePacket(GS2C_UPDATE_PACKET packet);
@@ -200,9 +208,9 @@ array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //==================================================
 //            [ 서버 이벤트 관련 ]
 //==================================================
-enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE };				// 이벤트 타입
-enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };	// 이벤트 적용 대상
-enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER };				// Extra Info
+enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE };						// 이벤트 타입
+enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };			// 이벤트 적용 대상
+enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER, EV_DTARGET_CONTROL };	// Extra Info
 constexpr int EV_DTARGET_ALL = 999;	// Extra Info
 struct ServerEvent {	// 타이머스레드에서 처리할 이벤트
 	// setServerEvent함수 인자에 입력해야하는 정보
@@ -340,8 +348,6 @@ void sendItemBoxUpdatePacket_toAllClient(int itembox_id) {	// 모든 클라이언트에�
 		clients[i].sendUpdatePacket(update_packet);
 	}
 }
-
-
 //==================================================
 
 //==================================================
@@ -352,11 +358,16 @@ int main(int argc, char* argv[])
 	// 서버 시간 초기화
 	START_TIME = 0.0f;
 	SERVER_TIME = 0.0f;
+
 	// 서버시간을 업데이트시켜주는 스레드 생성
 	HANDLE hTimeUpdateThread = CreateThread(NULL, 0, ServerTime_Update, 0, 0, NULL);
 
-	// 주기적인 작업을 수행하는 스레드 생성
+	// 주기적인 작업을 수행하는 타이머 스레드 생성
 	HANDLE hTimerThreadThread = CreateThread(NULL, 0, TimerThreadFunc, 0, 0, NULL);
+
+	// 충돌 검사를 수행하는 스레드 생성
+	HANDLE hCollideThreadThread = CreateThread(NULL, 0, CollideCheck_ThreadFunc, 0, 0, NULL);
+
 
 	// 아이템 박스의 위치값을 설정합니다.
 	for (int i{}; i < 3; ++i) {
@@ -379,7 +390,7 @@ int main(int argc, char* argv[])
 	// 아이템 박스의 bb를 설정합니다.
 	for (int i = 0; i < ITEMBOXNUM; i++) {
 		ItemBoxArray[i].xoobb = BoundingOrientedBox(XMFLOAT3(ItemBoxArray[i].m_pos.x, ItemBoxArray[i].m_pos.y, ItemBoxArray[i].m_pos.z),
-			XMFLOAT3(20.0f, 20.0f, 20.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+			XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 		cout << "Create itembox's oobb - " << i << endl;
 	}
 
@@ -476,6 +487,8 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	clients[client_id].setID(client_id);
 	MyVector3D Pos = { 400 + 50 * client_id, 14.0, 400 + 50 * client_id };
 	clients[client_id].setPos(Pos);
+	clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(clients[client_id].getPos().x, clients[client_id].getPos().y, clients[client_id].getPos().z),
+		XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 
 	// 새로 접속한 클라이언트에게 자신의 초기 정보를 전달합니다.
 	GS2C_LOGIN_INFO_PACKET login_packet;
@@ -584,7 +597,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		}
 	}
 	// 아이템 박스가 제자리에서 계속 회전을 하도록 타이머에 이벤트로 넣어줍니다.
-	setServerEvent(EV_TYPE_ROTATE, 999999.0f, EV_TARGET_ITEMBOX, EV_DTARGET_ALL, 0, 0, NoCount);
+	setServerEvent(EV_TYPE_ROTATE, INFINITY, EV_TARGET_ITEMBOX, EV_DTARGET_ALL, 0, 0, NoCount);
 
 	//==================================================
 	// Loop - Recv & Process Packets
@@ -610,8 +623,15 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					[[fallthrough]];
 				case KEY_RIGHT:
 				{
+					// 제어권을 잃은 상태에선 조작이 불가능 합니다.
+					if (clients[client_id].getLoseControl())
+						break;
+
 					// yaw 설정
-					clients[client_id].setYaw(clients[client_id].getYaw() + ROTATE_SCALAR * plus_minus * PI / 360.0f);
+					float temp_yaw = clients[client_id].getYaw() + ROTATE_SCALAR * plus_minus * PI / 360.0f;
+					if (temp_yaw >= 360.0f)
+						temp_yaw -= 360.0f;
+					clients[client_id].setYaw(temp_yaw);
 
 					// right, up, look 벡터 회전계산
 					MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
@@ -634,6 +654,10 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					[[fallthrough]];
 				case KEY_UP:
 				{
+					// 제어권을 잃은 상태에선 조작이 불가능 합니다.
+					if (clients[client_id].getLoseControl())
+						break;
+
 					MyVector3D move_dir{ 0, 0, 0 };
 					move_dir = { clients[client_id].getCoordinate().z_coordinate.x * plus_minus,
 						clients[client_id].getCoordinate().z_coordinate.y * plus_minus, clients[client_id].getCoordinate().z_coordinate.z * plus_minus };
@@ -646,16 +670,11 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR, clients[client_id].getAccel());
 					}
 
-					clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(Move_Vertical_Result.x, Move_Vertical_Result.y, Move_Vertical_Result.z),
-						XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
-
-
-					// 충돌체크
-					ITemBoxCollision(client_id);
-					collisioncheck_PlayerByPlayer(client_id);
-
 					// 좌표 업데이트
 					clients[client_id].setPos(Move_Vertical_Result);
+					// BB 업데이트
+					clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(clients[client_id].getPos().x, clients[client_id].getPos().y, clients[client_id].getPos().z),
+						XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 
 					// 클라이언트에게 전달
 					sendPlayerUpdatePacket_toAllClient(client_id);
@@ -664,6 +683,10 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				}
 				case KEY_SPACE:
 				{
+					// 제어권을 잃은 상태에선 조작이 불가능 합니다.
+					if (clients[client_id].getLoseControl())
+						break;
+
 					if (clients[client_id].getItemCooldown())		// 아이템 사용 쿨타임 상태라면 아무일도 일어나지 않는다.
 						break;
 					if (clients[client_id].getItemQueue() == -1)	// 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
@@ -863,7 +886,11 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 				// 이벤트 시간이 끝났다면 타겟 타입에 맞는 후처리 작업을 해줍니다.
 				switch (new_event.ev_target) {
 				case EV_TARGET_CLIENTS:
-					if (new_event.ev_target_detail == EV_DTARGET_ITEMCOOLDOWN) {
+					if (new_event.ev_target_detail == EV_DTARGET_CONTROL) {
+						clients[target].setLoseControl(false);
+						cout << "Client[ " << target << "] Gets Control Back" << endl;
+					}
+					else if (new_event.ev_target_detail == EV_DTARGET_ITEMCOOLDOWN) {
 						clients[target].setItemCooldown(false);
 						cout << "Client[ " << target << "]'s Item Cooldown is End." << endl;
 					}
@@ -975,7 +1002,10 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 				// 아이템박스를 회전시킵니다.
 				// yaw 설정
 				for (int i = 0; i < ITEMBOXNUM; i++) {
-					ItemBoxArray[i].m_yaw = (ItemBoxArray[i].m_yaw + ITEMBOX_ROTATE_SCALAR * PI / 360.0f);
+					float temp_yaw = ItemBoxArray[i].m_yaw + ITEMBOX_ROTATE_SCALAR * PI / 360.0f;
+					if (temp_yaw >= 360.0f)
+						temp_yaw -= 360.0f;
+					ItemBoxArray[i].m_yaw = temp_yaw;
 
 					// right, up, look 벡터 회전계산
 					MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
@@ -1086,6 +1116,34 @@ DWORD WINAPI ServerTime_Update(LPVOID arg)
 //==================================================
 
 //==================================================
+//           [ 충돌 검사 스레드 함수 ]
+// 	         서버에서 관리하는 객체들의
+//      충돌 검사를 담당하는 스레드함수 입니다.
+//==================================================
+DWORD WINAPI CollideCheck_ThreadFunc(LPVOID arg)
+{
+	while (1) {
+		for (int i = 0; i < MAX_USER; i++) {
+			if (clients[i].getState() != CL_STATE_RUNNING)
+				continue;
+
+			// Player - Map 충돌
+
+			// Player - Player 충돌
+			collisioncheck_PlayerByPlayer(i);
+
+			// Player - Missile 충돌
+
+			// Player - Bomb 충돌
+
+			// Player - ItemBox 충돌
+			ITemBoxCollision(i);
+		}
+	}
+}
+//==================================================
+
+//==================================================
 //             [ 충돌 관련 함수들 ]
 // 	  충돌 체크 및 후처리에 관련된 함수들입니다.
 //==================================================
@@ -1107,12 +1165,12 @@ void ITemBoxCollision(int client_id)
 	for (int i = 0; i < ITEMBOXNUM; i++)
 	{
 		// 플레이어에게서 너무 멀리 떨어져있는 아이템박스는 충돌체크 대상에서 제외합니다.
-		if (ItemBoxArray[i].m_pos.x < clients[client_id].getPos().x - 300
-			|| ItemBoxArray[i].m_pos.x > clients[client_id].getPos().x + 300) continue;
+		if (ItemBoxArray[i].m_pos.x < clients[client_id].getPos().x - 150
+			|| ItemBoxArray[i].m_pos.x > clients[client_id].getPos().x + 150) continue;
 		if (ItemBoxArray[i].m_pos.y < clients[client_id].getPos().y - 100
 			|| ItemBoxArray[i].m_pos.y > clients[client_id].getPos().y + 100) continue;
-		if (ItemBoxArray[i].m_pos.z < clients[client_id].getPos().z - 300
-			|| ItemBoxArray[i].m_pos.z > clients[client_id].getPos().z + 300) continue;
+		if (ItemBoxArray[i].m_pos.z < clients[client_id].getPos().z - 150
+			|| ItemBoxArray[i].m_pos.z > clients[client_id].getPos().z + 150) continue;
 		// 이미 누군가가 최근에 충돌한 적있는 아이템박스는 충돌체크 대상에서 제외합니다.
 		if (!ItemBoxArray[i].m_visible) continue;
 
@@ -1154,27 +1212,39 @@ void collisioncheck_PlayerByPlayer(int client_id)
 		if (i == client_id) continue;
 
 		// 플레이어에게서 너무 멀리 떨어져있는 다른 플레이어의 객체는 충돌체크 대상에서 제외합니다.
-		if (clients[i].m_pos.x < clients[client_id].getPos().x - 300
-			|| clients[i].m_pos.x > clients[client_id].getPos().x + 300) continue;
+		if (clients[i].m_pos.x < clients[client_id].getPos().x - 150
+			|| clients[i].m_pos.x > clients[client_id].getPos().x + 150) continue;
 		if (clients[i].m_pos.y < clients[client_id].getPos().y - 100
 			|| clients[i].m_pos.y > clients[client_id].getPos().y + 100) continue;
-		if (clients[i].m_pos.z < clients[client_id].getPos().z - 300
-			|| clients[i].m_pos.z > clients[client_id].getPos().z + 300) continue;
+		if (clients[i].m_pos.z < clients[client_id].getPos().z - 150
+			|| clients[i].m_pos.z > clients[client_id].getPos().z + 150) continue;
 
 		// 충돌 체크 & 후처리
 		if (clients[client_id].xoobb.Intersects(clients[i].xoobb))
 		{
+			if (clients[client_id].getLoseControl() && clients[i].getLoseControl())
+				continue;
+
 			cout << "Collide Player : " << client_id << "&" << i << endl;
 
-			if (clients[client_id].getPos().x > clients[i].m_pos.x)
-				clients[client_id].m_pos.x = clients[client_id].m_pos.x + 20.0f;
-			else
-				clients[client_id].m_pos.x = clients[client_id].m_pos.x - 20.0f;
+			// 두 객체의 제어권을 잠시 없앱니다.
+			clients[client_id].setLoseControl(true);
+			clients[i].setLoseControl(true);
+			setServerEvent(EV_TYPE_REFRESH, 0.7f, EV_TARGET_CLIENTS, EV_DTARGET_CONTROL, client_id, 0, 0);
+			setServerEvent(EV_TYPE_REFRESH, 0.7f, EV_TARGET_CLIENTS, EV_DTARGET_CONTROL, i, 0, 0);
 
-			if (clients[client_id].getPos().z > clients[i].m_pos.z)
-				clients[client_id].m_pos.z = clients[client_id].m_pos.z + 20.0f;
-			else
-				clients[client_id].m_pos.z = clients[client_id].m_pos.z - 20.0f;
+			// 충돌 연출
+			MyVector3D reflect_dir{ 0, 0, 0 };
+			reflect_dir = { clients[client_id].getCoordinate().z_coordinate.x * (-1.0f),
+							clients[client_id].getCoordinate().z_coordinate.y * (-1.0f),
+							clients[client_id].getCoordinate().z_coordinate.z * (-1.0f) };
+
+			MyVector3D reflect_Result{ 0,0,0 };
+			reflect_Result = calcMove(clients[client_id].getPos(), reflect_dir, REFLECT_SCALAR, clients[client_id].getAccel());
+
+			clients[client_id].setPos(reflect_Result);
+			clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(clients[client_id].getPos().x, clients[client_id].getPos().y, clients[client_id].getPos().z),
+				XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 
 			// 플레이어의 변경사항을 모든 클라이언트에게 전달합니다.
 			sendPlayerUpdatePacket_toAllClient(client_id);
