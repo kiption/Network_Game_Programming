@@ -6,6 +6,7 @@
 #include "UILayer.h"
 
 queue<short> q_input_key;
+queue<short> q_keyup;
 
 //HANDLE networkThread;
 CGameFramework::CGameFramework()
@@ -449,6 +450,18 @@ void CGameFramework::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPA
 		case VK_F9:
 			ChangeSwapChainState();
 			break;
+		case VK_UP:
+		{
+			short NotPressUp = 0;
+			q_keyup.push(NotPressUp);
+			break;
+		}
+		case VK_DOWN:
+		{
+			short NotPressDown = 1;
+			q_keyup.push(NotPressDown);
+			break;
+		}
 		default:
 			break;
 		}
@@ -804,7 +817,7 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 	if (Login_ID == n)
 	{
 		((CMyPlayer*)m_pPlayer)->myFunc_SetVectors(rightVector, upVector, lookVector);
-	
+
 	}
 	else
 	{
@@ -825,7 +838,7 @@ void CGameFramework::myFunc_SetVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upV
 			break;
 		}
 		m_pScene->m_ppGameObjects[others_id]->myFunc_SetVectors(rightVector, upVector, lookVector);
-		
+
 	}
 
 }
@@ -866,18 +879,18 @@ void CGameFramework::MissileMode(XMFLOAT3 position, XMFLOAT3 lookVector)
 
 	CBulletObject* pBulletObject = NULL;
 
-	XMFLOAT3 PlayerPos = ((CMyPlayer*)m_pPlayer)-> GetLookVector()= lookVector;
+	XMFLOAT3 PlayerPos = ((CMyPlayer*)m_pPlayer)->GetLookVector() = lookVector;
 	if (pBulletObject)
 	{
 
-		XMFLOAT3 xmf3Position = ((CMyPlayer*)m_pPlayer)->GetPosition()= position;
+		XMFLOAT3 xmf3Position = ((CMyPlayer*)m_pPlayer)->GetPosition() = position;
 		XMFLOAT3 xmf3FirePosition = Vector3::Add(xmf3Position, Vector3::ScalarProduct(PlayerPos, 6.0f, true));
 		pBulletObject->m_xmf4x4Transform = pBulletObject->m_xmf4x4World;
 		pBulletObject->SetFirePosition(xmf3FirePosition);
 		pBulletObject->SetMovingDirection(PlayerPos);
 		pBulletObject->Rotate(90.0f, 0.0, 0.0);
 		pBulletObject->SetScale(700.0, 200.0, 700.0);
-	/*	pBulletObject->SetActive(true);*/
+		/*	pBulletObject->SetActive(true);*/
 	}
 }
 void CGameFramework::CollisionAnimate()
@@ -903,4 +916,17 @@ short CGameFramework::pop_keyvalue() {
 
 	return temp;
 }
+
+bool CGameFramework::is_KeyUp_Empty() {
+	return q_keyup.empty();
+}
+
+short CGameFramework::pop_keyUpvalue() {
+
+	short temp = q_keyup.front();
+	q_keyup.pop();
+
+	return temp;
+}
 //==================================================
+

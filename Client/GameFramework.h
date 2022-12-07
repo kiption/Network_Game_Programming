@@ -64,6 +64,9 @@ public:
 	bool is_KeyInput_Empty();
 	short pop_keyvalue();
 
+	bool is_KeyUp_Empty();
+	short pop_keyUpvalue();
+
 	int Login_ID;
 	//==================================================
 public:

@@ -101,6 +101,20 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				}
 				//cout << "Key: " << keyvalue_pack.key << endl; //test
 			}
+			if (!gGameFramework.is_KeyUp_Empty()) {
+				short send_keyUPValue = gGameFramework.pop_keyUpvalue();									// 키입력 큐에 있는 키값 중 가장 먼저 입력된 키값을
+				
+				// protocol
+				C2GS_KEYUPVALUE_PACKET keyUPvalue_pack;
+				keyUPvalue_pack.size = sizeof(C2GS_KEYUPVALUE_PACKET);
+				keyUPvalue_pack.type = C2GS_KEYUPVALUE;
+				keyUPvalue_pack.key = send_keyUPValue;
+				retval = send(sock_forGS, (char*)&keyUPvalue_pack, sizeof(C2GS_KEYUPVALUE_PACKET), 0);		// 서버로 전송합니다.
+				if (retval == SOCKET_ERROR) {
+					err_display("send()");
+				}
+				//cout << "Key: " << keyvalue_pack.key << endl; //test
+			}
 			//==================================================
 
 			//==================================================

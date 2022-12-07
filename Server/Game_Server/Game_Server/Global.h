@@ -5,8 +5,6 @@
 
 #define PI 3.141592654f
 
-#define MOVE_SCALAR 3.8f
-#define BOOSTER_SCALAR 7.0f
 #define REFLECT_SCALAR 20.0f
 #define MISSILE_MOVE_SCALAR 9.0f
 #define ROTATE_SCALAR 1.5f
@@ -19,6 +17,9 @@
 #define MISSILE_DURATION 10.0f
 #define BOMB_DURATION 60.0f
 #define BOOSTER_DURATION 1.5f
+
+#define	LIMIT_ACCELERATOR 4.0f
+#define BOOSTER_ACCELERATOR 8.0f
 
 #include <random>
 #include <math.h>

@@ -36,14 +36,17 @@ private:
 	int			m_id = 0;
 	char		m_state;
 
-	float		m_acceleator;
-	Coordinate	m_coordinate;
 	float		m_timer;
+	float		m_accelerator;
+	float		m_limit_acc;
+	Coordinate	m_coordinate;
 	queue<int>  m_myitem;
 
 	bool		m_item_cooldown;	// 아이템 사용 쿨타임
 	bool		m_booster_on;		// 부스터 사용 여부
 	bool		m_lose_control;		// 조작 가능 여부 (충돌 연출때에는 조작이 불가능합니다.)
+
+	bool		m_reduce_acc;
 
 public:
 	float		m_yaw, m_pitch, m_roll;
@@ -64,7 +67,8 @@ public:
 		m_coordinate.x_coordinate = tmp_rightvec;
 		m_coordinate.y_coordinate = tmp_upvec;
 		m_coordinate.z_coordinate = tmp_lookvec;
-		m_acceleator = 2.0f;
+		m_accelerator = 0.0f;
+		m_limit_acc = LIMIT_ACCELERATOR;
 		xoobb = { XMFLOAT3(m_pos.x,m_pos.y,m_pos.z), XMFLOAT3(6.0f,6.0f,6.0f), XMFLOAT4(0.0f,0.0f,0.0f,1.0f) };
 
 		m_item_cooldown = false;
@@ -78,13 +82,13 @@ public:
 	SOCKET		getSock() { return m_sock; }
 	char		getState() { return m_state; }
 	int			getId() { return m_id; }
-	float		getAccel() { return m_acceleator; }
+	float		getAccel() { return m_accelerator; }
+	float		getLimitAcc() { return m_limit_acc; }
 	MyVector3D	getPos() { return m_pos; }
 	Coordinate	getCoordinate() { return m_coordinate; }
 	float		getPitch() { return m_pitch; }
 	float		getYaw() { return m_yaw; }
 	float		getRoll() { return m_roll; }
-	float		getTimer() {}
 	int			getItemQueue() {
 		if (m_myitem.empty()) return -1;	// 큐가 비어있으면 -1을
 		return m_myitem.front();			// 아이템이 있다면 아이템의 고유번호를 반환합니다.
@@ -93,11 +97,13 @@ public:
 	bool		getItemCooldown() { return m_item_cooldown; }
 	bool		getBoosterOn() { return m_booster_on; }
 	bool		getLoseControl() { return m_lose_control; }
+	bool		getReduceAcc() { return m_reduce_acc; }
 
 	// 2. Set
 	void		setSock(SOCKET sock) { m_sock = sock; }
 	void		setState(char state) { m_state = state; }
-	void		setAccel(float accel) { m_acceleator = accel; }
+	void		setAccel(float accel) { m_accelerator = accel; }
+	void		setLimitAcc(float acc) { m_limit_acc = acc; }
 	void		setID(int id) { m_id = id; }
 	void		setPos(MyVector3D pos) { m_pos = pos; }
 	void		setCoordinate(Coordinate co) { m_coordinate = co; }
@@ -110,6 +116,7 @@ public:
 	void		setItemCooldown(bool b) { m_item_cooldown = b; }
 	void		setBoosterOn(bool b) { m_booster_on = b; }
 	void		setLoseControl(bool b) { m_lose_control = b; }
+	void		setReduceAcc(bool b) { m_reduce_acc = b; }
 
 public:
 	// Networking Func
@@ -210,7 +217,7 @@ array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //==================================================
 enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE };						// 이벤트 타입
 enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };			// 이벤트 적용 대상
-enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER, EV_DTARGET_CONTROL };	// Extra Info
+enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER, EV_DTARGET_CONTROL, EV_DTARGET_ACC, EV_DTARGET_BOOSTEND };	// Extra Info
 constexpr int EV_DTARGET_ALL = 999;	// Extra Info
 struct ServerEvent {	// 타이머스레드에서 처리할 이벤트
 	// setServerEvent함수 인자에 입력해야하는 정보
@@ -228,7 +235,7 @@ struct ServerEvent {	// 타이머스레드에서 처리할 이벤트
 queue<ServerEvent> ServerEventQueue;		// 서버 이벤트 큐
 
 enum { NoFlag, NoCount, SetStartTimeToExInfo };
-void setServerEvent(char type, int sec, char target, char target_detail, int t_num, int ex_info, char flag) {
+void setServerEvent(char type, float sec, char target, char target_detail, int t_num, int ex_info, char flag) {
 	ServerEvent* temp = new ServerEvent;
 	temp->ev_type = type;
 	temp->ev_duration = sec;
@@ -603,256 +610,314 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	// Loop - Recv & Process Packets
 	//==================================================
 	while (1) {
-		// 이동 함수
-		C2GS_KEYVALUE_PACKET ClientPushKey;
-		retval = recv(client_sock, reinterpret_cast<char*>(&ClientPushKey), sizeof(C2GS_KEYVALUE_PACKET), 0);
+
+		PACKET_INFO recv_info;
+		retval = recv(client_sock, (char*)&recv_info, sizeof(PACKET_INFO), MSG_PEEK);	// MSG_PEEK을 사용하여 수신버퍼를 읽지만 가져오지는 않도록
 		if (retval == SOCKET_ERROR) {
-			//err_display("recv()");
-			closesocket(client_sock);
+			err_display("recv()");
+		}
+		else if (retval == 0) {
+			break;
 		}
 
-		enum { KEY_LEFT, KEY_RIGHT, KEY_DOWN, KEY_UP, KEY_SPACE };
-		for (int i = KEY_LEFT; i <= KEY_SPACE; ++i) {
-			if ((ClientPushKey.key >> i) & 1) {
+		switch (recv_info.type) {
+		case C2GS_KEYVALUE:
+			C2GS_KEYVALUE_PACKET ClientPushKey;
+			retval = recv(client_sock, reinterpret_cast<char*>(&ClientPushKey), sizeof(C2GS_KEYVALUE_PACKET), 0);
+			if (retval == SOCKET_ERROR) {
+				//err_display("recv()");
+				closesocket(client_sock);
+			}
 
-				int plus_minus = 1;	// 양수 음수
+			enum { KEY_LEFT, KEY_RIGHT, KEY_DOWN, KEY_UP, KEY_SPACE };
+			for (int i = KEY_LEFT; i <= KEY_SPACE; ++i) {
+				if ((ClientPushKey.key >> i) & 1) {
 
-				switch (i) {
-				case KEY_LEFT:
-					plus_minus = -1;
-					[[fallthrough]];
-				case KEY_RIGHT:
-				{
-					// 제어권을 잃은 상태에선 조작이 불가능 합니다.
-					if (clients[client_id].getLoseControl())
-						break;
+					int plus_minus = 1;	// 양수 음수
 
-					// yaw 설정
-					float temp_yaw = clients[client_id].getYaw() + ROTATE_SCALAR * plus_minus * PI / 360.0f;
-					if (temp_yaw >= 360.0f)
-						temp_yaw -= 360.0f;
-					clients[client_id].setYaw(temp_yaw);
-
-					// right, up, look 벡터 회전계산
-					MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
-						, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
-					MyVector3D rotate_result_y = calcRotate(basic_coordinate.y_coordinate
-						, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
-					MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
-						, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
-
-					// right, up, look 벡터 회전결과 적용
-					clients[client_id].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
-
-					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
-					sendPlayerUpdatePacket_toAllClient(client_id);
-
-					break;
-				}
-				case KEY_DOWN:
-					plus_minus = -1;
-					[[fallthrough]];
-				case KEY_UP:
-				{
-					// 제어권을 잃은 상태에선 조작이 불가능 합니다.
-					if (clients[client_id].getLoseControl())
-						break;
-
-					MyVector3D move_dir{ 0, 0, 0 };
-					move_dir = { clients[client_id].getCoordinate().z_coordinate.x * plus_minus,
-						clients[client_id].getCoordinate().z_coordinate.y * plus_minus, clients[client_id].getCoordinate().z_coordinate.z * plus_minus };
-
-					MyVector3D Move_Vertical_Result{ 0,0,0 };
-					if (clients[client_id].getBoosterOn()) {	// 부스터가 켜져 있다면
-						Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, BOOSTER_SCALAR, clients[client_id].getAccel());
-					}
-					else {										// 부스터가 꺼져 있다면
-						Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, MOVE_SCALAR, clients[client_id].getAccel());
-					}
-
-					// 좌표 업데이트
-					clients[client_id].setPos(Move_Vertical_Result);
-					// BB 업데이트
-					clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(clients[client_id].getPos().x, clients[client_id].getPos().y, clients[client_id].getPos().z),
-						XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
-
-					// 클라이언트에게 전달
-					sendPlayerUpdatePacket_toAllClient(client_id);
-
-					break;
-				}
-				case KEY_SPACE:
-				{
-					// 제어권을 잃은 상태에선 조작이 불가능 합니다.
-					if (clients[client_id].getLoseControl())
-						break;
-
-					if (clients[client_id].getItemCooldown())		// 아이템 사용 쿨타임 상태라면 아무일도 일어나지 않는다.
-						break;
-					if (clients[client_id].getItemQueue() == -1)	// 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
-						break;
-
-					int used_item = clients[client_id].getItemQueue();
-
-					clients[client_id].setItemCooldown(true);
-					setServerEvent(EV_TYPE_REFRESH, ITEM_COOLDOWN_DURATION, EV_TARGET_CLIENTS, EV_DTARGET_ITEMCOOLDOWN, client_id, 0, 0);	// 아이템 사용 쿨타임
-
-					switch (used_item) {
-					case ITEM_Booster:
+					switch (i) {
+					case KEY_LEFT:
+						plus_minus = -1;
+						[[fallthrough]];
+					case KEY_RIGHT:
 					{
-						if (clients[client_id].getBoosterOn())	// 이미 부스터가 켜져있으면 사용할 수 없습니다.
+						// 제어권을 잃은 상태에선 조작이 불가능 합니다.
+						if (clients[client_id].getLoseControl())
 							break;
 
-						clients[client_id].setItemRelease();
-						cout << "Use Item[Booster, " << used_item << "]." << endl;
+						// yaw 설정
+						float temp_yaw = clients[client_id].getYaw() + ROTATE_SCALAR * plus_minus * PI / 360.0f;
+						if (temp_yaw >= 360.0f)
+							temp_yaw -= 360.0f;
+						clients[client_id].setYaw(temp_yaw);
 
-						clients[client_id].setBoosterOn(true);
-						setServerEvent(EV_TYPE_REFRESH, BOOSTER_DURATION, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTER, client_id, 0, 0);	// 부스터 지속시간
+						// right, up, look 벡터 회전계산
+						MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
+							, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
+						MyVector3D rotate_result_y = calcRotate(basic_coordinate.y_coordinate
+							, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
+						MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
+							, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
 
-						break;
-					}
-					case ITEM_Missile:
-					{
-						clients[client_id].setItemRelease();
-						cout << "Use Item[Missile, " << used_item << "]." << endl;
+						// right, up, look 벡터 회전결과 적용
+						clients[client_id].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
 
-						// id 할당
-						int missile_id = -1;
-						for (int i = 0; i < MissileNum; i++) {
-							if (!MissileArray[i].getRunning()) {	// 빈칸을 찾았으면 id를 설정하고, for루프를 빠져나옵니다.
-								missile_id = i;
-								break;
-							}
-						}
-						cout << "missile id: " << missile_id << endl;//test
-
-						// 새롭게 추가되는 미사일의 정보 저장
-						MissileArray[missile_id].setID(missile_id);
-						MissileArray[missile_id].setObjType(used_item);
-						MissileArray[missile_id].setObjOwner(client_id);
-						MyVector3D missile_first_pos = clients[client_id].getPos();
-						MyVector3D missile_lookvec = clients[client_id].getCoordinate().z_coordinate;
-						MyVector3D missile_final_pos = calcMove(missile_first_pos, missile_lookvec, 10.f, 0);
-						MissileArray[missile_id].setPos(missile_final_pos);
-						MissileArray[missile_id].setYaw(clients[client_id].getYaw());
-						MissileArray[missile_id].setRoll(clients[client_id].getRoll());
-						MissileArray[missile_id].setPitch(clients[client_id].getPitch());
-						MissileArray[missile_id].setCoordinate(clients[client_id].getCoordinate());
-						MissileArray[missile_id].setRunning(true);
-
-
-						// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
-						GS2C_ADD_OBJ_PACKET add_missile_packet;
-
-						add_missile_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
-						add_missile_packet.type = GS2C_ADD_OBJ;
-						add_missile_packet.id = MissileArray[missile_id].getID();
-						add_missile_packet.objtype = used_item;
-
-						add_missile_packet.pos_x = MissileArray[missile_id].getPos().x;
-						add_missile_packet.pos_y = MissileArray[missile_id].getPos().y;
-						add_missile_packet.pos_z = MissileArray[missile_id].getPos().z;
-
-						add_missile_packet.right_vec_x = MissileArray[missile_id].getCoordinate().x_coordinate.x;
-						add_missile_packet.right_vec_y = MissileArray[missile_id].getCoordinate().x_coordinate.y;
-						add_missile_packet.right_vec_z = MissileArray[missile_id].getCoordinate().x_coordinate.z;
-
-						add_missile_packet.up_vec_x = MissileArray[missile_id].getCoordinate().y_coordinate.x;
-						add_missile_packet.up_vec_y = MissileArray[missile_id].getCoordinate().y_coordinate.y;
-						add_missile_packet.up_vec_z = MissileArray[missile_id].getCoordinate().y_coordinate.z;
-
-						add_missile_packet.look_vec_x = MissileArray[missile_id].getCoordinate().z_coordinate.x;
-						add_missile_packet.look_vec_y = MissileArray[missile_id].getCoordinate().z_coordinate.y;
-						add_missile_packet.look_vec_z = MissileArray[missile_id].getCoordinate().z_coordinate.z;
-
-						for (int i = 0; i < MAX_USER; i++) {
-							if (clients[i].getState() == CL_STATE_EMPTY) continue;
-
-							clients[i].sendAddObjPacket(add_missile_packet);
-						}
-
-
-						// 미사일의 타이머 설정
-						setServerEvent(EV_TYPE_MOVE, MISSILE_DURATION - 0.5f, EV_TARGET_MISSILE, 0, missile_id, 0, 0); // 미사일 이동
+						// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
+						sendPlayerUpdatePacket_toAllClient(client_id);
 
 						break;
 					}
-					case ITEM_Bomb:
+					case KEY_DOWN:
+						plus_minus = -1;
+						[[fallthrough]];
+					case KEY_UP:
 					{
-						clients[client_id].setItemRelease();
-						cout << "Use Item[Bomb, " << used_item << "]." << endl;
+						// 제어권을 잃은 상태에선 조작이 불가능 합니다.
+						if (clients[client_id].getLoseControl())
+							break;
 
-						// id 할당
-						int bomb_id = -1;
-						for (int i = 0; i < BombNum; i++) {
-							if (!BombArray[i].getRunning()) {	// 빈칸을 찾았으면 id를 설정하고, for루프를 빠져나옵니다.
-								bomb_id = i;
-								break;
+						clients[client_id].setReduceAcc(false);
+						float getacc = clients[client_id].getAccel();
+
+						if (getacc <= 0.0f) {
+							getacc = 0.015f;
+							clients[client_id].setAccel(getacc);
+							//cout << getacc << endl;
+						}
+						else if (getacc >= clients[client_id].getLimitAcc()) {
+							getacc = clients[client_id].getLimitAcc();
+							clients[client_id].setAccel(getacc);
+							//cout << getacc << endl;
+						}
+						else {
+							if (clients[client_id].getBoosterOn()) {
+								getacc += 0.05f;
 							}
-						}
-
-						// 새롭게 추가되는 지뢰의 정보 저장
-						BombArray[bomb_id].setID(bomb_id);
-						BombArray[bomb_id].setObjType(used_item);
-						BombArray[bomb_id].setObjOwner(client_id);
-						MyVector3D bomb_first_pos = clients[client_id].getPos();
-						MyVector3D bomb_lookvec = clients[client_id].getCoordinate().z_coordinate;
-						MyVector3D bomb_final_pos = calcMove(bomb_first_pos, bomb_lookvec, 10.f, 0);
-						BombArray[bomb_id].setPos(bomb_final_pos);
-						BombArray[bomb_id].setYaw(clients[client_id].getYaw());
-						BombArray[bomb_id].setRoll(clients[client_id].getRoll());
-						BombArray[bomb_id].setPitch(clients[client_id].getPitch());
-						BombArray[bomb_id].setCoordinate(clients[client_id].getCoordinate());
-						BombArray[bomb_id].setRunning(true);
-
-
-						// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
-						GS2C_ADD_OBJ_PACKET add_bomb_packet;
-
-						add_bomb_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
-						add_bomb_packet.type = GS2C_ADD_OBJ;
-						add_bomb_packet.id = BombArray[bomb_id].getID();
-						add_bomb_packet.objtype = used_item;
-
-						add_bomb_packet.pos_x = BombArray[bomb_id].getPos().x;
-						add_bomb_packet.pos_y = BombArray[bomb_id].getPos().y;
-						add_bomb_packet.pos_z = BombArray[bomb_id].getPos().z;
-
-						add_bomb_packet.right_vec_x = BombArray[bomb_id].getCoordinate().x_coordinate.x;
-						add_bomb_packet.right_vec_y = BombArray[bomb_id].getCoordinate().x_coordinate.y;
-						add_bomb_packet.right_vec_z = BombArray[bomb_id].getCoordinate().x_coordinate.z;
-
-						add_bomb_packet.up_vec_x = BombArray[bomb_id].getCoordinate().y_coordinate.x;
-						add_bomb_packet.up_vec_y = BombArray[bomb_id].getCoordinate().y_coordinate.y;
-						add_bomb_packet.up_vec_z = BombArray[bomb_id].getCoordinate().y_coordinate.z;
-
-						add_bomb_packet.look_vec_x = BombArray[bomb_id].getCoordinate().z_coordinate.x;
-						add_bomb_packet.look_vec_y = BombArray[bomb_id].getCoordinate().z_coordinate.y;
-						add_bomb_packet.look_vec_z = BombArray[bomb_id].getCoordinate().z_coordinate.z;
-
-						for (int i = 0; i < MAX_USER; i++) {
-							if (clients[i].getState() == CL_STATE_EMPTY) continue;
-
-							clients[i].sendAddObjPacket(add_bomb_packet);
+							else {
+								getacc += 0.015f;
+							}
+							clients[client_id].setAccel(getacc);
+							//cout << getacc << endl;
 						}
 
 
-						// 지뢰의 타이머 설정
-						setServerEvent(EV_TYPE_REMOVE, BOMB_DURATION, EV_TARGET_BOMB, 0, bomb_id, 0, 0);
+						MyVector3D move_dir{ 0, 0, 0 };
+						move_dir = { clients[client_id].getCoordinate().z_coordinate.x * plus_minus,
+							clients[client_id].getCoordinate().z_coordinate.y * plus_minus, clients[client_id].getCoordinate().z_coordinate.z * plus_minus };
+
+						MyVector3D Move_Vertical_Result{ 0,0,0 };
+						Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, clients[client_id].getAccel());
+
+						// 좌표 업데이트
+						clients[client_id].setPos(Move_Vertical_Result);
+						// BB 업데이트
+						clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(clients[client_id].getPos().x, clients[client_id].getPos().y, clients[client_id].getPos().z),
+							XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+
+						// 클라이언트에게 전달
+						sendPlayerUpdatePacket_toAllClient(client_id);
+
+						break;
+					}
+					case KEY_SPACE:
+					{
+						// 제어권을 잃은 상태에선 조작이 불가능 합니다.
+						if (clients[client_id].getLoseControl())
+							break;
+
+						if (clients[client_id].getItemCooldown())		// 아이템 사용 쿨타임 상태라면 아무일도 일어나지 않는다.
+							break;
+						if (clients[client_id].getItemQueue() == -1)	// 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
+							break;
+
+						int used_item = clients[client_id].getItemQueue();
+
+						clients[client_id].setItemCooldown(true);
+						setServerEvent(EV_TYPE_REFRESH, ITEM_COOLDOWN_DURATION, EV_TARGET_CLIENTS, EV_DTARGET_ITEMCOOLDOWN, client_id, 0, 0);	// 아이템 사용 쿨타임
+
+						switch (used_item) {
+						case ITEM_Booster:
+						{
+							if (clients[client_id].getBoosterOn())	// 이미 부스터가 켜져있으면 사용할 수 없습니다.
+								break;
+
+							clients[client_id].setItemRelease();
+							cout << "Use Item[Booster, " << used_item << "]." << endl;
+
+							clients[client_id].setBoosterOn(true);
+							clients[client_id].setLimitAcc(BOOSTER_ACCELERATOR);
+							setServerEvent(EV_TYPE_REFRESH, BOOSTER_DURATION, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTER, client_id, 0, 0);	// 부스터 지속시간
+
+							break;
+						}
+						case ITEM_Missile:
+						{
+							clients[client_id].setItemRelease();
+							cout << "Use Item[Missile, " << used_item << "]." << endl;
+
+							// id 할당
+							int missile_id = -1;
+							for (int i = 0; i < MissileNum; i++) {
+								if (!MissileArray[i].getRunning()) {	// 빈칸을 찾았으면 id를 설정하고, for루프를 빠져나옵니다.
+									missile_id = i;
+									break;
+								}
+							}
+							cout << "missile id: " << missile_id << endl;//test
+
+							// 새롭게 추가되는 미사일의 정보 저장
+							MissileArray[missile_id].setID(missile_id);
+							MissileArray[missile_id].setObjType(used_item);
+							MissileArray[missile_id].setObjOwner(client_id);
+							MyVector3D missile_first_pos = clients[client_id].getPos();
+							MyVector3D missile_lookvec = clients[client_id].getCoordinate().z_coordinate;
+							MyVector3D missile_final_pos = calcMove(missile_first_pos, missile_lookvec, 10.f);
+							MissileArray[missile_id].setPos(missile_final_pos);
+							MissileArray[missile_id].setYaw(clients[client_id].getYaw());
+							MissileArray[missile_id].setRoll(clients[client_id].getRoll());
+							MissileArray[missile_id].setPitch(clients[client_id].getPitch());
+							MissileArray[missile_id].setCoordinate(clients[client_id].getCoordinate());
+							MissileArray[missile_id].setRunning(true);
+
+
+							// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
+							GS2C_ADD_OBJ_PACKET add_missile_packet;
+
+							add_missile_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
+							add_missile_packet.type = GS2C_ADD_OBJ;
+							add_missile_packet.id = MissileArray[missile_id].getID();
+							add_missile_packet.objtype = used_item;
+
+							add_missile_packet.pos_x = MissileArray[missile_id].getPos().x;
+							add_missile_packet.pos_y = MissileArray[missile_id].getPos().y;
+							add_missile_packet.pos_z = MissileArray[missile_id].getPos().z;
+
+							add_missile_packet.right_vec_x = MissileArray[missile_id].getCoordinate().x_coordinate.x;
+							add_missile_packet.right_vec_y = MissileArray[missile_id].getCoordinate().x_coordinate.y;
+							add_missile_packet.right_vec_z = MissileArray[missile_id].getCoordinate().x_coordinate.z;
+
+							add_missile_packet.up_vec_x = MissileArray[missile_id].getCoordinate().y_coordinate.x;
+							add_missile_packet.up_vec_y = MissileArray[missile_id].getCoordinate().y_coordinate.y;
+							add_missile_packet.up_vec_z = MissileArray[missile_id].getCoordinate().y_coordinate.z;
+
+							add_missile_packet.look_vec_x = MissileArray[missile_id].getCoordinate().z_coordinate.x;
+							add_missile_packet.look_vec_y = MissileArray[missile_id].getCoordinate().z_coordinate.y;
+							add_missile_packet.look_vec_z = MissileArray[missile_id].getCoordinate().z_coordinate.z;
+
+							for (int i = 0; i < MAX_USER; i++) {
+								if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+								clients[i].sendAddObjPacket(add_missile_packet);
+							}
+
+
+							// 미사일의 타이머 설정
+							setServerEvent(EV_TYPE_MOVE, MISSILE_DURATION - 0.5f, EV_TARGET_MISSILE, 0, missile_id, 0, 0); // 미사일 이동
+
+							break;
+						}
+						case ITEM_Bomb:
+						{
+							clients[client_id].setItemRelease();
+							cout << "Use Item[Bomb, " << used_item << "]." << endl;
+
+							// id 할당
+							int bomb_id = -1;
+							for (int i = 0; i < BombNum; i++) {
+								if (!BombArray[i].getRunning()) {	// 빈칸을 찾았으면 id를 설정하고, for루프를 빠져나옵니다.
+									bomb_id = i;
+									break;
+								}
+							}
+
+							// 새롭게 추가되는 지뢰의 정보 저장
+							BombArray[bomb_id].setID(bomb_id);
+							BombArray[bomb_id].setObjType(used_item);
+							BombArray[bomb_id].setObjOwner(client_id);
+							MyVector3D bomb_first_pos = clients[client_id].getPos();
+							MyVector3D bomb_lookvec = clients[client_id].getCoordinate().z_coordinate;
+							MyVector3D bomb_final_pos = calcMove(bomb_first_pos, bomb_lookvec, 10.f);
+							BombArray[bomb_id].setPos(bomb_final_pos);
+							BombArray[bomb_id].setYaw(clients[client_id].getYaw());
+							BombArray[bomb_id].setRoll(clients[client_id].getRoll());
+							BombArray[bomb_id].setPitch(clients[client_id].getPitch());
+							BombArray[bomb_id].setCoordinate(clients[client_id].getCoordinate());
+							BombArray[bomb_id].setRunning(true);
+
+
+							// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
+							GS2C_ADD_OBJ_PACKET add_bomb_packet;
+
+							add_bomb_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
+							add_bomb_packet.type = GS2C_ADD_OBJ;
+							add_bomb_packet.id = BombArray[bomb_id].getID();
+							add_bomb_packet.objtype = used_item;
+
+							add_bomb_packet.pos_x = BombArray[bomb_id].getPos().x;
+							add_bomb_packet.pos_y = BombArray[bomb_id].getPos().y;
+							add_bomb_packet.pos_z = BombArray[bomb_id].getPos().z;
+
+							add_bomb_packet.right_vec_x = BombArray[bomb_id].getCoordinate().x_coordinate.x;
+							add_bomb_packet.right_vec_y = BombArray[bomb_id].getCoordinate().x_coordinate.y;
+							add_bomb_packet.right_vec_z = BombArray[bomb_id].getCoordinate().x_coordinate.z;
+
+							add_bomb_packet.up_vec_x = BombArray[bomb_id].getCoordinate().y_coordinate.x;
+							add_bomb_packet.up_vec_y = BombArray[bomb_id].getCoordinate().y_coordinate.y;
+							add_bomb_packet.up_vec_z = BombArray[bomb_id].getCoordinate().y_coordinate.z;
+
+							add_bomb_packet.look_vec_x = BombArray[bomb_id].getCoordinate().z_coordinate.x;
+							add_bomb_packet.look_vec_y = BombArray[bomb_id].getCoordinate().z_coordinate.y;
+							add_bomb_packet.look_vec_z = BombArray[bomb_id].getCoordinate().z_coordinate.z;
+
+							for (int i = 0; i < MAX_USER; i++) {
+								if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+								clients[i].sendAddObjPacket(add_bomb_packet);
+							}
+
+
+							// 지뢰의 타이머 설정
+							setServerEvent(EV_TYPE_REMOVE, BOMB_DURATION, EV_TARGET_BOMB, 0, bomb_id, 0, 0);
+							break;
+						}
+						//CaseEnd
+						}
+						//SwitchEnd
+
 						break;
 					}
 					//CaseEnd
 					}
 					//SwitchEnd
 
-					break;
 				}
-				//CaseEnd
-				}
-				//SwitchEnd
-
 			}
+			break;
+		case C2GS_KEYUPVALUE:
+			C2GS_KEYUPVALUE_PACKET ClientUpKey;
+			retval = recv(client_sock, reinterpret_cast<char*>(&ClientUpKey), sizeof(C2GS_KEYUPVALUE_PACKET), 0);
+			if (retval == SOCKET_ERROR) {
+				//err_display("recv()");
+				closesocket(client_sock);
+			}
+
+			switch (ClientUpKey.key)
+			{
+			case 0:
+			case 1:
+				clients[client_id].setReduceAcc(true);
+				setServerEvent(EV_TYPE_REFRESH, 0, EV_TARGET_CLIENTS, EV_DTARGET_ACC, client_id, 0, 0);
+				break;
+			default:
+				break;
+			}
+
+			break;
 		}
+
+
+		// 이동 함수
+
 	}
 	//==================================================
 
@@ -895,8 +960,51 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 						cout << "Client[ " << target << "]'s Item Cooldown is End." << endl;
 					}
 					else if (new_event.ev_target_detail == EV_DTARGET_BOOSTER) {
-						clients[target].setBoosterOn(false);
-						cout << "Client[ " << target << "]'s Booster is End." << endl;
+						setServerEvent(EV_TYPE_REFRESH, 0.1, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
+					}
+					else if (new_event.ev_target_detail == EV_DTARGET_BOOSTEND) {
+						if (clients[target].getAccel() <= LIMIT_ACCELERATOR) {
+							clients[target].setBoosterOn(false);
+							clients[target].setLimitAcc(LIMIT_ACCELERATOR);
+							cout << "Client[ " << target << "]'s Booster is End." << endl;
+							break;
+						}
+						clients[target].setAccel(clients[target].getAccel() - 0.2);
+						clients[target].setLimitAcc(clients[target].getAccel());
+						//cout << "get Accel = " << clients[target].getAccel() << endl;
+						setServerEvent(EV_TYPE_REFRESH, 0.1, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
+					}
+					else if (new_event.ev_target_detail == EV_DTARGET_ACC) {
+						for (int i{}; i < 3; ++i) {
+							if (clients[target].getAccel() <= 0) {
+								clients[target].setAccel(0.0f);
+								break;
+							}
+							if (!clients[target].getReduceAcc()) {
+								break;
+							}
+
+							clients[target].setAccel(clients[target].getAccel() - 0.05);
+							//cout << "get Accel = " << clients[target].getAccel() << endl;
+
+							MyVector3D move_dir{ 0, 0, 0 };
+							move_dir = { clients[target].getCoordinate().z_coordinate.x ,
+								clients[target].getCoordinate().z_coordinate.y, clients[target].getCoordinate().z_coordinate.z };
+
+							MyVector3D Move_Vertical_Result{ 0,0,0 };
+							Move_Vertical_Result = calcMove(clients[target].getPos(), move_dir, clients[target].getAccel());
+
+							// 좌표 업데이트
+							clients[target].setPos(Move_Vertical_Result);
+							// BB 업데이트
+							clients[target].xoobb = BoundingOrientedBox(XMFLOAT3(clients[target].getPos().x, clients[target].getPos().y, clients[target].getPos().z),
+								XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+
+							// 클라이언트에게 전달
+							sendPlayerUpdatePacket_toAllClient(target);
+
+						}
+						setServerEvent(EV_TYPE_REFRESH, 0, EV_TARGET_CLIENTS, EV_DTARGET_ACC, target, 0, 0);
 					}
 					else {
 						cout << "[Event Error] Unknown Event's Extra Info." << endl;
@@ -930,7 +1038,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 								 MissileArray[target].getCoordinate().z_coordinate.y,
 								 MissileArray[target].getCoordinate().z_coordinate.z };
 
-					MyVector3D Missile_Move_Result = calcMove(MissileArray[target].getPos(), move_dir, MISSILE_MOVE_SCALAR, 0);
+					MyVector3D Missile_Move_Result = calcMove(MissileArray[target].getPos(), move_dir, MISSILE_MOVE_SCALAR);
 
 					// 변경된 좌표로 업데이트합니다.
 					MissileArray[target].setPos(Missile_Move_Result);
@@ -1240,7 +1348,7 @@ void collisioncheck_PlayerByPlayer(int client_id)
 							clients[client_id].getCoordinate().z_coordinate.z * (-1.0f) };
 
 			MyVector3D reflect_Result{ 0,0,0 };
-			reflect_Result = calcMove(clients[client_id].getPos(), reflect_dir, REFLECT_SCALAR, clients[client_id].getAccel());
+			reflect_Result = calcMove(clients[client_id].getPos(), reflect_dir, REFLECT_SCALAR);
 
 			clients[client_id].setPos(reflect_Result);
 			clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(clients[client_id].getPos().x, clients[client_id].getPos().y, clients[client_id].getPos().z),

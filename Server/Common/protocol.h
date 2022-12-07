@@ -25,12 +25,14 @@ constexpr char LS2C_GAMESTART = 3;
 // C -> GS
 constexpr char C2GS_LOGIN = 4;
 constexpr char C2GS_KEYVALUE = 5;
+constexpr char C2GS_KEYUPVALUE = 6;
+
 // GS -> C
-constexpr char GS2C_LOGIN_INFO = 6;
-constexpr char GS2C_ADD_OBJ = 7;
-constexpr char GS2C_REMOVE_OBJ = 8;
-constexpr char GS2C_UPDATE = 9;
-constexpr char GS2C_GET_ITME = 10;
+constexpr char GS2C_LOGIN_INFO = 7;
+constexpr char GS2C_ADD_OBJ = 8;
+constexpr char GS2C_REMOVE_OBJ = 9;
+constexpr char GS2C_UPDATE = 10;
+constexpr char GS2C_GET_ITME = 11;
 
 
 //===================================
@@ -79,6 +81,12 @@ struct C2GS_LOGIN_PACKET {
 };
 
 struct C2GS_KEYVALUE_PACKET {
+	short size;
+	char type;
+	short key;
+};
+
+struct C2GS_KEYUPVALUE_PACKET {
 	short size;
 	char type;
 	short key;
