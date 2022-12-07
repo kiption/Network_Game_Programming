@@ -975,35 +975,35 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 						setServerEvent(EV_TYPE_REFRESH, 0.1, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
 					}
 					else if (new_event.ev_target_detail == EV_DTARGET_ACC) {
-						for (int i{}; i < 3; ++i) {
-							if (clients[target].getAccel() <= 0) {
-								clients[target].setAccel(0.0f);
-								break;
-							}
-							if (!clients[target].getReduceAcc()) {
-								break;
-							}
 
-							clients[target].setAccel(clients[target].getAccel() - 0.05);
-							//cout << "get Accel = " << clients[target].getAccel() << endl;
-
-							MyVector3D move_dir{ 0, 0, 0 };
-							move_dir = { clients[target].getCoordinate().z_coordinate.x ,
-								clients[target].getCoordinate().z_coordinate.y, clients[target].getCoordinate().z_coordinate.z };
-
-							MyVector3D Move_Vertical_Result{ 0,0,0 };
-							Move_Vertical_Result = calcMove(clients[target].getPos(), move_dir, clients[target].getAccel());
-
-							// 좌표 업데이트
-							clients[target].setPos(Move_Vertical_Result);
-							// BB 업데이트
-							clients[target].xoobb = BoundingOrientedBox(XMFLOAT3(clients[target].getPos().x, clients[target].getPos().y, clients[target].getPos().z),
-								XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
-
-							// 클라이언트에게 전달
-							sendPlayerUpdatePacket_toAllClient(target);
-
+						if (clients[target].getAccel() <= 0) {
+							clients[target].setAccel(0.0f);
+							break;
 						}
+						if (!clients[target].getReduceAcc()) {
+							break;
+						}
+
+						clients[target].setAccel(clients[target].getAccel() - 0.05);
+						//cout << "get Accel = " << clients[target].getAccel() << endl;
+
+						MyVector3D move_dir{ 0, 0, 0 };
+						move_dir = { clients[target].getCoordinate().z_coordinate.x ,
+							clients[target].getCoordinate().z_coordinate.y, clients[target].getCoordinate().z_coordinate.z };
+
+						MyVector3D Move_Vertical_Result{ 0,0,0 };
+						Move_Vertical_Result = calcMove(clients[target].getPos(), move_dir, clients[target].getAccel());
+
+						// 좌표 업데이트
+						clients[target].setPos(Move_Vertical_Result);
+						// BB 업데이트
+						clients[target].xoobb = BoundingOrientedBox(XMFLOAT3(clients[target].getPos().x, clients[target].getPos().y, clients[target].getPos().z),
+							XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+
+						// 클라이언트에게 전달
+						sendPlayerUpdatePacket_toAllClient(target);
+
+
 						setServerEvent(EV_TYPE_REFRESH, 0, EV_TARGET_CLIENTS, EV_DTARGET_ACC, target, 0, 0);
 					}
 					else {
