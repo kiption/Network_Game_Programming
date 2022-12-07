@@ -23,8 +23,9 @@ float START_TIME;							// 서버 프로그램이 켜진 시간
 float SERVER_TIME;							// 서버 시간
 constexpr int TIME_UPDATE_CYCLE = 100;		// 서버 시간 업데이트 주기 (ms단위)
 
-void ITemBoxCollision(int client_id);
-void collisioncheck_PlayerByPlayer(int client_id);
+void collisioncheck_Player2ItemBox(int client_id);
+void collisioncheck_Player2Player(int client_id);
+void collisioncheck_Player2Missile(int client_id);
 //==================================================
 //           [ 클라이언트 객체 정보 ]
 //==================================================
@@ -724,6 +725,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						if (clients[client_id].getLoseControl())
 							break;
 
+						
 						if (clients[client_id].getItemCooldown())		// 아이템 사용 쿨타임 상태라면 아무일도 일어나지 않는다.
 							break;
 						if (clients[client_id].getItemQueue() == -1)	// 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
@@ -955,7 +957,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 							cout << "Client[ " << target << "]'s Booster is End." << endl;
 							break;
 						}
-						clients[target].setAccel(clients[target].getAccel() - 0.4);
+						clients[target].setAccel(clients[target].getAccel() - 0.6);
 						clients[target].setLimitAcc(clients[target].getAccel());
 
 						setServerEvent(EV_TYPE_REFRESH, 0.1, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
@@ -1169,6 +1171,51 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 		}
 		case EV_TYPE_HIT:
 		{
+			if (new_event.ev_target == EV_TARGET_CLIENTS) {
+				// 플레이어 객체를 위로 띄웠다가 다시 떨어뜨립니다.
+				float theta = (SERVER_TIME - new_event.ev_start_time) * 30.0f;
+				if (theta >= 180.0f) theta = 180.0f;
+				MyVector3D hit_motion_pos = { 0, 0, 0 };
+				hit_motion_pos.x = clients[target].getPos().x;
+				hit_motion_pos.y = 14 + 100 * sin(theta * PI / 180.0f);
+				hit_motion_pos.z = clients[target].getPos().z;
+
+				clients[target].setPos(hit_motion_pos);
+				
+
+				if (theta <= 90.0f) {
+					// 플레이어 객체를 x축기준으로 회전시킵니다.
+					// pitch 설정
+					float temp_pitch = clients[target].getYaw() + theta * 6.0f * PI / 180.0f;
+					if (temp_pitch >= 360.0f)
+						temp_pitch -= 360.0f;
+					clients[target].setPitch(temp_pitch);
+				}
+				else {
+					clients[target].setPitch(0.f);
+				}
+
+				// right, up, look 벡터 회전계산
+				MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
+					, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+				MyVector3D rotate_result_y = calcRotate(basic_coordinate.y_coordinate
+					, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+				MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
+					, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+
+				// right, up, look 벡터 회전결과 적용
+				clients[target].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
+				
+				sendPlayerUpdatePacket_toAllClient(target);
+
+				if (theta < 180.0f) {
+					setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.ev_target_detail, new_event.target_num,
+						new_event.ev_start_time, SetStartTimeToExInfo);
+				}
+				else {	// 연출 끝
+					clients[target].setLoseControl(false);
+				}
+			}
 			break;
 		}
 		//case end
@@ -1210,14 +1257,15 @@ DWORD WINAPI CollideCheck_ThreadFunc(LPVOID arg)
 			// Player - Map 충돌
 
 			// Player - Player 충돌
-			collisioncheck_PlayerByPlayer(i);
+			collisioncheck_Player2Player(i);
 
 			// Player - Missile 충돌
+			collisioncheck_Player2Missile(i);
 
 			// Player - Bomb 충돌
 
 			// Player - ItemBox 충돌
-			ITemBoxCollision(i);
+			collisioncheck_Player2ItemBox(i);
 		}
 	}
 }
@@ -1240,7 +1288,7 @@ void TerrainExitCollision(MyVector3D vec, float veclocity, float scarla)
 
 }
 
-void ITemBoxCollision(int client_id)
+void collisioncheck_Player2ItemBox(int client_id)
 {
 	for (int i = 0; i < ITEMBOXNUM; i++)
 	{
@@ -1284,7 +1332,7 @@ void ITemBoxCollision(int client_id)
 
 }
 
-void collisioncheck_PlayerByPlayer(int client_id)
+void collisioncheck_Player2Player(int client_id)
 {
 	for (int i{}; i < MAX_USER; i++)
 	{
@@ -1331,23 +1379,32 @@ void collisioncheck_PlayerByPlayer(int client_id)
 		}
 	}
 }
-//
-//void MissileCollision(MyVector3D vec, float scarla, float elapsedtime)
-//{
-//
-//	if (AABB.MissileOOBB.Intersects(AABB.PlayerOOBB))
-//	{
-//		vec.y += scarla * elapsedtime;
-//		calcRotate(vec, 20.0, 0.0, 0.0);
-//		if (vec.y > 80.0)
-//		{
-//			vec.y -= scarla * elapsedtime;
-//			calcRotate(vec, -20.0, 0.0, 0.0);
-//		}
-//	}
-//
-//}
-//
+
+void collisioncheck_Player2Missile(int client_id)
+{
+	for (int i = 0; i < MissileNum; i++) {
+		// 작동하지 않는 미사일은 충돌체크 대상에서 제외합니다.
+		if (!MissileArray[i].getRunning()) continue;
+
+		// 플레이어에게서 너무 멀리 떨어져있는 미사일은 충돌체크 대상에서 제외합니다.
+		if (MissileArray[i].getPos().x < clients[client_id].getPos().x - 150
+			|| MissileArray[i].getPos().x > clients[client_id].getPos().x + 150) continue;
+		if (MissileArray[i].getPos().y < clients[client_id].getPos().y - 100
+			|| MissileArray[i].getPos().y > clients[client_id].getPos().y + 100) continue;
+		if (MissileArray[i].getPos().z < clients[client_id].getPos().z - 150
+			|| MissileArray[i].getPos().z > clients[client_id].getPos().z + 150) continue;
+
+
+		// 충돌체크 & 후처리
+		if (MissileArray[i].xoobb.Intersects(clients[client_id].xoobb))
+		{
+			// 피격모션
+			clients[client_id].setLoseControl(true);
+			setServerEvent(EV_TYPE_HIT, INFINITY, EV_TARGET_CLIENTS, 0, client_id, 0, NoCount);
+		}
+	}
+}
+
 //void TrapCollision(MyVector3D vec)
 //{
 //
