@@ -194,7 +194,6 @@ public:
 		m_running = false;
 	}
 };
-//vector<ItemObject> ObjectManager; // 미사일 지뢰 렌더링 정보들 담아두는 곳
 array<ItemObject, MissileNum> MissileArray;
 array<ItemObject, BombNum> BombArray;
 //==================================================
@@ -215,18 +214,18 @@ array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //==================================================
 //            [ 서버 이벤트 관련 ]
 //==================================================
-enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE };						// 이벤트 타입
-enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };			// 이벤트 적용 대상
+enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE, EV_TYPE_HIT };											// 이벤트 타입
+enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };												// 이벤트 적용 대상
 enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER, EV_DTARGET_CONTROL, EV_DTARGET_ACC, EV_DTARGET_BOOSTEND };	// Extra Info
 constexpr int EV_DTARGET_ALL = 999;	// Extra Info
 struct ServerEvent {	// 타이머스레드에서 처리할 이벤트
 	// setServerEvent함수 인자에 입력해야하는 정보
-	char	ev_type;																// 이벤트 종류
-	float	ev_duration;															// 이벤트 지속시간 (이벤트 종료조건을 수동으로 주고싶다면 0을 넣고, flag에 NoCount를 넣어주세요.)
-	char	ev_target;																// 이벤트 적용 대상
-	char	ev_target_detail;														// 세부 적용 대상
-	int		target_num;																// 적용 대상이 배열, 벡터 등에서 몇번째 칸에 있는 지
-	int		extra_info;																// 추가적인 정보가 필요한 경우 입력하세요.
+	char	ev_type;														// 이벤트 종류
+	float	ev_duration;													// 이벤트 지속시간 (이벤트 종료조건을 수동으로 주고싶다면 0을 넣고, flag에 NoCount를 넣어주세요.)
+	char	ev_target;														// 이벤트 적용 대상
+	char	ev_target_detail;												// 세부 적용 대상
+	int		target_num;														// 적용 대상이 배열, 벡터 등에서 몇번째 칸에 있는 지
+	int		extra_info;														// 추가적인 정보가 필요한 경우 입력하세요.
 
 	// setServerEvent함수를 통해 자동으로 입력되는 정보
 	float	ev_start_time;
@@ -694,7 +693,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 								getacc += 0.05f;
 							}
 							else {
-								getacc += 0.015f;
+								getacc += 0.018f;
 							}
 							clients[client_id].setAccel(getacc);
 							//cout << getacc << endl;
@@ -875,7 +874,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 								clients[i].sendAddObjPacket(add_bomb_packet);
 							}
 
-
 							// 지뢰의 타이머 설정
 							setServerEvent(EV_TYPE_REMOVE, BOMB_DURATION, EV_TARGET_BOMB, 0, bomb_id, 0, 0);
 							break;
@@ -889,7 +887,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 					//CaseEnd
 					}
 					//SwitchEnd
-
 				}
 			}
 			break;
@@ -901,23 +898,11 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				closesocket(client_sock);
 			}
 
-			switch (ClientUpKey.key)
-			{
-			case 0:
-			case 1:
-				clients[client_id].setReduceAcc(true);
-				setServerEvent(EV_TYPE_REFRESH, 0, EV_TARGET_CLIENTS, EV_DTARGET_ACC, client_id, 0, 0);
-				break;
-			default:
-				break;
-			}
+			clients[client_id].setReduceAcc(true);
+			setServerEvent(EV_TYPE_REFRESH, 0, EV_TARGET_CLIENTS, EV_DTARGET_ACC, client_id, 0, 0);
 
 			break;
 		}
-
-
-		// 이동 함수
-
 	}
 	//==================================================
 
@@ -963,19 +948,20 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 						setServerEvent(EV_TYPE_REFRESH, 0.1, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
 					}
 					else if (new_event.ev_target_detail == EV_DTARGET_BOOSTEND) {
+						// 부스터가 끝났을 때 가속도 상한을 원래 수준으로 서서히 낮춰줍니다.
 						if (clients[target].getAccel() <= LIMIT_ACCELERATOR) {
 							clients[target].setBoosterOn(false);
 							clients[target].setLimitAcc(LIMIT_ACCELERATOR);
 							cout << "Client[ " << target << "]'s Booster is End." << endl;
 							break;
 						}
-						clients[target].setAccel(clients[target].getAccel() - 0.2);
+						clients[target].setAccel(clients[target].getAccel() - 0.4);
 						clients[target].setLimitAcc(clients[target].getAccel());
-						//cout << "get Accel = " << clients[target].getAccel() << endl;
+
 						setServerEvent(EV_TYPE_REFRESH, 0.1, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
 					}
 					else if (new_event.ev_target_detail == EV_DTARGET_ACC) {
-
+						// 이동키를 떼었을때 가속도를 점점 감소시킵니다.
 						if (clients[target].getAccel() <= 0) {
 							clients[target].setAccel(0.0f);
 							break;
@@ -984,25 +970,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 							break;
 						}
 
-						clients[target].setAccel(clients[target].getAccel() - 0.05);
-						//cout << "get Accel = " << clients[target].getAccel() << endl;
-
-						MyVector3D move_dir{ 0, 0, 0 };
-						move_dir = { clients[target].getCoordinate().z_coordinate.x ,
-							clients[target].getCoordinate().z_coordinate.y, clients[target].getCoordinate().z_coordinate.z };
-
-						MyVector3D Move_Vertical_Result{ 0,0,0 };
-						Move_Vertical_Result = calcMove(clients[target].getPos(), move_dir, clients[target].getAccel());
-
-						// 좌표 업데이트
-						clients[target].setPos(Move_Vertical_Result);
-						// BB 업데이트
-						clients[target].xoobb = BoundingOrientedBox(XMFLOAT3(clients[target].getPos().x, clients[target].getPos().y, clients[target].getPos().z),
-							XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
-
-						// 클라이언트에게 전달
-						sendPlayerUpdatePacket_toAllClient(target);
-
+						clients[target].setAccel(clients[target].getAccel() - 0.8);
 
 						setServerEvent(EV_TYPE_REFRESH, 0, EV_TARGET_CLIENTS, EV_DTARGET_ACC, target, 0, 0);
 					}
@@ -1011,7 +979,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 					}
 					break;
 				case EV_TARGET_ITEMBOX:
-					cout << "ItemBox[" << target << "] is Refreshed." << endl;//test
+					cout << "ItemBox[" << target << "] is Refreshed." << endl;
 					ItemBoxArray[target].m_pos.y = 20.0f;
 					ItemBoxArray[target].m_visible = true;
 
@@ -1197,6 +1165,10 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 				setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.ev_target_detail, new_event.target_num,
 					new_event.ev_start_time, SetStartTimeToExInfo);
 			}
+			break;
+		}
+		case EV_TYPE_HIT:
+		{
 			break;
 		}
 		//case end

@@ -16,10 +16,10 @@
 #define ITEM_COOLDOWN_DURATION 1.0f
 #define MISSILE_DURATION 10.0f
 #define BOMB_DURATION 60.0f
-#define BOOSTER_DURATION 1.5f
+#define BOOSTER_DURATION 1.2f
 
 #define	LIMIT_ACCELERATOR 4.0f
-#define BOOSTER_ACCELERATOR 8.0f
+#define BOOSTER_ACCELERATOR 8.5f
 
 #include <random>
 #include <math.h>
