@@ -162,7 +162,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pCollisionTerrain->SetMaterial(pCollisonMaterial);
 
 
-	m_nGameObjects = 189;
+	m_nGameObjects = 190;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
 	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race.bin");
@@ -256,6 +256,15 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pMissiles->Rotate(90.0f, 0.0f, 0.0f);
 	m_ppGameObjects[188] = pMissiles;
 
+	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/stone_largeB.bin");
+	CObstacleObject* pTrap = NULL;
+	pTrap = new CObstacleObject();
+	pTrap->SetChild(pTrapModel, true);
+	pTrap->OnInitialize();
+	pTrap->SetScale(0.1, 0.1, 0.1);
+	pTrap->SetPosition(0.0f, 0.0f, 0.0f);
+	pTrap->Rotate(0.0f, 0.0f, 0.0f);
+	m_ppGameObjects[189] = pTrap;
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }

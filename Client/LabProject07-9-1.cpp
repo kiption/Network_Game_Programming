@@ -154,7 +154,21 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				}
 			}
 
-			gGameFramework.SetBoosterEffect(gGameFramework.m_bBoosterMode);
+			for (int i = 0; i < BombNum; i++) {
+
+				if (bomb_arr[i].m_state == OBJ_ST_RUNNING)
+				{
+
+					gGameFramework.m_pScene->m_ppGameObjects[189]->SetPosition(bomb_arr[i].GetPosition());
+					gGameFramework.m_pScene->m_ppGameObjects[189]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
+					gGameFramework.m_pScene->m_ppGameObjects[189]->SetScale(0.1,0.1, 0.1);
+					gGameFramework.m_pScene->m_ppGameObjects[189]->Rotate(90.0, 0.0, 0.0);
+
+
+				}
+			}
+
+			//gGameFramework.SetBoosterEffect(id,gGameFramework.m_bBoosterMode);
 
 			gGameFramework.FrameAdvance();
 

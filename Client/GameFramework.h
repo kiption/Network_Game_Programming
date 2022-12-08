@@ -67,7 +67,7 @@ public:
 	bool is_KeyUp_Empty();
 	short pop_keyUpvalue();
 
-	void SetBoosterEffect(bool boostmode);
+	void SetBoosterEffect(int id,bool boostmode);
 	float PrevEffect;
 	int Login_ID;
 	//==================================================

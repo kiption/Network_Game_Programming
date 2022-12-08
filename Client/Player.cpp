@@ -237,7 +237,7 @@ CMyPlayer::CMyPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCo
 
 	}
 
-	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/NEBOOM.bin");
+	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Roket.bin");
 
 	m_pTrapObject = new CTrapObject();
 	m_pTrapObject->SetChild(pTrapModel, true);
