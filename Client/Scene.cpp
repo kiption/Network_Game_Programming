@@ -162,7 +162,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pCollisionTerrain->SetMaterial(pCollisonMaterial);
 
 
-	m_nGameObjects = 188;
+	m_nGameObjects = 189;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
 	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race.bin");
@@ -244,6 +244,17 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	for (int i = 65; i < 106; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 56) * 45.0), 6.0f, 2350.0);
 	for (int i = 106; i < 147; i++)m_ppGameObjects[i]->SetPosition(2300.0, 6.0f, 0.0f + 280.0 + (float)((i - 97) * 45));
 	for (int i = 147; i < 188; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 138) * 45.0), 6.0f, 250.0);
+	
+
+	CGameObjcet* pMissileModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Roket.bin");
+	CObstacleObject* pMissiles = NULL;
+	pMissiles = new CObstacleObject();
+	pMissiles->SetChild(pMissileModel, true);
+	pMissiles->OnInitialize();
+	pMissiles->SetScale(300.0f, 300.0f, 500.0f);
+	pMissiles->SetPosition(0.0f, 0.0f,0.0f);
+	pMissiles->Rotate(90.0f, 0.0f, 0.0f);
+	m_ppGameObjects[188] = pMissiles;
 
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);

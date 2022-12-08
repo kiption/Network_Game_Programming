@@ -890,7 +890,6 @@ void CGameFramework::MissileMode(XMFLOAT3 position, XMFLOAT3 lookVector)
 		pBulletObject->SetMovingDirection(PlayerPos);
 		pBulletObject->Rotate(90.0f, 0.0, 0.0);
 		pBulletObject->SetScale(700.0, 200.0, 700.0);
-		/*	pBulletObject->SetActive(true);*/
 	}
 }
 void CGameFramework::CollisionAnimate()
@@ -898,10 +897,10 @@ void CGameFramework::CollisionAnimate()
 	for (int i = 0; i < 3; i++)
 	{
 
-		if ((m_pPlayer->m_Boobb.Intersects(m_pScene->m_ppGameObjects[i]->m_Boobb)))
+		/*if ((m_pPlayer->m_Boobb.Intersects(m_pScene->m_ppGameObjects[i]->m_Boobb)))
 		{
 			cout << "Collision Complete!!" << endl;
-		}
+		}*/
 	}
 }
 

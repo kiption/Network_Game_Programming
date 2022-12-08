@@ -103,7 +103,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			}
 			if (!gGameFramework.is_KeyUp_Empty()) {
 				short send_keyUPValue = gGameFramework.pop_keyUpvalue();									// 키입력 큐에 있는 키값 중 가장 먼저 입력된 키값을
-				
+
 				// protocol
 				C2GS_KEYUPVALUE_PACKET keyUPvalue_pack;
 				keyUPvalue_pack.size = sizeof(C2GS_KEYUPVALUE_PACKET);
@@ -144,7 +144,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 				if (missile_arr[i].m_state == OBJ_ST_RUNNING)
 				{
-					gGameFramework.MissileMode(players_info[i].GetPosition(), players_info[i].GetLookVector());
+					//gGameFramework.MissileMode(players_info[i].GetPosition(), players_info[i].GetLookVector());
+					
+						gGameFramework.m_pScene->m_ppGameObjects[188]->SetPosition(missile_arr[i].GetPosition());
+						gGameFramework.m_pScene->m_ppGameObjects[188]->myFunc_SetVectors(missile_arr[i].GetRightVector(), missile_arr[i].GetUpVector(), missile_arr[i].GetLookVector());
+						gGameFramework.m_pScene->m_ppGameObjects[188]->SetScale(50.0,50.0,80.0);
+						gGameFramework.m_pScene->m_ppGameObjects[188]->Rotate(90.0,0.0,0.0);
+
+					
 				}
 			}
 
