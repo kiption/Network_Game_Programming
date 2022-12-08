@@ -8,6 +8,7 @@ constexpr int MAX_USER = 3;
 constexpr int ITEMBOXNUM = 12;
 constexpr int MissileNum = 100;
 constexpr int BombNum = 100;
+constexpr int CheckPointNum = 4;
 
 constexpr int WORLD_X_POS = 2000;
 constexpr int WORLD_Y_POS = 2000;
@@ -33,6 +34,8 @@ constexpr char GS2C_ADD_OBJ = 8;
 constexpr char GS2C_REMOVE_OBJ = 9;
 constexpr char GS2C_UPDATE = 10;
 constexpr char GS2C_GET_ITME = 11;
+constexpr char GS2C_UPDATE_LAP = 12;
+
 
 
 //===================================
@@ -103,7 +106,7 @@ struct GS2C_LOGIN_INFO_PACKET {
 	float look_vec_x, look_vec_y, look_vec_z;
 };
 
-enum { OBJ_TYPE_PLAYER, OBJ_TYPE_MISSILE, OBJ_TYPE_BOMB, OBJ_TYPE_ITEMBOX };
+enum { OBJ_TYPE_PLAYER, OBJ_TYPE_MISSILE, OBJ_TYPE_BOMB, OBJ_TYPE_ITEMBOX, OBJ_TYPE_LAP };
 struct GS2C_ADD_OBJ_PACKET {
 	short size;
 	char type;
@@ -139,4 +142,10 @@ struct GS2C_GET_ITME_PACKET {
 	short itemtype;
 };
 
+struct GS2C_UPDATE_LAP_PACKET {
+	short size;
+	char type;
+	int lap;
+	short objtype;
+};
 #pragma pack (pop)

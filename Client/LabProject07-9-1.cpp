@@ -131,6 +131,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				//gGameFramework.myFunc_SetOthersPosition(i, players_info[i].GetPosition());
 				//gGameFramework.myFunc_SetOthersVectors(players_info[myID].GetRightVector(), players_info[myID].GetUpVector(), players_info[myID].GetLookVector());
 			}
+			
 
 			//==================================================
 			// ItemBox 서버로부터 받은 값 출력합니다.

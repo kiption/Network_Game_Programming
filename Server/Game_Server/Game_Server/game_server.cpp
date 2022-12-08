@@ -27,6 +27,8 @@ constexpr int TIME_UPDATE_CYCLE = 100;		// 서버 시간 업데이트 주기 (ms단위)
 void collisioncheck_Player2ItemBox(int client_id);
 void collisioncheck_Player2Player(int client_id);
 void collisioncheck_Player2Missile(int client_id);
+void collisioncheck_Player2CheckPointBox(int client_id);
+
 //==================================================
 //           [ 클라이언트 객체 정보 ]
 //==================================================
@@ -37,6 +39,8 @@ private:
 
 	int			m_id = 0;
 	char		m_state;
+
+	int			m_lap_num;
 
 	float		m_timer;
 	float		m_accelerator;
@@ -49,7 +53,7 @@ private:
 	bool		m_lose_control;		// 조작 가능 여부 (충돌 연출때에는 조작이 불가능합니다.)
 
 	bool		m_reduce_acc;
-
+	bool		m_check_section[CheckPointNum];
 public:
 	float		m_yaw, m_pitch, m_roll;
 	MyVector3D	m_pos;
@@ -76,49 +80,74 @@ public:
 		m_item_cooldown = false;
 		m_booster_on = false;
 		m_lose_control = false;
+		for (int i{}; i < CheckPointNum; i++) {
+			m_check_section[i] = false;
+			if (i == 3) {
+				m_check_section[i] = true;
+			}
+		}
+		m_lap_num = 0;
 	};
 
 public:
 	// Accessor Func
 	// 1. Get
+	// =============Client 기본 정보====================
 	SOCKET		getSock() { return m_sock; }
 	char		getState() { return m_state; }
 	int			getId() { return m_id; }
-	float		getAccel() { return m_accelerator; }
-	float		getLimitAcc() { return m_limit_acc; }
 	MyVector3D	getPos() { return m_pos; }
 	Coordinate	getCoordinate() { return m_coordinate; }
-	float		getPitch() { return m_pitch; }
 	float		getYaw() { return m_yaw; }
+	float		getPitch() { return m_pitch; }
 	float		getRoll() { return m_roll; }
+	
+	// =============Client 아이템 정보====================
 	int			getItemQueue() {
 		if (m_myitem.empty()) return -1;	// 큐가 비어있으면 -1을
 		return m_myitem.front();			// 아이템이 있다면 아이템의 고유번호를 반환합니다.
 	}
 	int			getHowManyItem() { return m_myitem.size(); }
 	bool		getItemCooldown() { return m_item_cooldown; }
+	
+	// =============Client 부가 정보====================
+	int			getLapNum() { return m_lap_num; }
+
+	float		getAccel() { return m_accelerator; }
+	float		getLimitAcc() { return m_limit_acc; }
+
 	bool		getBoosterOn() { return m_booster_on; }
 	bool		getLoseControl() { return m_lose_control; }
 	bool		getReduceAcc() { return m_reduce_acc; }
+	bool		getCheckSection(int num) { return m_check_section[num]; }
 
 	// 2. Set
+	// =============Client 기본 정보====================
 	void		setSock(SOCKET sock) { m_sock = sock; }
 	void		setState(char state) { m_state = state; }
-	void		setAccel(float accel) { m_accelerator = accel; }
-	void		setLimitAcc(float acc) { m_limit_acc = acc; }
-	void		setID(int id) { m_id = id; }
-	void		setPos(MyVector3D pos) { m_pos = pos; }
+	void		setID(int id) { m_id = id; }	
 	void		setCoordinate(Coordinate co) { m_coordinate = co; }
 	void		setCoordinate(MyVector3D x, MyVector3D y, MyVector3D z) { m_coordinate.x_coordinate = x; m_coordinate.y_coordinate = y; m_coordinate.z_coordinate = z; }
-	void		setPitch(float f) { m_pitch = f; }
+	void		setPos(MyVector3D pos) { m_pos = pos; }
 	void		setYaw(float f) { m_yaw = f; }
+	void		setPitch(float f) { m_pitch = f; }
 	void		setRoll(float f) { m_roll = f; }
+
+	// =============Client 아이템 정보====================
 	void		setItemQueue(int type) { m_myitem.push(type); } // 아이템 먹을 시에 사용
 	void		setItemRelease() { m_myitem.pop(); } // 사용한 아이템 방출
 	void		setItemCooldown(bool b) { m_item_cooldown = b; }
+	
+	// =============Client 부가 정보====================
+	void		setLapNum(int num) { m_lap_num = num; }
+	
+	void		setAccel(float accel) { m_accelerator = accel; }
+	void		setLimitAcc(float acc) { m_limit_acc = acc; }
+	
 	void		setBoosterOn(bool b) { m_booster_on = b; }
 	void		setLoseControl(bool b) { m_lose_control = b; }
 	void		setReduceAcc(bool b) { m_reduce_acc = b; }
+	void		setCheckSection(int num, bool b) { m_check_section[num] = b; }
 
 public:
 	// Networking Func
@@ -126,6 +155,7 @@ public:
 	void		sendAddObjPacket(GS2C_ADD_OBJ_PACKET packet);
 	void		sendUpdatePacket(GS2C_UPDATE_PACKET packet);
 	void		sendRemoveObjPacket(GS2C_REMOVE_OBJ_PACKET packet);
+	void		sendLapInfoPacket(GS2C_UPDATE_LAP_PACKET packet);
 };
 array<ClientINFO, MAX_USER> clients;
 //==================================================
@@ -214,6 +244,16 @@ array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //==================================================
 
 //==================================================
+//           [ 체크 포인트 객체 정보 ]
+//==================================================
+struct CheckPoint {
+	MyVector3D	m_pos;
+	BoundingOrientedBox xoobb;
+};
+array<CheckPoint, CheckPointNum> CheckPointBoxArray;
+//==================================================
+
+//==================================================
 //            [ 서버 이벤트 관련 ]
 //==================================================
 constexpr int EV_TYPE_QUEUE_ERROR = 99; // type error
@@ -285,6 +325,12 @@ void ClientINFO::sendUpdatePacket(GS2C_UPDATE_PACKET packet) {
 }
 void ClientINFO::sendRemoveObjPacket(GS2C_REMOVE_OBJ_PACKET packet) {
 	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_REMOVE_OBJ_PACKET), 0);
+	if (retval == SOCKET_ERROR) {
+		//err_display("send()");
+	}
+}
+void ClientINFO::sendLapInfoPacket(GS2C_UPDATE_LAP_PACKET packet) {
+	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_UPDATE_LAP_PACKET), 0);
 	if (retval == SOCKET_ERROR) {
 		//err_display("send()");
 	}
@@ -398,6 +444,13 @@ int main(int argc, char* argv[])
 		ItemBoxArray[i].xoobb = BoundingOrientedBox(XMFLOAT3(ItemBoxArray[i].m_pos.x, ItemBoxArray[i].m_pos.y, ItemBoxArray[i].m_pos.z),
 			XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 		cout << "Create itembox's oobb - " << i << endl;
+	}
+
+	// CheckPoint Box의 중심 위치, bb를 설정해줍니다.
+	for (int i{}; i < 4; i++) {
+		CheckPointBoxArray[i].m_pos = { ItemBoxArray[3 * i + 1].m_pos.x, 0.0f, ItemBoxArray[3 * i + 1].m_pos.z };
+		CheckPointBoxArray[i].xoobb = BoundingOrientedBox(XMFLOAT3(CheckPointBoxArray[i].m_pos.x, CheckPointBoxArray[i].m_pos.y, CheckPointBoxArray[i].m_pos.z),
+			XMFLOAT3(200.0f, 10.0f, 200.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 	}
 
 	// 통신 관련 초기작업들
@@ -727,7 +780,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						if (clients[client_id].getLoseControl())
 							break;
 
-						
+
 						if (clients[client_id].getItemCooldown())		// 아이템 사용 쿨타임 상태라면 아무일도 일어나지 않는다.
 							break;
 						if (clients[client_id].getItemQueue() == -1)	// 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
@@ -789,7 +842,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							MissileArray[missile_id].setRunning(true);
 							MissileArray[missile_id].xoobb
 								= BoundingOrientedBox(XMFLOAT3(MissileArray[missile_id].getPos().x, MissileArray[missile_id].getPos().y, MissileArray[missile_id].getPos().z)
-								, XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+									, XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 
 							LeaveCriticalSection(&critical_section);
 
@@ -832,7 +885,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						{
 							clients[client_id].setItemRelease();
 							cout << "Use Item[Bomb, " << used_item << "]." << endl;
-							
+
 							// id 할당
 							int bomb_id = -1;
 							for (int i = 0; i < BombNum; i++) {
@@ -893,7 +946,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						}
 						default:
 							LeaveCriticalSection(&critical_section);
-						//CaseEnd
+							//CaseEnd
 						}
 						//SwitchEnd
 
@@ -937,7 +990,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 {
 	while (1) {
 		EnterCriticalSection(&critical_section);	// 임계영역 진입
-		ServerEvent *new_event = new ServerEvent;
+		ServerEvent* new_event = new ServerEvent;
 		if (ServerEventQueue.empty()) {
 			LeaveCriticalSection(&critical_section);	// 임계영역 탈출
 			continue;
@@ -946,7 +999,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 			*new_event = ServerEventQueue.front();
 			ServerEventQueue.pop();
 		}
-		
+
 		int target = new_event->target_num;
 		switch (new_event->ev_type) {
 		case EV_TYPE_REFRESH:
@@ -1211,7 +1264,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 				hit_motion_pos.z = clients[target].getPos().z;
 
 				clients[target].setPos(hit_motion_pos);
-				
+
 
 				if (theta <= 90.0f) {
 					// 플레이어 객체를 x축기준으로 회전시킵니다.
@@ -1235,7 +1288,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 
 				// right, up, look 벡터 회전결과 적용
 				clients[target].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
-				
+
 				sendPlayerUpdatePacket_toAllClient(target);
 
 				if (theta < 180.0f) {
@@ -1296,6 +1349,9 @@ DWORD WINAPI CollideCheck_ThreadFunc(LPVOID arg)
 
 			// Player - ItemBox 충돌
 			collisioncheck_Player2ItemBox(i);
+
+			// Player - CheckPoint 충돌
+			collisioncheck_Player2CheckPointBox(i);
 		}
 	}
 }
@@ -1350,7 +1406,7 @@ void collisioncheck_Player2ItemBox(int client_id)
 			if (clients[client_id].getHowManyItem() < 2) {
 				srand(static_cast<unsigned int>(SERVER_TIME) * i);
 				int new_item = rand() % 3;
-			//	int new_item = 1;
+				//	int new_item = 1;
 				clients[client_id].setItemQueue(new_item);
 				cout << "Collide ItemBox[" << i << "], and... ";
 				cout << "Get New Item(type: " << new_item << ")." << endl;
@@ -1440,6 +1496,46 @@ void collisioncheck_Player2Missile(int client_id)
 			clients[client_id].setLoseControl(true);
 			setServerEvent(EV_TYPE_HIT, INFINITY, EV_TARGET_CLIENTS, 0, client_id, 0, NoCount);
 			LeaveCriticalSection(&critical_section);
+		}
+	}
+}
+
+void collisioncheck_Player2CheckPointBox(int client_id)
+{
+	for (int i{}; i < CheckPointNum; i++) {
+		// 플레이어에게서 너무 멀리 떨어져있는 미사일은 충돌체크 대상에서 제외합니다.
+		if (CheckPointBoxArray[i].m_pos.x < clients[client_id].getPos().x - 150
+			|| CheckPointBoxArray[i].m_pos.x > clients[client_id].getPos().x + 150) continue;
+		if (CheckPointBoxArray[i].m_pos.y < clients[client_id].getPos().y - 100
+			|| CheckPointBoxArray[i].m_pos.y > clients[client_id].getPos().y + 100) continue;
+		if (CheckPointBoxArray[i].m_pos.z < clients[client_id].getPos().z - 150
+			|| CheckPointBoxArray[i].m_pos.z > clients[client_id].getPos().z + 150) continue;
+
+		if (CheckPointBoxArray[i].xoobb.Intersects(clients[client_id].xoobb)) {			
+			// 순서를 위해 이전 구역이 true인지 판단. 0->1, 1->2, 2->3, 3->0 순서
+			if (i == 0) {	// 0구역
+				if (clients[client_id].getCheckSection(3)) {
+					clients[client_id].setCheckSection(i, true);
+					clients[client_id].setCheckSection(3, false);
+					clients[client_id].setLapNum(clients[client_id].getLapNum() + 1);
+					
+					GS2C_UPDATE_LAP_PACKET add_lap_packet;
+					add_lap_packet.size = sizeof(GS2C_UPDATE_LAP_PACKET);
+					add_lap_packet.type = GS2C_UPDATE_LAP;
+					add_lap_packet.lap = clients[client_id].getLapNum();
+					add_lap_packet.objtype = OBJ_TYPE_LAP;
+
+					clients[client_id].sendLapInfoPacket(add_lap_packet);
+					break;
+				}
+			}
+			else { // 1구역 부터 3구역까지만 해당 구간
+				if (clients[client_id].getCheckSection(i - 1)) {
+					clients[client_id].setCheckSection(i, true);
+					clients[client_id].setCheckSection(i - 1, false);
+					break;
+				}
+			}
 		}
 	}
 }

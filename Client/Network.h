@@ -321,7 +321,7 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			//caseEnd
 			}
 			//SwitchEnd
-			
+
 			break;
 		}
 		case GS2C_REMOVE_OBJ:
@@ -422,10 +422,23 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 				//	itembox_arr[update_pack.id].m_look_vec.y << ", " <<
 				//	itembox_arr[update_pack.id].m_look_vec.z << ")." << endl;
 			}
+
 			//caseEnd
 			}
 			//switchEnd
 
+			break;
+		}
+		case GS2C_UPDATE_LAP:
+		{
+			GS2C_UPDATE_LAP_PACKET update_pack;
+			retval = recv(sock_forGS, (char*)&update_pack, sizeof(GS2C_UPDATE_LAP_PACKET), MSG_WAITALL);
+			if (retval == SOCKET_ERROR) {
+				err_display("recv()");
+			}
+			myLapNum = update_pack.lap;
+
+			cout << myLapNum << endl;
 			break;
 		}
 		default:
