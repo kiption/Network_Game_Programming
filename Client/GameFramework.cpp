@@ -46,6 +46,8 @@ CGameFramework::CGameFramework()
 
 	_tcscpy_s(m_pszFrameRate, _T("4 TermProject ( "));
 	_tcscpy_s(m_InputName, _T("Player_Name"));
+
+
 }
 
 CGameFramework::~CGameFramework()
@@ -497,7 +499,9 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 	case WM_MOUSEMOVE:
 		break;
 	case WM_KEYDOWN:
+		m_bBoosterMode = true;
 	case WM_KEYUP:
+		m_bBoosterMode = false;
 		OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 		break;
 	}
@@ -573,12 +577,7 @@ void CGameFramework::BuildObjects()
 	m_pScene->m_pPlayer = m_pPlayer = pPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 	m_pPlayer->SetTerrain(m_pScene->m_pTerrain);
-
-	//CMyPlayer2* pPlayer2 = new CMyPlayer2(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature());
-	//pPlayer2->SetPosition(XMFLOAT3(400.0f, 14.0f, 400.0f));
-	//m_pScene->m_pPlayer = m_pPlayer = pPlayer2;
-	//m_pCamera = m_pPlayer->GetCamera();
-	//m_pPlayer->SetTerrain(m_pScene->m_pTerrain);
+	PrevEffect = ((CMyPlayer*)m_pPlayer)->m_pPlayerObejct->m_xmf4x4Transform._33;
 
 	m_pd3dCommandList->Close();
 	ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
@@ -626,8 +625,7 @@ void CGameFramework::ProcessInput()
 
 		if (pKeysBuffer[VK_SPACE] & 0xF0) {
 			keyValue += 0b10000;
-			/*((CMyPlayer*)m_pPlayer)->MissileMode(NULL);*/
-			MissileMode(((CMyPlayer*)m_pPlayer)->GetPosition(), ((CMyPlayer*)m_pPlayer)->GetLookVector());
+			m_bBoosterMode = true;
 		}
 
 		if (keyValue != 0b00000)
@@ -641,10 +639,7 @@ void CGameFramework::AnimateObjects()
 	float fTimeElapsed = m_GameTimer.GetTimeElapsed();
 
 	if (m_pScene) m_pScene->AnimateObjects(fTimeElapsed);
-
 	m_pPlayer->Animate(fTimeElapsed, NULL);
-	CollisionAnimate();
-
 }
 
 void CGameFramework::WaitForGpuComplete()
@@ -894,14 +889,7 @@ void CGameFramework::MissileMode(XMFLOAT3 position, XMFLOAT3 lookVector)
 }
 void CGameFramework::CollisionAnimate()
 {
-	for (int i = 0; i < 3; i++)
-	{
 
-		/*if ((m_pPlayer->m_Boobb.Intersects(m_pScene->m_ppGameObjects[i]->m_Boobb)))
-		{
-			cout << "Collision Complete!!" << endl;
-		}*/
-	}
 }
 
 bool CGameFramework::is_KeyInput_Empty() {
@@ -927,5 +915,18 @@ short CGameFramework::pop_keyUpvalue() {
 
 	return temp;
 }
-//==================================================
+
+void CGameFramework::SetBoosterEffect(int id, bool boostmode)
+{
+	//id 별로 부스트 습득 체크
+		if (boostmode)
+		{
+			((CMyPlayer*)m_pPlayer)->m_pPlayerObejct->m_xmf4x4Transform._33 += 0.1f;
+		}
+		else
+		{
+			((CMyPlayer*)m_pPlayer)->m_pPlayerObejct->m_xmf4x4Transform._33 = PrevEffect;
+		}
+}
+
 

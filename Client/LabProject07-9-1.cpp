@@ -144,7 +144,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 				if (missile_arr[i].m_state == OBJ_ST_RUNNING)
 				{
-					//gGameFramework.MissileMode(players_info[i].GetPosition(), players_info[i].GetLookVector());
 					
 						gGameFramework.m_pScene->m_ppGameObjects[188]->SetPosition(missile_arr[i].GetPosition());
 						gGameFramework.m_pScene->m_ppGameObjects[188]->myFunc_SetVectors(missile_arr[i].GetRightVector(), missile_arr[i].GetUpVector(), missile_arr[i].GetLookVector());
@@ -154,6 +153,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 					
 				}
 			}
+
+			gGameFramework.SetBoosterEffect(gGameFramework.m_bBoosterMode);
 
 			gGameFramework.FrameAdvance();
 

@@ -751,6 +751,9 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							LeaveCriticalSection(&critical_section);
 
 							clients[client_id].setBoosterOn(true);
+							cout << "Booster ON" << endl;
+
+
 							clients[client_id].setLimitAcc(BOOSTER_ACCELERATOR);
 							setServerEvent(EV_TYPE_REFRESH, BOOSTER_DURATION, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTER, client_id, 0, 0);	// 부스터 지속시간
 
@@ -1347,7 +1350,7 @@ void collisioncheck_Player2ItemBox(int client_id)
 			if (clients[client_id].getHowManyItem() < 2) {
 				srand(static_cast<unsigned int>(SERVER_TIME) * i);
 				//int new_item = rand() % 3;
-				int new_item = 1;
+				int new_item = 0;
 				clients[client_id].setItemQueue(new_item);
 				cout << "Collide ItemBox[" << i << "], and... ";
 				cout << "Get New Item(type: " << new_item << ")." << endl;
