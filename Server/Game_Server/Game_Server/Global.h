@@ -6,9 +6,9 @@
 #define PI 3.141592654f
 
 #define REFLECT_SCALAR 20.0f
-#define MISSILE_MOVE_SCALAR 9.0f
+#define MISSILE_MOVE_SCALAR 20.0f
 #define ROTATE_SCALAR 1.5f
-#define ITEMBOX_ROTATE_SCALAR 15.0f
+#define ITEMBOX_ROTATE_SCALAR 0.01f
 
 #define MiddleX 1295
 #define MiddleZ 1310
