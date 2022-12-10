@@ -53,6 +53,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		Sleep(100);
 	}
 	gGameFramework.Login_ID = myID;
+	
 	//==================================================
 
 
@@ -71,7 +72,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 	hAccelTable = ::LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_LABPROJECT0791));
 
-
+	wcscpy(gGameFramework.m_InputName, myname);
 
 	while (1)
 	{
@@ -133,6 +134,16 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			}
 			
 
+			//=====================================================
+			//			현재 LAP 숫자를 받아 넘겨줍니다.
+			//=====================================================
+			wchar_t mylapbuf[20];
+			_itow_s(myLapNum, mylapbuf, sizeof(mylapbuf) / 2, 10);
+			
+			wcscpy(gGameFramework.m_mylapnum, mylapbuf);
+			//gGameFramework.m_mylapnum = (WCHAR*)myLapNum;
+
+			//_itow(gGameFramework.m_mylapnum, myLapNum, 10);
 			//==================================================
 			// ItemBox 서버로부터 받은 값 출력합니다.
 			//==================================================

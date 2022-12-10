@@ -44,10 +44,9 @@ CGameFramework::CGameFramework()
 	m_pScene = NULL;
 	m_pPlayer = NULL;
 
-	_tcscpy_s(m_pszFrameRate, _T("4 TermProject ( "));
-	_tcscpy_s(m_InputName, _T("Player_Name"));
-
-
+	_tcscpy_s(m_pszFrameRate, _T("TexRider"));
+	_tcscpy_s(m_InputName, _T("t1"));
+	_tcscpy_s(m_lapmark, _T("LAP"));
 }
 
 CGameFramework::~CGameFramework()
@@ -511,6 +510,9 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 void CGameFramework::UpdateUI()
 {
 	m_pUILayer->UpdateTextOutputs(1, m_InputName, NULL, NULL, NULL);
+	m_pUILayer->UpdateTextOutputs(2, m_mylapnum, NULL, NULL, NULL);
+	m_pUILayer->UpdateTextOutputs(3, m_lapmark, NULL, NULL, NULL);
+
 }
 
 void CGameFramework::GetPosition()
@@ -551,7 +553,7 @@ void CGameFramework::OnDestroy()
 
 void CGameFramework::BuildObjects()
 {
-	m_pUILayer = new UILayer(m_nSwapChainBuffers, 2, m_pd3dDevice, m_pd3dCommandQueue, m_ppd3dSwapChainBackBuffers, m_nWndClientWidth, m_nWndClientHeight);
+	m_pUILayer = new UILayer(m_nSwapChainBuffers, 4, m_pd3dDevice, m_pd3dCommandQueue, m_ppd3dSwapChainBackBuffers, m_nWndClientWidth, m_nWndClientHeight);
 
 	ID2D1SolidColorBrush* pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
 	IDWriteTextFormat* pdwTextFormat = m_pUILayer->CreateTextFormat(L"µ¸¿òÃ¼", m_nWndClientHeight / 15.0f);
@@ -563,9 +565,21 @@ void CGameFramework::BuildObjects()
 
 	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
 	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 25.0f);
-	d2dRect = D2D1::RectF(0.0f, m_nWndClientHeight - 75.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+	d2dRect = D2D1::RectF(-700.0f, 200.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
 
 	m_pUILayer->UpdateTextOutputs(1, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
+
+	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
+	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 25.0f);
+	d2dRect = D2D1::RectF(700.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+
+	m_pUILayer->UpdateTextOutputs(2, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
+
+	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
+	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 25.0f);
+	d2dRect = D2D1::RectF(800.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+
+	m_pUILayer->UpdateTextOutputs(3, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
 
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 
@@ -740,11 +754,11 @@ void CGameFramework::FrameAdvance()
 #endif
 	D2D1_SIZE_F szRenderTarget = m_ppd2dRenderTargets[m_nSwapChainBufferIndex]->GetSize();
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 12, 37);
-	D2D1_RECT_F rcUpperText = D2D1::RectF(0, 0, szRenderTarget.width * 0.25f, szRenderTarget.height * 0.25f);
-	m_pd2dDeviceContext->DrawTextW(m_pszFrameRate, (UINT32)wcslen(m_pszFrameRate), m_pdwFont, &rcUpperText, m_pd2dbrText);
+	//D2D1_RECT_F rcUpperText = D2D1::RectF(0, 0, szRenderTarget.width * 0.25f, szRenderTarget.height * 0.25f);
+	//m_pd2dDeviceContext->DrawTextW(m_pszFrameRate, (UINT32)wcslen(m_pszFrameRate), m_pdwFont, &rcUpperText, m_pd2dbrText);
 
-	D2D1_RECT_F rcLowerText = D2D1::RectF(0, szRenderTarget.height * 0.8f, szRenderTarget.width, szRenderTarget.height);
-	m_pd2dDeviceContext->DrawTextW(L" ", (UINT32)wcslen(L" "), m_pdwFont, &rcLowerText, m_pd2dbrText);
+	//D2D1_RECT_F rcLowerText = D2D1::RectF(0, szRenderTarget.height * 0.8f, szRenderTarget.width, szRenderTarget.height);
+	//m_pd2dDeviceContext->DrawTextW(L" ", (UINT32)wcslen(L" "), m_pdwFont, &rcLowerText, m_pd2dbrText);
 
 	m_pd2dDeviceContext->EndDraw();
 

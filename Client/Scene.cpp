@@ -162,7 +162,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pCollisionTerrain->SetMaterial(pCollisonMaterial);
 
 
-	m_nGameObjects = 190;
+	m_nGameObjects = 191;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
 	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race.bin");
@@ -244,7 +244,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	for (int i = 65; i < 106; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 56) * 45.0), 6.0f, 2350.0);
 	for (int i = 106; i < 147; i++)m_ppGameObjects[i]->SetPosition(2300.0, 6.0f, 0.0f + 280.0 + (float)((i - 97) * 45));
 	for (int i = 147; i < 188; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 138) * 45.0), 6.0f, 250.0);
-	
+
 
 	CGameObjcet* pMissileModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Roket.bin");
 	CObstacleObject* pMissiles = NULL;
@@ -252,7 +252,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pMissiles->SetChild(pMissileModel, true);
 	pMissiles->OnInitialize();
 	pMissiles->SetScale(300.0f, 300.0f, 500.0f);
-	pMissiles->SetPosition(0.0f, 0.0f,0.0f);
+	pMissiles->SetPosition(0.0f, 0.0f, 0.0f);
 	pMissiles->Rotate(90.0f, 0.0f, 0.0f);
 	m_ppGameObjects[188] = pMissiles;
 
@@ -265,6 +265,18 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pTrap->SetPosition(0.0f, 0.0f, 0.0f);
 	pTrap->Rotate(0.0f, 0.0f, 0.0f);
 	m_ppGameObjects[189] = pTrap;
+
+
+
+	CGameObjcet* pStartModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/startline.bin");
+	CObstacleObject* pStart = NULL;
+	pStart = new CObstacleObject();
+	pStart->SetChild(pStartModel, true);
+	pStart->OnInitialize();
+	pStart->SetScale(10.0, 10.0, 5.0);
+	pStart->SetPosition(310.0f, 10.0f, 1200.0f);
+	pStart->Rotate(0.0f, 0.0f, 0.0f);
+	m_ppGameObjects[190] = pStart;
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -415,60 +427,60 @@ bool CScene::ProcessInput(UCHAR* pKeysBuffer)
 
 void CScene::CheckPlayerByRandomBoxCollisions()
 {
-//	//objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-//	//objinfo.m_xoobb.ItemboxOOBB = BoundingOrientedBox(XMFLOAT3(350.0f + (2 * 40), 20.0f, 800.0f), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-//
-//	for (int i = 2; i < 3; ++i) {
-//
-//		m_ppGameObjects[2]->SetRotationSpeed(2.0f);
-//		m_ppGameObjects[2]->Rotate(0, m_ppGameObjects[2]->m_fRotationSpeed, 0);
-//
-//		//if (objinfo.m_xoobb.ItemboxOOBB.Intersects(objinfo.m_xoobb.PlayerOOBB)) {
-//		//	m_ppGameObjects[2]->m_bObjectCollideCheck = true;
-//		//}
-//		if (m_ppGameObjects[2]->m_bObjectCollideCheck) {
-//			m_ppGameObjects[2]->m_xmf4x4Transform._42 -= 0.5f;
-//			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 < -100.0) {
-//				m_ppGameObjects[2]->m_bObjectCollideCheck = false;
-//				m_ppGameObjects[2]->m_bObjectRising = true;
-//				int RandomItemVal = PresentItemVal(ItemRanVal);
-//				m_pPlayer->m_iItemVal = RandomItemVal;
-//			}
-//		}
-//
-//		else {
-//			if (m_ppGameObjects[2]->m_bObjectRising) {
-//				m_ppGameObjects[2]->m_xmf4x4Transform._42 += 1.5f;
-//			}
-//			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 >= 20.0f) {
-//				m_ppGameObjects[2]->m_xmf4x4Transform._42 = 20.0f;
-//				m_ppGameObjects[2]->m_bObjectRising = false;
-//			}
-//		}
-//	}
-//
-//	if (m_pPlayer->m_iItemVal == 1)
-//	{
-//		m_bMissileActive = true;
-//		m_bTrapActive = false;
-//		m_bBoosterActive = false;
-//		MissileProcess();
-//	}
-//	else if (m_pPlayer->m_iItemVal == 2)
-//	{
-//		m_bTrapActive = true;
-//		m_bMissileActive = false;
-//		m_bBoosterActive = false;
-//		TrapProcess();
-//	}
-//	else if (m_pPlayer->m_iItemVal == 3)
-//	{
-//		m_bBoosterActive = true;
-//		m_bMissileActive = false;
-//		m_bTrapActive = false;
-//		BoosterProcess();
-//	}
-//
+	//	//objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(objinfo.GetPosition(), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	//	//objinfo.m_xoobb.ItemboxOOBB = BoundingOrientedBox(XMFLOAT3(350.0f + (2 * 40), 20.0f, 800.0f), XMFLOAT3(4.0, 4.0, 2.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+	//
+	//	for (int i = 2; i < 3; ++i) {
+	//
+	//		m_ppGameObjects[2]->SetRotationSpeed(2.0f);
+	//		m_ppGameObjects[2]->Rotate(0, m_ppGameObjects[2]->m_fRotationSpeed, 0);
+	//
+	//		//if (objinfo.m_xoobb.ItemboxOOBB.Intersects(objinfo.m_xoobb.PlayerOOBB)) {
+	//		//	m_ppGameObjects[2]->m_bObjectCollideCheck = true;
+	//		//}
+	//		if (m_ppGameObjects[2]->m_bObjectCollideCheck) {
+	//			m_ppGameObjects[2]->m_xmf4x4Transform._42 -= 0.5f;
+	//			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 < -100.0) {
+	//				m_ppGameObjects[2]->m_bObjectCollideCheck = false;
+	//				m_ppGameObjects[2]->m_bObjectRising = true;
+	//				int RandomItemVal = PresentItemVal(ItemRanVal);
+	//				m_pPlayer->m_iItemVal = RandomItemVal;
+	//			}
+	//		}
+	//
+	//		else {
+	//			if (m_ppGameObjects[2]->m_bObjectRising) {
+	//				m_ppGameObjects[2]->m_xmf4x4Transform._42 += 1.5f;
+	//			}
+	//			if (m_ppGameObjects[2]->m_xmf4x4Transform._42 >= 20.0f) {
+	//				m_ppGameObjects[2]->m_xmf4x4Transform._42 = 20.0f;
+	//				m_ppGameObjects[2]->m_bObjectRising = false;
+	//			}
+	//		}
+	//	}
+	//
+	//	if (m_pPlayer->m_iItemVal == 1)
+	//	{
+	//		m_bMissileActive = true;
+	//		m_bTrapActive = false;
+	//		m_bBoosterActive = false;
+	//		MissileProcess();
+	//	}
+	//	else if (m_pPlayer->m_iItemVal == 2)
+	//	{
+	//		m_bTrapActive = true;
+	//		m_bMissileActive = false;
+	//		m_bBoosterActive = false;
+	//		TrapProcess();
+	//	}
+	//	else if (m_pPlayer->m_iItemVal == 3)
+	//	{
+	//		m_bBoosterActive = true;
+	//		m_bMissileActive = false;
+	//		m_bTrapActive = false;
+	//		BoosterProcess();
+	//	}
+	//
 }
 
 void CScene::CheckWallByPlayerCollisions(float fTimeElapsed)

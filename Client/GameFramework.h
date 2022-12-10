@@ -148,7 +148,9 @@ public:
 	UILayer						*m_pUILayer = NULL;
 	CCamera						*m_pCamera = NULL;
 	POINT						m_ptOldCursorPos;
-	WCHAR						m_InputName[50];
+	WCHAR						m_InputName[10];
+	WCHAR						m_lapmark[10];
+	WCHAR						m_mylapnum[20];
 	_TCHAR						m_pszFrameRate[70];
 };
 

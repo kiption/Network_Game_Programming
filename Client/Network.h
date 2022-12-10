@@ -87,7 +87,8 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 				if (start_pack.start == START_APPROVAL) {
 					cout << "로그인이 허가되었습니다.\n" << endl;
 					g_gamestart = true;
-
+					
+					mbstowcs(myname, input_name, 10);
 					closesocket(sock_forLS);
 					return 0;
 				}
@@ -437,8 +438,6 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 				err_display("recv()");
 			}
 			myLapNum = update_pack.lap;
-
-			cout << myLapNum << endl;
 			break;
 		}
 		default:
