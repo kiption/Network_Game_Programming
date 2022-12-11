@@ -23,9 +23,12 @@ float START_TIME;							// 서버 프로그램이 켜진 시간
 float SERVER_TIME;							// 서버 시간
 constexpr int TIME_UPDATE_CYCLE = 100;		// 서버 시간 업데이트 주기 (ms단위)
 
+void collisioncheck_Player2Map(int client_id);
+void collisioncheck_Player2Water(int client_id);
 void collisioncheck_Player2ItemBox(int client_id);
 void collisioncheck_Player2Player(int client_id);
 void collisioncheck_Player2Missile(int client_id);
+void collisioncheck_Player2Bomb(int client_id);
 void collisioncheck_Player2CheckPointBox(int client_id);
 
 //==================================================
@@ -48,10 +51,9 @@ private:
 	bool		m_booster_on;		// 부스터 사용 여부
 	bool		m_lose_control;		// 조작 가능 여부 (true일때에는 조작이 불가능합니다.)
 	bool		m_hit_motion;		// 피격 모션 연출 중 여부
+	bool		m_flooded;			// 침수 여부
 
-	bool		m_reduce_acc;
 	bool		m_check_section[CheckPointNum];
-
 	int			m_lap_num;
 
 	float		m_yaw, m_pitch, m_roll;
@@ -87,6 +89,7 @@ public:
 		m_booster_on = false;
 		m_lose_control = false;
 		m_hit_motion = false;
+		m_flooded = false;
 
 		for (int i{}; i < CheckPointNum; i++) {
 			m_check_section[i] = false;
@@ -130,6 +133,7 @@ public:
 	bool		getBoosterOn() { return m_booster_on; }
 	bool		getLoseControl() { return m_lose_control; }
 	bool		getHitMotion() { return m_hit_motion; }
+	bool		getFlooded() { return m_flooded; }
 
 
 	bool		getCheckSection(int num) { return m_check_section[num]; }
@@ -163,6 +167,7 @@ public:
 	void		setBoosterOn(bool b) { m_booster_on = b; }
 	void		setLoseControl(bool b) { m_lose_control = b; }
 	void		setHitMotion(bool b) { m_hit_motion = b; }
+	void		setFlooded(bool b) { m_flooded = b; }
 
 	void		setCheckSection(int num, bool b) { m_check_section[num] = b; }
 
@@ -295,7 +300,7 @@ array<CheckPoint, CheckPointNum> CheckPointBoxArray;
 //            [ 서버 이벤트 관련 ]
 //==================================================
 constexpr int EV_TYPE_QUEUE_ERROR = 99; // type error
-enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE, EV_TYPE_HIT };											// 이벤트 타입
+enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE, EV_TYPE_HIT, EV_TYPE_HIT_BOMB };											// 이벤트 타입
 enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };												// 이벤트 적용 대상
 enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER, EV_DTARGET_CONTROL, EV_DTARGET_BOOSTEND };	// Extra Info
 constexpr int EV_DTARGET_ALL = 999;	// Extra Info
@@ -799,10 +804,11 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 						MyVector3D move_dir{ 0, 0, 0 };
 						move_dir = { clients[client_id].getCoordinate().z_coordinate.x * plus_minus,
-							clients[client_id].getCoordinate().z_coordinate.y * plus_minus, clients[client_id].getCoordinate().z_coordinate.z * plus_minus };
+									 clients[client_id].getCoordinate().z_coordinate.y * plus_minus,
+									 clients[client_id].getCoordinate().z_coordinate.z * plus_minus };
 
-						MyVector3D Move_Vertical_Result{ 0,0,0 };
-						Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, clients[client_id].getAccel());
+						MyVector3D Move_Vertical_Result{ 0, 0, 0 };
+						Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, clients[client_id].getAccel(), clients[client_id].getFlooded());
 
 						EnterCriticalSection(&clients[client_id].m_cs);
 						// 좌표 업데이트
@@ -846,7 +852,12 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							EnterCriticalSection(&clients[client_id].m_cs);
 							clients[client_id].setItemRelease();
 							clients[client_id].setBoosterOn(true);
-							clients[client_id].setLimitAcc(BOOSTER_ACCELERATOR);
+							if (clients[client_id].getFlooded()) {
+								clients[client_id].setLimitAcc(FLOODED_BOOSTER_ACCELERATOR);
+							}
+							else {
+								clients[client_id].setLimitAcc(BOOSTER_ACCELERATOR);
+							}
 							LeaveCriticalSection(&clients[client_id].m_cs);
 
 							EnterCriticalSection(&cs_timer_event);
@@ -883,7 +894,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							MissileArray[missile_id].setObjOwner(client_id);
 							MyVector3D missile_first_pos = clients[client_id].getPos();
 							MyVector3D missile_lookvec = clients[client_id].getCoordinate().z_coordinate;
-							MyVector3D missile_final_pos = calcMove(missile_first_pos, missile_lookvec, 50.f);
+							MyVector3D missile_final_pos = calcMove(missile_first_pos, missile_lookvec, 50.f, false);
 							MissileArray[missile_id].setPos(missile_final_pos);
 							MissileArray[missile_id].setYaw(clients[client_id].getYaw());
 							MissileArray[missile_id].setRoll(clients[client_id].getRoll());
@@ -957,7 +968,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							BombArray[bomb_id].setObjOwner(client_id);
 							MyVector3D bomb_first_pos = clients[client_id].getPos();
 							MyVector3D bomb_lookvec = clients[client_id].getCoordinate().z_coordinate;
-							MyVector3D bomb_final_pos = calcMove(bomb_first_pos, bomb_lookvec, -20.f);
+							MyVector3D bomb_final_pos = calcMove(bomb_first_pos, bomb_lookvec, -20.f, false);
 							BombArray[bomb_id].setPos(bomb_final_pos);
 							BombArray[bomb_id].setYaw(clients[client_id].getYaw());
 							BombArray[bomb_id].setRoll(clients[client_id].getRoll());
@@ -1088,10 +1099,18 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 					}
 					else if (new_event.ev_target_detail == EV_DTARGET_BOOSTEND) {
 						float new_acc = clients[target].getAccel() - 0.6f;
-						if (new_acc <= LIMIT_ACCELERATOR) {			// 원래의 가속도 제한수치까지 낮췄을 경우
+						float limit_acc = 0.f;
+						if (clients[target].getFlooded()) {
+							limit_acc = FLOODED_ACCELERATOR;
+						}
+						else {
+							limit_acc = LIMIT_ACCELERATOR;
+						}
+
+						if (new_acc <= limit_acc) {			// 원래의 가속도 제한수치까지 낮췄을 경우
 							EnterCriticalSection(&clients[target].m_cs);
-							clients[target].setAccel(LIMIT_ACCELERATOR);
-							clients[target].setLimitAcc(LIMIT_ACCELERATOR);
+							clients[target].setAccel(limit_acc);
+							clients[target].setLimitAcc(limit_acc);
 							clients[target].setBoosterOn(false);	// 부스터를 꺼줍니다.
 							LeaveCriticalSection(&clients[target].m_cs);
 						}
@@ -1145,7 +1164,7 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 								 MissileArray[target].getCoordinate().z_coordinate.y,
 								 MissileArray[target].getCoordinate().z_coordinate.z };
 
-					MyVector3D Missile_Move_Result = calcMove(MissileArray[target].getPos(), move_dir, MISSILE_MOVE_SCALAR);
+					MyVector3D Missile_Move_Result = calcMove(MissileArray[target].getPos(), move_dir, MISSILE_MOVE_SCALAR, false);
 
 					EnterCriticalSection(&MissileArray[target].m_cs);
 					// 변경된 좌표로 업데이트합니다.
@@ -1343,18 +1362,102 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 					float rot_scalar = 0.0f;
 					float cur_duration = SERVER_TIME - new_event.ev_start_time;
 					if (cur_duration < new_event.ev_duration / 2.f) {	// 지속시간의 절반 이전
-						rot_scalar = cur_duration / 5.5f;
+						rot_scalar = 0.01f + cur_duration / 4.5f;
 					}
 					else {	// 지속시간의 절반 이후
-						rot_scalar = (new_event.ev_start_time + new_event.ev_duration - SERVER_TIME) / 5.5f;
+						rot_scalar = 0.01f + (new_event.ev_start_time + new_event.ev_duration - SERVER_TIME) / 4.5f;
 					}
 
-					// pitch 설정
+					// yaw 설정
 					float theta_rad = rot_scalar * PI / 180.0f;
 					float temp_yaw = clients[target].getYaw() + theta_rad;
 
 					EnterCriticalSection(&clients[target].m_cs);
 					clients[target].setYaw(temp_yaw);
+					LeaveCriticalSection(&clients[target].m_cs);
+
+					// right, up, look 벡터 회전계산
+					MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
+						, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+					MyVector3D rotate_result_y = calcRotate(basic_coordinate.y_coordinate
+						, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+					MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
+						, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+
+					// right, up, look 벡터 회전결과 적용
+					EnterCriticalSection(&clients[target].m_cs);
+					clients[target].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
+					LeaveCriticalSection(&clients[target].m_cs);
+
+					sendPlayerUpdatePacket_toAllClient(target);
+
+					EnterCriticalSection(&cs_timer_event);
+					setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.ev_target_detail, new_event.target_num,
+						new_event.ev_start_time, SetStartTimeToExInfo);
+					LeaveCriticalSection(&cs_timer_event);
+				}
+			}
+			break;
+		}
+		case EV_TYPE_HIT_BOMB:
+		{
+			if (new_event.ev_target == EV_TARGET_CLIENTS) {
+				if (!clients[target].getLoseControl())
+					break;
+				if (!clients[target].getHitMotion())
+					break;
+
+				if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
+					// 이벤트 시간이 끝나면...
+					// 우선 플레이어 객체를 다시 지상으로 돌려놓습니다.
+					MyVector3D landing_pos = clients[target].getPos();
+					landing_pos.y = 14.f;
+
+					// pitch를 원상태로 복구시킵니다.
+					EnterCriticalSection(&clients[target].m_cs);
+					clients[target].setPitch(0.f);
+					LeaveCriticalSection(&clients[target].m_cs);
+
+					// right, up, look 벡터 회전계산
+					MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
+						, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+					MyVector3D rotate_result_y = calcRotate(basic_coordinate.y_coordinate
+						, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+					MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
+						, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+
+					// 원 상태로 복구합니다.
+					EnterCriticalSection(&clients[target].m_cs);
+					clients[target].setPos(landing_pos);
+					clients[target].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
+					clients[target].setLoseControl(false);
+					clients[target].setHitMotion(false);
+					LeaveCriticalSection(&clients[target].m_cs);
+
+					sendPlayerUpdatePacket_toAllClient(target);
+				}
+				else {
+					// 우선 플레이어 객체를 공중으로 띄웁니다.
+					MyVector3D burst_pos = clients[target].getPos();
+
+					//burst_pos.y = 50.f;
+					if (SERVER_TIME - new_event.ev_start_time < new_event.ev_duration / 2) {
+						burst_pos.y += 0.006f;
+					}
+					else {
+						if (burst_pos.y < 14.f) burst_pos.y = 14.f;
+						else					burst_pos.y -= 0.0065f;
+					}
+					EnterCriticalSection(&clients[target].m_cs);
+					clients[target].setPos(burst_pos);
+					LeaveCriticalSection(&clients[target].m_cs);
+
+					// pitch 설정
+					float theta_rad = HIT_BOMB_ROTATE_SCALAR * PI / 180.0f;
+					float temp_pitch = clients[target].getPitch() + theta_rad;
+
+					EnterCriticalSection(&clients[target].m_cs);
+					clients[target].setPitch(temp_pitch);
 					LeaveCriticalSection(&clients[target].m_cs);
 
 					// right, up, look 벡터 회전계산
@@ -1415,6 +1518,8 @@ DWORD WINAPI CollideCheck_ThreadFunc(LPVOID arg)
 				continue;
 
 			// Player - Map 충돌
+			collisioncheck_Player2Map(i);
+			collisioncheck_Player2Water(i);
 
 			// Player - Player 충돌
 			collisioncheck_Player2Player(i);
@@ -1423,6 +1528,7 @@ DWORD WINAPI CollideCheck_ThreadFunc(LPVOID arg)
 			collisioncheck_Player2Missile(i);
 
 			// Player - Bomb 충돌
+			collisioncheck_Player2Bomb(i);
 
 			// Player - ItemBox 충돌
 			collisioncheck_Player2ItemBox(i);
@@ -1451,7 +1557,82 @@ void TerrainExitCollision(MyVector3D vec, float veclocity, float scarla)
 
 }
 
-// 1. Player - ItemBox 충돌체크
+// 1. Player - Map 충돌체크
+// 1) Map의 끝
+void collisioncheck_Player2Map(int client_id) {
+	MyVector3D cur_pos = clients[client_id].getPos();
+	// 맵의 끝으로부터 너무 멀리떨어져 있다면 충돌체크 및 후처리를 하지 않습니다.
+	if (cur_pos.x > MAP_X_MIN + MAP_COLLISIONCHECK_RANGE && cur_pos.x < MAP_X_MAX - MAP_COLLISIONCHECK_RANGE &&
+		cur_pos.z > MAP_Z_MIN + MAP_COLLISIONCHECK_RANGE && cur_pos.z < MAP_Z_MAX - MAP_COLLISIONCHECK_RANGE)
+		return;
+
+	if (cur_pos.x < MAP_X_MIN) {
+		cur_pos.x = MAP_X_MIN;
+		// Update
+		EnterCriticalSection(&clients[client_id].m_cs);
+		clients[client_id].setPos(cur_pos);
+		LeaveCriticalSection(&clients[client_id].m_cs);
+	}
+	else if (cur_pos.x > MAP_X_MAX) {
+		cur_pos.x = MAP_X_MAX;
+		// Update
+		EnterCriticalSection(&clients[client_id].m_cs);
+		clients[client_id].setPos(cur_pos);
+		LeaveCriticalSection(&clients[client_id].m_cs);
+	}
+
+	if (cur_pos.z < MAP_Z_MIN) {
+		cur_pos.z = MAP_Z_MIN;
+		// Update
+		EnterCriticalSection(&clients[client_id].m_cs);
+		clients[client_id].setPos(cur_pos);
+		LeaveCriticalSection(&clients[client_id].m_cs);
+	}
+	else if (cur_pos.z > MAP_Z_MAX) {
+		cur_pos.z = MAP_Z_MAX;
+		// Update
+		EnterCriticalSection(&clients[client_id].m_cs);
+		clients[client_id].setPos(cur_pos);
+		LeaveCriticalSection(&clients[client_id].m_cs);
+	}
+}
+// 2) 물
+void collisioncheck_Player2Water(int client_id) {
+	MyVector3D cur_pos = clients[client_id].getPos();
+
+	if (clients[client_id].getFlooded()) {	// 이미 침수해있는 차
+		// 물 밖으로 빠져나와있는지 검사
+		if (cur_pos.x < WATER_X_MIN || cur_pos.x > WATER_X_MAX ||
+			cur_pos.z < WATER_Z_MIN || cur_pos.z > WATER_Z_MAX) {
+			EnterCriticalSection(&clients[client_id].m_cs);
+			clients[client_id].setFlooded(false);
+			if (clients[client_id].getBoosterOn()) {
+				clients[client_id].setLimitAcc(BOOSTER_ACCELERATOR);
+			}
+			else {
+				clients[client_id].setLimitAcc(LIMIT_ACCELERATOR);
+			}
+			LeaveCriticalSection(&clients[client_id].m_cs);
+		}
+	}
+	else {	// 육지에 있던 차
+		// 물 속으로 들어갔는지 검사
+		if (WATER_X_MIN < cur_pos.x && cur_pos.x < WATER_X_MAX &&
+			WATER_Z_MIN < cur_pos.z && cur_pos.z < WATER_Z_MAX) {
+			EnterCriticalSection(&clients[client_id].m_cs);
+			clients[client_id].setFlooded(true);
+			if (clients[client_id].getBoosterOn()) {
+				clients[client_id].setLimitAcc(FLOODED_BOOSTER_ACCELERATOR);
+			}
+			else {
+				clients[client_id].setLimitAcc(FLOODED_ACCELERATOR);
+			}
+			LeaveCriticalSection(&clients[client_id].m_cs);
+		}
+	}
+}
+
+// 2. Player - ItemBox 충돌체크
 void collisioncheck_Player2ItemBox(int client_id)
 {
 	for (int i = 0; i < ITEMBOXNUM; i++)
@@ -1501,10 +1682,9 @@ void collisioncheck_Player2ItemBox(int client_id)
 			}
 		}
 	}
-
 }
 
-// 2. Player - Player 충돌체크
+// 3. Player - Player 충돌체크
 void collisioncheck_Player2Player(int client_id)
 {
 	for (int i{}; i < MAX_USER; i++)
@@ -1545,7 +1725,7 @@ void collisioncheck_Player2Player(int client_id)
 							clients[client_id].getCoordinate().z_coordinate.z * (-1.0f) };
 
 			MyVector3D reflect_Result{ 0,0,0 };
-			reflect_Result = calcMove(clients[client_id].getPos(), reflect_dir, REFLECT_SCALAR);
+			reflect_Result = calcMove(clients[client_id].getPos(), reflect_dir, REFLECT_SCALAR, false);
 
 			EnterCriticalSection(&clients[client_id].m_cs);
 			clients[client_id].setPos(reflect_Result);
@@ -1557,7 +1737,7 @@ void collisioncheck_Player2Player(int client_id)
 	}
 }
 
-// 3. Player - Missile 충돌체크
+// 4. Player - Missile 충돌체크
 void collisioncheck_Player2Missile(int client_id)
 {
 	for (int i = 0; i < MissileNum; i++) {
@@ -1602,15 +1782,61 @@ void collisioncheck_Player2Missile(int client_id)
 			}
 
 			EnterCriticalSection(&cs_timer_event);
-			setServerEvent(EV_TYPE_HIT, 3.f, EV_TARGET_CLIENTS, 0, client_id, 0, 0);
+			setServerEvent(EV_TYPE_HIT, HIT_MISSILE_DURATION, EV_TARGET_CLIENTS, 0, client_id, 0, 0);
 			LeaveCriticalSection(&cs_timer_event);
 		}
 	}
 }
 
-// 4. Player - Bomb 충돌체크
+// 5. Player - Bomb 충돌체크
+void collisioncheck_Player2Bomb(int client_id)
+{
+	for (int i = 0; i < BombNum; i++) {
+		// 작동하지 않는 지뢰는 충돌체크 대상에서 제외합니다.
+		if (!BombArray[i].getRunning()) continue;
 
-// 5. Player - CheckPoint 충돌체크
+		// 피격 모션 중인 플레이어는 공격하지 않습니다.
+		if (clients[client_id].getHitMotion()) continue;
+
+		// 플레이어에게서 너무 멀리 떨어져있는 지뢰는 충돌체크 대상에서 제외합니다.
+		if (BombArray[i].getPos().x < clients[client_id].getPos().x - 150
+			|| BombArray[i].getPos().x > clients[client_id].getPos().x + 150) continue;
+		if (BombArray[i].getPos().y < clients[client_id].getPos().y - 100
+			|| BombArray[i].getPos().y > clients[client_id].getPos().y + 100) continue;
+		if (BombArray[i].getPos().z < clients[client_id].getPos().z - 150
+			|| BombArray[i].getPos().z > clients[client_id].getPos().z + 150) continue;
+
+
+		// 충돌체크 & 후처리
+		if (BombArray[i].xoobb.Intersects(clients[client_id].xoobb))
+		{
+			EnterCriticalSection(&clients[client_id].m_cs);
+			// 피격모션
+			clients[client_id].setLoseControl(true);
+			clients[client_id].setHitMotion(true);
+			// 지뢰 삭제
+			BombArray[i].returnToInitialState();
+			LeaveCriticalSection(&clients[client_id].m_cs);
+
+			// 지뢰 제거 패킷을 모든 클라이언트에게 전달합니다.
+			GS2C_REMOVE_OBJ_PACKET rm_bomb_packet;
+			rm_bomb_packet.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
+			rm_bomb_packet.type = GS2C_REMOVE_OBJ;
+			rm_bomb_packet.id = i;
+			rm_bomb_packet.objtype = OBJ_TYPE_BOMB;
+			for (int j = 0; j < MAX_USER; j++) {
+				if (clients[j].getState() == CL_STATE_EMPTY) continue;
+				clients[j].sendRemoveObjPacket(rm_bomb_packet);
+			}
+
+			EnterCriticalSection(&cs_timer_event);
+			setServerEvent(EV_TYPE_HIT_BOMB, HIT_BOMB_DURATION, EV_TARGET_CLIENTS, 0, client_id, 0, 0);
+			LeaveCriticalSection(&cs_timer_event);
+		}
+	}
+}
+
+// 6. Player - CheckPoint 충돌체크
 void collisioncheck_Player2CheckPointBox(int client_id)
 {
 	for (int i{}; i < CheckPointNum; i++) {
