@@ -5,8 +5,11 @@
 
 #define PI 3.141592654f
 
+#define ITEM_VARIETY 3;					// 아이템 종류 수
+
 #define REFLECT_SCALAR 20.0f
 #define MISSILE_MOVE_SCALAR 0.08f
+
 #define ROTATE_SCALAR 1.5f
 #define ITEMBOX_ROTATE_SCALAR 0.01f
 

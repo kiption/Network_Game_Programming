@@ -12,7 +12,6 @@
 
 using namespace std;
 
-CRITICAL_SECTION critical_section;
 DWORD WINAPI ProcessClient(LPVOID arg);				// 클라이언트 통신 스레드
 DWORD WINAPI TimerThreadFunc(LPVOID arg);			// 타이머 스레드
 DWORD WINAPI ServerTime_Update(LPVOID arg);			// 서버 시간 갱신 스레드
@@ -40,9 +39,6 @@ private:
 	int			m_id = 0;
 	char		m_state;
 
-	int			m_lap_num;
-
-	float		m_timer;
 	float		m_accelerator;
 	float		m_limit_acc;
 	Coordinate	m_coordinate;
@@ -50,13 +46,20 @@ private:
 
 	bool		m_item_cooldown;	// 아이템 사용 쿨타임
 	bool		m_booster_on;		// 부스터 사용 여부
-	bool		m_lose_control;		// 조작 가능 여부 (충돌 연출때에는 조작이 불가능합니다.)
+	bool		m_lose_control;		// 조작 가능 여부 (true일때에는 조작이 불가능합니다.)
+	bool		m_hit_motion;		// 피격 모션 연출 중 여부
 
 	bool		m_reduce_acc;
 	bool		m_check_section[CheckPointNum];
-public:
+
+	int			m_lap_num;
+
 	float		m_yaw, m_pitch, m_roll;
 	MyVector3D	m_pos;
+
+public:
+	CRITICAL_SECTION	m_cs;
+
 	BoundingOrientedBox xoobb;
 
 public:
@@ -75,11 +78,16 @@ public:
 		m_coordinate.z_coordinate = tmp_lookvec;
 		m_accelerator = 0.0f;
 		m_limit_acc = LIMIT_ACCELERATOR;
+
+		InitializeCriticalSection(&m_cs);
+
 		xoobb = { XMFLOAT3(m_pos.x,m_pos.y,m_pos.z), XMFLOAT3(6.0f,6.0f,6.0f), XMFLOAT4(0.0f,0.0f,0.0f,1.0f) };
 
 		m_item_cooldown = false;
 		m_booster_on = false;
 		m_lose_control = false;
+		m_hit_motion = false;
+
 		for (int i{}; i < CheckPointNum; i++) {
 			m_check_section[i] = false;
 			if (i == 3) {
@@ -88,6 +96,9 @@ public:
 		}
 		m_lap_num = 0;
 	};
+	~ClientINFO() {
+		DeleteCriticalSection(&m_cs);
+	}
 
 public:
 	// Accessor Func
@@ -107,7 +118,7 @@ public:
 		if (m_myitem.empty()) return -1;	// 큐가 비어있으면 -1을
 		return m_myitem.front();			// 아이템이 있다면 아이템의 고유번호를 반환합니다.
 	}
-	int			getHowManyItem() { return m_myitem.size(); }
+	int			getHowManyItem() { return static_cast<int>(m_myitem.size()); }
 	bool		getItemCooldown() { return m_item_cooldown; }
 	
 	// =============Client 부가 정보====================
@@ -118,7 +129,9 @@ public:
 
 	bool		getBoosterOn() { return m_booster_on; }
 	bool		getLoseControl() { return m_lose_control; }
-	bool		getReduceAcc() { return m_reduce_acc; }
+	bool		getHitMotion() { return m_hit_motion; }
+
+
 	bool		getCheckSection(int num) { return m_check_section[num]; }
 
 	// 2. Set
@@ -128,14 +141,17 @@ public:
 	void		setID(int id) { m_id = id; }	
 	void		setCoordinate(Coordinate co) { m_coordinate = co; }
 	void		setCoordinate(MyVector3D x, MyVector3D y, MyVector3D z) { m_coordinate.x_coordinate = x; m_coordinate.y_coordinate = y; m_coordinate.z_coordinate = z; }
-	void		setPos(MyVector3D pos) { m_pos = pos; }
+	void		setPos(MyVector3D pos) {
+					m_pos = pos;
+					xoobb = BoundingOrientedBox(XMFLOAT3(m_pos.x, m_pos.y, m_pos.z), XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+				}
 	void		setYaw(float f) { m_yaw = f; }
 	void		setPitch(float f) { m_pitch = f; }
 	void		setRoll(float f) { m_roll = f; }
 
 	// =============Client 아이템 정보====================
 	void		setItemQueue(int type) { m_myitem.push(type); } // 아이템 먹을 시에 사용
-	void		setItemRelease() { m_myitem.pop(); } // 사용한 아이템 방출
+	void		setItemRelease() { m_myitem.pop(); }			// 사용한 아이템 방출
 	void		setItemCooldown(bool b) { m_item_cooldown = b; }
 	
 	// =============Client 부가 정보====================
@@ -146,7 +162,8 @@ public:
 	
 	void		setBoosterOn(bool b) { m_booster_on = b; }
 	void		setLoseControl(bool b) { m_lose_control = b; }
-	void		setReduceAcc(bool b) { m_reduce_acc = b; }
+	void		setHitMotion(bool b) { m_hit_motion = b; }
+
 	void		setCheckSection(int num, bool b) { m_check_section[num] = b; }
 
 public:
@@ -164,7 +181,6 @@ array<ClientINFO, MAX_USER> clients;
 //             [ 아이템 객체 정보 ]
 //==================================================
 enum { ITEM_Booster, ITEM_Missile, ITEM_Bomb };
-constexpr int ITEM_VARIETY = 3; // 아이템 종류 수
 class ItemObject {
 	int			m_id;
 	int			m_objtype;
@@ -173,8 +189,12 @@ class ItemObject {
 	MyVector3D	m_pos;
 	Coordinate	m_coordinate;
 	bool		m_running;
+
 public:
+	CRITICAL_SECTION	m_cs;
+
 	BoundingOrientedBox xoobb;
+
 public:
 	ItemObject() {
 		m_id = -1;
@@ -189,6 +209,7 @@ public:
 		m_coordinate.y_coordinate = tmp_upvec;
 		m_coordinate.z_coordinate = tmp_lookvec;
 		m_running = false;
+		InitializeCriticalSection(&m_cs);
 	};
 	int			getID() { return m_id; }
 	int			getObjType() { return m_objtype; }
@@ -203,7 +224,10 @@ public:
 	void		setID(int id) { m_id = id; }
 	void		setObjType(int type) { m_objtype = type; }
 	void		setObjOwner(int num) { m_objOwner = num; }
-	void		setPos(MyVector3D pos) { m_pos = pos; }
+	void		setPos(MyVector3D pos) {
+					m_pos = pos;
+					xoobb = BoundingOrientedBox(XMFLOAT3(m_pos.x, m_pos.y, m_pos.z), XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+				}
 	void		setCoordinate(Coordinate co) { m_coordinate = co; }
 	void		setCoordinate(MyVector3D x, MyVector3D y, MyVector3D z) { m_coordinate.x_coordinate = x; m_coordinate.y_coordinate = y; m_coordinate.z_coordinate = z; }
 	void		setPitch(float f) { m_pitch = f; }
@@ -234,11 +258,25 @@ array<ItemObject, BombNum> BombArray;
 //           [ 아이템 박스 객체 정보 ]
 //==================================================
 struct ItemBox {
-	float		m_yaw, m_pitch, m_roll; // 회전 각도
 	MyVector3D	m_pos;
-	Coordinate	m_coordinate; // 회전 행렬
-	bool		m_visible = true;
+	float		m_yaw, m_pitch, m_roll; // 회전 각도
+	Coordinate	m_coordinate;			// 회전 행렬
+	bool		m_visible;
+	CRITICAL_SECTION	m_cs;
 	BoundingOrientedBox xoobb;
+
+	ItemBox() {
+		m_pos = { 0, 0, 0 };
+		m_yaw = m_pitch = m_roll = 0.f;
+		MyVector3D tmp_rightvec = { 1.f, 0.f, 0.f };
+		MyVector3D tmp_upvec = { 0.f, 1.f, 0.f };
+		MyVector3D tmp_lookvec = { 0.f, 0.f, 1.f };
+		m_coordinate.x_coordinate = tmp_rightvec;
+		m_coordinate.y_coordinate = tmp_upvec;
+		m_coordinate.z_coordinate = tmp_lookvec;
+		m_visible = true;
+		InitializeCriticalSection(&m_cs);
+	}
 };
 array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //==================================================
@@ -247,7 +285,7 @@ array<ItemBox, ITEMBOXNUM> ItemBoxArray;
 //           [ 체크 포인트 객체 정보 ]
 //==================================================
 struct CheckPoint {
-	MyVector3D	m_pos;
+	MyVector3D	m_pos = { 0, 0, 0 };
 	BoundingOrientedBox xoobb;
 };
 array<CheckPoint, CheckPointNum> CheckPointBoxArray;
@@ -259,7 +297,7 @@ array<CheckPoint, CheckPointNum> CheckPointBoxArray;
 constexpr int EV_TYPE_QUEUE_ERROR = 99; // type error
 enum { EV_TYPE_REFRESH, EV_TYPE_MOVE, EV_TYPE_ROTATE, EV_TYPE_REMOVE, EV_TYPE_HIT };											// 이벤트 타입
 enum { EV_TARGET_CLIENTS, EV_TARGET_MISSILE, EV_TARGET_BOMB, EV_TARGET_ITEMBOX };												// 이벤트 적용 대상
-enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER, EV_DTARGET_CONTROL, EV_DTARGET_ACC, EV_DTARGET_BOOSTEND };	// Extra Info
+enum { EV_DTARGET_NONE, EV_DTARGET_ITEMCOOLDOWN, EV_DTARGET_BOOSTER, EV_DTARGET_CONTROL, EV_DTARGET_BOOSTEND };	// Extra Info
 constexpr int EV_DTARGET_ALL = 999;	// Extra Info
 struct ServerEvent {	// 타이머스레드에서 처리할 이벤트
 	// setServerEvent함수 인자에 입력해야하는 정보
@@ -268,16 +306,16 @@ struct ServerEvent {	// 타이머스레드에서 처리할 이벤트
 	char	ev_target;														// 이벤트 적용 대상
 	char	ev_target_detail;												// 세부 적용 대상
 	int		target_num;														// 적용 대상이 배열, 벡터 등에서 몇번째 칸에 있는 지
-	int		extra_info;														// 추가적인 정보가 필요한 경우 입력하세요.
+	float	extra_info;														// 추가적인 정보가 필요한 경우 입력하세요.
 
 	// setServerEvent함수를 통해 자동으로 입력되는 정보
 	float	ev_start_time;
-	bool	auto_ev_end;
 };
 queue<ServerEvent> ServerEventQueue;		// 서버 이벤트 큐
+CRITICAL_SECTION cs_timer_event;
 
-enum { NoFlag, NoCount, SetStartTimeToExInfo };
-void setServerEvent(char type, float sec, char target, char target_detail, int t_num, int ex_info, char flag) {
+enum { NoFlag, SetStartTimeToExInfo };
+void setServerEvent(char type, float sec, char target, char target_detail, int t_num, float ex_info, char flag) {
 	ServerEvent* temp = new ServerEvent;
 	temp->ev_type = type;
 	temp->ev_duration = sec;
@@ -290,12 +328,6 @@ void setServerEvent(char type, float sec, char target, char target_detail, int t
 		temp->ev_start_time = ex_info;
 	else
 		temp->ev_start_time = SERVER_TIME;
-
-	if (flag == NoCount)
-		temp->auto_ev_end = false;
-	else
-		temp->auto_ev_end = true;
-
 
 	ServerEventQueue.push(*temp);
 }
@@ -404,9 +436,6 @@ void sendItemBoxUpdatePacket_toAllClient(int itembox_id) {	// 모든 클라이언트에�
 //==================================================
 int main(int argc, char* argv[])
 {
-	// 임계영역 초기화
-	InitializeCriticalSection(&critical_section);
-
 	// 서버 시간 초기화
 	START_TIME = 0.0f;
 	SERVER_TIME = 0.0f;
@@ -416,6 +445,8 @@ int main(int argc, char* argv[])
 
 	// 주기적인 작업을 수행하는 타이머 스레드 생성
 	HANDLE hTimerThreadThread = CreateThread(NULL, 0, TimerThreadFunc, 0, 0, NULL);
+	// 임계영역 초기화
+	InitializeCriticalSection(&cs_timer_event);
 
 	// 충돌 검사를 수행하는 스레드 생성
 	HANDLE hCollideThreadThread = CreateThread(NULL, 0, CollideCheck_ThreadFunc, 0, 0, NULL);
@@ -423,21 +454,21 @@ int main(int argc, char* argv[])
 
 	// 아이템 박스의 위치값을 설정합니다.
 	for (int i{}; i < 3; ++i) {
-		ItemBoxArray[i].m_pos.x = 350 + i * 40;
-		ItemBoxArray[i].m_pos.y = 20;
+		ItemBoxArray[i].m_pos.x = 350.f + i * 40.f;
+		ItemBoxArray[i].m_pos.y = 20.f;
 		ItemBoxArray[i].m_pos.z = MiddleZ;
 
 		ItemBoxArray[3 + i].m_pos.x = MiddleX;
-		ItemBoxArray[3 + i].m_pos.y = 20;
-		ItemBoxArray[3 + i].m_pos.z = 2220 - i * 40;
+		ItemBoxArray[3 + i].m_pos.y = 20.f;
+		ItemBoxArray[3 + i].m_pos.z = 2220.f - i * 40.f;
 
-		ItemBoxArray[6 + i].m_pos.x = 2240 - i * 40;
-		ItemBoxArray[6 + i].m_pos.y = 20;
+		ItemBoxArray[6 + i].m_pos.x = 2240.f - i * 40.f;
+		ItemBoxArray[6 + i].m_pos.y = 20.f;
 		ItemBoxArray[6 + i].m_pos.z = MiddleZ;
 
 		ItemBoxArray[9 + i].m_pos.x = MiddleX;
-		ItemBoxArray[9 + i].m_pos.y = 20;
-		ItemBoxArray[9 + i].m_pos.z = 400 + i * 40;
+		ItemBoxArray[9 + i].m_pos.y = 20.f;
+		ItemBoxArray[9 + i].m_pos.z = 400.f + i * 40.f;
 	}
 	// 아이템 박스의 bb를 설정합니다.
 	for (int i = 0; i < ITEMBOXNUM; i++) {
@@ -455,7 +486,6 @@ int main(int argc, char* argv[])
 
 	// 통신 관련 초기작업들
 	int retval;
-	::QueryPerformanceFrequency;
 
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
@@ -507,7 +537,7 @@ int main(int argc, char* argv[])
 	closesocket(listen_sock);
 
 	// 임계영역 삭제
-	DeleteCriticalSection(&critical_section);
+	DeleteCriticalSection(&cs_timer_event);
 
 	// 윈속 종료
 	WSACleanup();
@@ -537,20 +567,22 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		if (clients[i].getState() == CL_STATE_EMPTY) {
 			client_id = i;
 
+			EnterCriticalSection(&clients[client_id].m_cs);
 			clients[client_id].setID(client_id);
 			clients[client_id].setSock(client_sock);
 			clients[client_id].setState(CL_STATE_RUNNING);
+			LeaveCriticalSection(&clients[client_id].m_cs);
 
 			break;
 		}
 	}
 
 	// 새로 접속한 클라이언트의 정보를 초기화합니다.
+	EnterCriticalSection(&clients[client_id].m_cs);
 	clients[client_id].setID(client_id);
-	MyVector3D Pos = { 400 + 50 * client_id, 14.0, 400 + 50 * client_id };
+	MyVector3D Pos = { 400.f + 50.f * client_id, 14.0f, 1150.f };
 	clients[client_id].setPos(Pos);
-	clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(clients[client_id].getPos().x, clients[client_id].getPos().y, clients[client_id].getPos().z),
-		XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+	LeaveCriticalSection(&clients[client_id].m_cs);
 
 	// 새로 접속한 클라이언트에게 자신의 초기 정보를 전달합니다.
 	GS2C_LOGIN_INFO_PACKET login_packet;
@@ -659,7 +691,9 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		}
 	}
 	// 아이템 박스가 제자리에서 계속 회전을 하도록 타이머에 이벤트로 넣어줍니다.
-	setServerEvent(EV_TYPE_ROTATE, INFINITY, EV_TARGET_ITEMBOX, EV_DTARGET_ALL, 0, 0, NoCount);
+	EnterCriticalSection(&cs_timer_event);
+	setServerEvent(EV_TYPE_ROTATE, INFINITY, EV_TARGET_ITEMBOX, EV_DTARGET_ALL, 0, 0, 0);
+	LeaveCriticalSection(&cs_timer_event);
 
 	//==================================================
 	// Loop - Recv & Process Packets
@@ -704,7 +738,9 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						float temp_yaw = clients[client_id].getYaw() + ROTATE_SCALAR * plus_minus * PI / 360.0f;
 						if (temp_yaw >= 360.0f)
 							temp_yaw -= 360.0f;
+						EnterCriticalSection(&clients[client_id].m_cs);
 						clients[client_id].setYaw(temp_yaw);
+						LeaveCriticalSection(&clients[client_id].m_cs);
 
 						// right, up, look 벡터 회전계산
 						MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
@@ -715,7 +751,9 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							, clients[client_id].getRoll(), clients[client_id].getPitch(), clients[client_id].getYaw());
 
 						// right, up, look 벡터 회전결과 적용
+						EnterCriticalSection(&clients[client_id].m_cs);
 						clients[client_id].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
+						LeaveCriticalSection(&clients[client_id].m_cs);
 
 						// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
 						sendPlayerUpdatePacket_toAllClient(client_id);
@@ -731,18 +769,20 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						if (clients[client_id].getLoseControl())
 							break;
 
-						clients[client_id].setReduceAcc(false);
 						float getacc = clients[client_id].getAccel();
-
 						if (getacc <= 0.0f) {
 							getacc = 0.015f;
+
+							EnterCriticalSection(&clients[client_id].m_cs);
 							clients[client_id].setAccel(getacc);
-							//cout << getacc << endl;
+							LeaveCriticalSection(&clients[client_id].m_cs);
 						}
 						else if (getacc >= clients[client_id].getLimitAcc()) {
 							getacc = clients[client_id].getLimitAcc();
+
+							EnterCriticalSection(&clients[client_id].m_cs);
 							clients[client_id].setAccel(getacc);
-							//cout << getacc << endl;
+							LeaveCriticalSection(&clients[client_id].m_cs);
 						}
 						else {
 							if (clients[client_id].getBoosterOn()) {
@@ -751,10 +791,11 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							else {
 								getacc += 0.018f;
 							}
-							clients[client_id].setAccel(getacc);
-							//cout << getacc << endl;
-						}
 
+							EnterCriticalSection(&clients[client_id].m_cs);
+							clients[client_id].setAccel(getacc);
+							LeaveCriticalSection(&clients[client_id].m_cs);
+						}
 
 						MyVector3D move_dir{ 0, 0, 0 };
 						move_dir = { clients[client_id].getCoordinate().z_coordinate.x * plus_minus,
@@ -763,11 +804,10 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						MyVector3D Move_Vertical_Result{ 0,0,0 };
 						Move_Vertical_Result = calcMove(clients[client_id].getPos(), move_dir, clients[client_id].getAccel());
 
+						EnterCriticalSection(&clients[client_id].m_cs);
 						// 좌표 업데이트
 						clients[client_id].setPos(Move_Vertical_Result);
-						// BB 업데이트
-						clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(clients[client_id].getPos().x, clients[client_id].getPos().y, clients[client_id].getPos().z),
-							XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+						LeaveCriticalSection(&clients[client_id].m_cs);
 
 						// 클라이언트에게 전달
 						sendPlayerUpdatePacket_toAllClient(client_id);
@@ -779,18 +819,21 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						// 제어권을 잃은 상태에선 조작이 불가능 합니다.
 						if (clients[client_id].getLoseControl())
 							break;
-
-
-						if (clients[client_id].getItemCooldown())		// 아이템 사용 쿨타임 상태라면 아무일도 일어나지 않는다.
-							break;
-						if (clients[client_id].getItemQueue() == -1)	// 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
+						// 아이템 사용 쿨타임 상태라면 아무일도 일어나지 않는다.
+						if (clients[client_id].getItemCooldown())
 							break;
 
-						EnterCriticalSection(&critical_section);
 						int used_item = clients[client_id].getItemQueue();
+						if (used_item == -1)
+							break;										// 플레이어가 현재 가진 아이템이 없다면 아무일도 일어나지 않는다.
 
+						EnterCriticalSection(&clients[client_id].m_cs);
 						clients[client_id].setItemCooldown(true);
+						LeaveCriticalSection(&clients[client_id].m_cs);
+
+						EnterCriticalSection(&cs_timer_event);
 						setServerEvent(EV_TYPE_REFRESH, ITEM_COOLDOWN_DURATION, EV_TARGET_CLIENTS, EV_DTARGET_ITEMCOOLDOWN, client_id, 0, 0);	// 아이템 사용 쿨타임
+						LeaveCriticalSection(&cs_timer_event);
 
 						switch (used_item) {
 						case ITEM_Booster:
@@ -798,24 +841,26 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							if (clients[client_id].getBoosterOn())	// 이미 부스터가 켜져있으면 사용할 수 없습니다.
 								break;
 
-							clients[client_id].setItemRelease();
 							cout << "Use Item[Booster, " << used_item << "]." << endl;
 
-							LeaveCriticalSection(&critical_section);
-
+							EnterCriticalSection(&clients[client_id].m_cs);
+							clients[client_id].setItemRelease();
 							clients[client_id].setBoosterOn(true);
-							cout << "Booster ON" << endl;
-
-
 							clients[client_id].setLimitAcc(BOOSTER_ACCELERATOR);
+							LeaveCriticalSection(&clients[client_id].m_cs);
+
+							EnterCriticalSection(&cs_timer_event);
 							setServerEvent(EV_TYPE_REFRESH, BOOSTER_DURATION, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTER, client_id, 0, 0);	// 부스터 지속시간
+							LeaveCriticalSection(&cs_timer_event);
 
 							break;
 						}
 						case ITEM_Missile:
 						{
-							clients[client_id].setItemRelease();
 							cout << "Use Item[Missile, " << used_item << "]." << endl;
+							EnterCriticalSection(&clients[client_id].m_cs);
+							clients[client_id].setItemRelease();
+							LeaveCriticalSection(&clients[client_id].m_cs);
 
 							// id 할당
 							int missile_id = -1;
@@ -825,9 +870,13 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 									break;
 								}
 							}
-							cout << "missile id: " << missile_id << endl;//test
+							if (missile_id == -1) {
+								cout << "Failed to Shoot Missile - Too Many Missiles in Game!" << endl;
+								break;
+							}
 
 							// 새롭게 추가되는 미사일의 정보 저장
+							EnterCriticalSection(&MissileArray[missile_id].m_cs);
 							MissileArray[missile_id].setID(missile_id);
 							MissileArray[missile_id].setObjType(used_item);
 							MissileArray[missile_id].setObjOwner(client_id);
@@ -840,11 +889,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							MissileArray[missile_id].setPitch(clients[client_id].getPitch());
 							MissileArray[missile_id].setCoordinate(clients[client_id].getCoordinate());
 							MissileArray[missile_id].setRunning(true);
-							MissileArray[missile_id].xoobb
-								= BoundingOrientedBox(XMFLOAT3(MissileArray[missile_id].getPos().x, MissileArray[missile_id].getPos().y, MissileArray[missile_id].getPos().z)
-									, XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
-
-							LeaveCriticalSection(&critical_section);
+							LeaveCriticalSection(&MissileArray[missile_id].m_cs);
 
 							// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
 							GS2C_ADD_OBJ_PACKET add_missile_packet;
@@ -877,7 +922,9 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							}
 
 							// 미사일의 타이머 설정
+							EnterCriticalSection(&cs_timer_event);
 							setServerEvent(EV_TYPE_MOVE, MISSILE_DURATION - 0.5f, EV_TARGET_MISSILE, 0, missile_id, 0, 0); // 미사일 이동
+							LeaveCriticalSection(&cs_timer_event);
 
 							break;
 						}
@@ -896,6 +943,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							}
 
 							// 새롭게 추가되는 지뢰의 정보 저장
+							EnterCriticalSection(&BombArray[bomb_id].m_cs);
 							BombArray[bomb_id].setID(bomb_id);
 							BombArray[bomb_id].setObjType(used_item);
 							BombArray[bomb_id].setObjOwner(client_id);
@@ -908,7 +956,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							BombArray[bomb_id].setPitch(clients[client_id].getPitch());
 							BombArray[bomb_id].setCoordinate(clients[client_id].getCoordinate());
 							BombArray[bomb_id].setRunning(true);
-							LeaveCriticalSection(&critical_section);
+							LeaveCriticalSection(&BombArray[bomb_id].m_cs);
 
 							// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
 							GS2C_ADD_OBJ_PACKET add_bomb_packet;
@@ -941,12 +989,12 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							}
 
 							// 지뢰의 타이머 설정
+							EnterCriticalSection(&cs_timer_event);
 							setServerEvent(EV_TYPE_REMOVE, BOMB_DURATION, EV_TARGET_BOMB, 0, bomb_id, 0, 0);
+							LeaveCriticalSection(&cs_timer_event);
 							break;
 						}
-						default:
-							LeaveCriticalSection(&critical_section);
-							//CaseEnd
+						//CaseEnd
 						}
 						//SwitchEnd
 
@@ -963,11 +1011,12 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			retval = recv(client_sock, reinterpret_cast<char*>(&ClientUpKey), sizeof(C2GS_KEYUPVALUE_PACKET), 0);
 			if (retval == SOCKET_ERROR) {
 				//err_display("recv()");
-				closesocket(client_sock);
 			}
 
-			clients[client_id].setReduceAcc(true);
-			setServerEvent(EV_TYPE_REFRESH, 0, EV_TARGET_CLIENTS, EV_DTARGET_ACC, client_id, 0, 0);
+			// 키를 떼면 가속도를 0으로 설정합니다.
+			EnterCriticalSection(&clients[client_id].m_cs);
+			clients[client_id].setAccel(0.0f);
+			LeaveCriticalSection(&clients[client_id].m_cs);
 
 			break;
 		}
@@ -989,62 +1038,66 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 DWORD WINAPI TimerThreadFunc(LPVOID arg)
 {
 	while (1) {
-		EnterCriticalSection(&critical_section);	// 임계영역 진입
-		ServerEvent* new_event = new ServerEvent;
+		ServerEvent new_event;
+		EnterCriticalSection(&cs_timer_event);
 		if (ServerEventQueue.empty()) {
-			LeaveCriticalSection(&critical_section);	// 임계영역 탈출
+			LeaveCriticalSection(&cs_timer_event);
 			continue;
 		}
 		else {
-			*new_event = ServerEventQueue.front();
+			new_event = ServerEventQueue.front();
 			ServerEventQueue.pop();
+			LeaveCriticalSection(&cs_timer_event);
 		}
 
-		int target = new_event->target_num;
-		switch (new_event->ev_type) {
+		int target = new_event.target_num;
+		switch (new_event.ev_type) {
 		case EV_TYPE_REFRESH:
 		{
-			if (SERVER_TIME >= new_event->ev_start_time + new_event->ev_duration) {
+			if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
 				// 이벤트 시간이 끝났다면 타겟 타입에 맞는 후처리 작업을 해줍니다.
-				switch (new_event->ev_target) {
+				switch (new_event.ev_target) {
 				case EV_TARGET_CLIENTS:
-					if (new_event->ev_target_detail == EV_DTARGET_CONTROL) {
+					if (new_event.ev_target_detail == EV_DTARGET_CONTROL) {
+						EnterCriticalSection(&clients[target].m_cs);
 						clients[target].setLoseControl(false);
+						LeaveCriticalSection(&clients[target].m_cs);
+
 						cout << "Client[ " << target << "] Gets Control Back" << endl;
 					}
-					else if (new_event->ev_target_detail == EV_DTARGET_ITEMCOOLDOWN) {
+					else if (new_event.ev_target_detail == EV_DTARGET_ITEMCOOLDOWN) {
+						EnterCriticalSection(&clients[target].m_cs);
 						clients[target].setItemCooldown(false);
+						LeaveCriticalSection(&clients[target].m_cs);
+
 						cout << "Client[ " << target << "]'s Item Cooldown is End." << endl;
 					}
-					else if (new_event->ev_target_detail == EV_DTARGET_BOOSTER) {
-						setServerEvent(EV_TYPE_REFRESH, 0.1, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
+					else if (new_event.ev_target_detail == EV_DTARGET_BOOSTER) {
+						EnterCriticalSection(&cs_timer_event);
+						setServerEvent(EV_TYPE_REFRESH, 0.1f, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
+						LeaveCriticalSection(&cs_timer_event);
+						cout << "Client[ " << target << "]'s Booster is End." << endl;
 					}
-					else if (new_event->ev_target_detail == EV_DTARGET_BOOSTEND) {
-						// 부스터가 끝났을 때 가속도 상한을 원래 수준으로 서서히 낮춰줍니다.
-						if (clients[target].getAccel() <= LIMIT_ACCELERATOR) {
-							clients[target].setBoosterOn(false);
+					else if (new_event.ev_target_detail == EV_DTARGET_BOOSTEND) {
+						float new_acc = clients[target].getAccel() - 0.6f;
+						if (new_acc <= LIMIT_ACCELERATOR) {			// 원래의 가속도 제한수치까지 낮췄을 경우
+							EnterCriticalSection(&clients[target].m_cs);
+							clients[target].setAccel(LIMIT_ACCELERATOR);
 							clients[target].setLimitAcc(LIMIT_ACCELERATOR);
-							cout << "Client[ " << target << "]'s Booster is End." << endl;
-							break;
+							clients[target].setBoosterOn(false);	// 부스터를 꺼줍니다.
+							LeaveCriticalSection(&clients[target].m_cs);
 						}
-						clients[target].setAccel(clients[target].getAccel() - 0.6);
-						clients[target].setLimitAcc(clients[target].getAccel());
+						else {
+							EnterCriticalSection(&clients[target].m_cs);
+							clients[target].setAccel(new_acc);
+							clients[target].setLimitAcc(new_acc);
+							LeaveCriticalSection(&clients[target].m_cs);
 
-						setServerEvent(EV_TYPE_REFRESH, 0.1, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
-					}
-					else if (new_event->ev_target_detail == EV_DTARGET_ACC) {
-						// 이동키를 떼었을때 가속도를 점점 감소시킵니다.
-						if (clients[target].getAccel() <= 0) {
-							clients[target].setAccel(0.0f);
-							break;
+							// 아직 원래의 가속도로 돌아오지 않았으므로 동일한 이벤트를 다시 불러줍니다.
+							EnterCriticalSection(&cs_timer_event);
+							setServerEvent(EV_TYPE_REFRESH, 0.1f, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTEND, target, 0, 0);
+							LeaveCriticalSection(&cs_timer_event);
 						}
-						if (!clients[target].getReduceAcc()) {
-							break;
-						}
-
-						clients[target].setAccel(clients[target].getAccel() - 0.8);
-
-						setServerEvent(EV_TYPE_REFRESH, 0, EV_TARGET_CLIENTS, EV_DTARGET_ACC, target, 0, 0);
 					}
 					else {
 						cout << "[Event Error] Unknown Event's Extra Info." << endl;
@@ -1052,8 +1105,11 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 					break;
 				case EV_TARGET_ITEMBOX:
 					cout << "ItemBox[" << target << "] is Refreshed." << endl;
+
+					EnterCriticalSection(&ItemBoxArray[target].m_cs);
 					ItemBoxArray[target].m_pos.y = 20.0f;
 					ItemBoxArray[target].m_visible = true;
+					LeaveCriticalSection(&ItemBoxArray[target].m_cs);
 
 					// 아이템 박스의 변경사항을 모든 클라이언트에게 전달합니다.
 					sendItemBoxUpdatePacket_toAllClient(target);
@@ -1062,16 +1118,19 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 			}
 			else {
 				// 아직 이벤트 시간이 끝나지 않았다면 정보를 그대로 유지한채 이벤트 큐에 다시 넣어줍니다.
-				setServerEvent(new_event->ev_type, new_event->ev_duration, new_event->ev_target, new_event->ev_target_detail, new_event->target_num
-					, new_event->ev_start_time, SetStartTimeToExInfo);
+				EnterCriticalSection(&cs_timer_event);
+				setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.ev_target_detail, new_event.target_num
+					, new_event.ev_start_time, SetStartTimeToExInfo);
+				LeaveCriticalSection(&cs_timer_event);
 			}
 			break;
 		}
 		case EV_TYPE_MOVE:
 		{
-			switch (new_event->ev_target) {
+			switch (new_event.ev_target) {
 			case EV_TARGET_MISSILE:
-				if (SERVER_TIME < new_event->ev_start_time + new_event->ev_duration) {	// 지속시간이 끝날 때까지 지속적으로 움직입니다.
+				if (!MissileArray[target].getRunning()) break;
+				if (SERVER_TIME < new_event.ev_start_time + new_event.ev_duration) {	// 지속시간이 끝날 때까지 지속적으로 움직입니다.
 					// 미사일을 앞으로 움직입니다.
 					MyVector3D move_dir{ 0, 0, 0 };
 					move_dir = { MissileArray[target].getCoordinate().z_coordinate.x,
@@ -1080,12 +1139,10 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 
 					MyVector3D Missile_Move_Result = calcMove(MissileArray[target].getPos(), move_dir, MISSILE_MOVE_SCALAR);
 
+					EnterCriticalSection(&MissileArray[target].m_cs);
 					// 변경된 좌표로 업데이트합니다.
 					MissileArray[target].setPos(Missile_Move_Result);
-					// BB 업데이트
-					MissileArray[target].xoobb
-						= BoundingOrientedBox(XMFLOAT3(MissileArray[target].getPos().x, MissileArray[target].getPos().y, MissileArray[target].getPos().z)
-							, XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+					LeaveCriticalSection(&MissileArray[target].m_cs);
 
 					// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
 					GS2C_UPDATE_PACKET missile_update_pack;
@@ -1116,23 +1173,18 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 						clients[i].sendUpdatePacket(missile_update_pack);
 					}
 
-					// Test Log
-					//cout << "Missile[" << target << "] moves to Pos(" <<
-					//	MissileArray[target].getPos().x << ", " <<
-					//	MissileArray[target].getPos().y << ", " <<
-					//	MissileArray[target].getPos().z << ")." << endl;
-
 					// 이동을 마치면 다시 큐에 넣습니다.
-					setServerEvent(new_event->ev_type, new_event->ev_duration, new_event->ev_target, new_event->ev_target_detail, new_event->target_num
-						, new_event->ev_start_time, SetStartTimeToExInfo);
+					EnterCriticalSection(&cs_timer_event);
+					setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.ev_target_detail, new_event.target_num
+						, new_event.ev_start_time, SetStartTimeToExInfo);
+					LeaveCriticalSection(&cs_timer_event);
 				}
 				else {
 					// 지속시간이 끝났으면 미사일을 제거합니다.
+					EnterCriticalSection(&MissileArray[target].m_cs);
 					MissileArray[target].setPos(MyVector3D{ 0.f, 0.f, 0.f });
-					MissileArray[target].xoobb
-						= BoundingOrientedBox(XMFLOAT3(MissileArray[target].getPos().x, MissileArray[target].getPos().y, MissileArray[target].getPos().z)
-							, XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 					MissileArray[target].setRunning(false);
+					LeaveCriticalSection(&MissileArray[target].m_cs);
 
 					// 제거 패킷을 보냅니다.
 					GS2C_REMOVE_OBJ_PACKET missile_remove_pack;
@@ -1156,8 +1208,8 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 		}
 		case EV_TYPE_ROTATE:
 		{
-			if (SERVER_TIME < new_event->ev_start_time + new_event->ev_duration) {
-				switch (new_event->ev_target) {
+			if (SERVER_TIME < new_event.ev_start_time + new_event.ev_duration) {
+				switch (new_event.ev_target) {
 				case EV_TARGET_ITEMBOX:
 					// 아이템박스를 회전시킵니다.
 					// yaw 설정
@@ -1165,7 +1217,9 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 						float temp_yaw = ItemBoxArray[i].m_yaw + ITEMBOX_ROTATE_SCALAR * PI / 360.0f;
 						if (temp_yaw >= 360.0f)
 							temp_yaw -= 360.0f;
+						EnterCriticalSection(&ItemBoxArray[i].m_cs);
 						ItemBoxArray[i].m_yaw = temp_yaw;
+						LeaveCriticalSection(&ItemBoxArray[i].m_cs);
 
 						// right, up, look 벡터 회전계산
 						MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
@@ -1176,9 +1230,11 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 							, ItemBoxArray[i].m_roll, ItemBoxArray[i].m_pitch, ItemBoxArray[i].m_yaw);
 
 						// right, up, look 벡터 회전결과 적용
+						EnterCriticalSection(&ItemBoxArray[i].m_cs);
 						ItemBoxArray[i].m_coordinate.x_coordinate = rotate_result_x;
 						ItemBoxArray[i].m_coordinate.y_coordinate = rotate_result_y;
 						ItemBoxArray[i].m_coordinate.z_coordinate = rotate_result_z;
+						LeaveCriticalSection(&ItemBoxArray[i].m_cs);
 
 						// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
 						GS2C_UPDATE_PACKET itembox_update_pack;
@@ -1211,8 +1267,10 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 					}
 
 					// 회전을 마치면 다시 큐에 넣습니다.
-					setServerEvent(new_event->ev_type, new_event->ev_duration, new_event->ev_target, new_event->ev_target_detail, new_event->target_num,
-						new_event->ev_start_time, SetStartTimeToExInfo);
+					EnterCriticalSection(&cs_timer_event);
+					setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.ev_target_detail, new_event.target_num,
+						new_event.ev_start_time, SetStartTimeToExInfo);
+					LeaveCriticalSection(&cs_timer_event);
 
 					break;
 				}
@@ -1221,13 +1279,18 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 		}
 		case EV_TYPE_REMOVE:
 		{
-			if (SERVER_TIME >= new_event->ev_start_time + new_event->ev_duration) {
+			if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
 				// 이벤트 시간이 끝났다면 타겟 타입에 맞는 후처리 작업을 해줍니다.
-				switch (new_event->ev_target) {
+				switch (new_event.ev_target) {
 				case EV_TARGET_BOMB:
+					if (!BombArray[target].getRunning())
+						break;
+
 					cout << "Bomb[" << target << "] is Removed." << endl;//test
 
+					EnterCriticalSection(&BombArray[target].m_cs);
 					BombArray[target].returnToInitialState();
+					LeaveCriticalSection(&BombArray[target].m_cs);
 
 					// 제거 패킷을 모든 클라이언트에게 전달합니다.
 					GS2C_REMOVE_OBJ_PACKET rm_bomb_packet;
@@ -1238,65 +1301,73 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 
 					for (int i = 0; i < MAX_USER; i++) {
 						if (clients[i].getState() == CL_STATE_EMPTY) continue;
-
 						clients[i].sendRemoveObjPacket(rm_bomb_packet);
 					}
-
 					break;
 				}
 			}
 			else {
 				// 아직 이벤트 시간이 끝나지 않았다면 정보를 그대로 유지한채 이벤트 큐에 다시 넣어줍니다.
-				setServerEvent(new_event->ev_type, new_event->ev_duration, new_event->ev_target, new_event->ev_target_detail, new_event->target_num,
-					new_event->ev_start_time, SetStartTimeToExInfo);
+				EnterCriticalSection(&cs_timer_event);
+				setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.ev_target_detail, new_event.target_num,
+					new_event.ev_start_time, SetStartTimeToExInfo);
+				LeaveCriticalSection(&cs_timer_event);
 			}
 			break;
 		}
 		case EV_TYPE_HIT:
 		{
-			if (new_event->ev_target == EV_TARGET_CLIENTS) {
-				// 플레이어 객체를 위로 띄웠다가 다시 떨어뜨립니다.
-				float theta = (SERVER_TIME - new_event->ev_start_time) * 30.0f;
-				if (theta >= 180.0f) theta = 180.0f;
-				MyVector3D hit_motion_pos = { 0, 0, 0 };
-				hit_motion_pos.x = clients[target].getPos().x;
-				hit_motion_pos.y = 14 + 100 * sin(theta * PI / 180.0f);
-				hit_motion_pos.z = clients[target].getPos().z;
+			if (new_event.ev_target == EV_TARGET_CLIENTS) {
+				if (!clients[target].getLoseControl())
+					break;
+				if (!clients[target].getHitMotion())
+					break;
 
-				clients[target].setPos(hit_motion_pos);
-
-
-				if (theta <= 90.0f) {
-					// 플레이어 객체를 x축기준으로 회전시킵니다.
-					// pitch 설정
-					float temp_pitch = clients[target].getYaw() + theta * 6.0f * PI / 180.0f;
-					if (temp_pitch >= 360.0f)
-						temp_pitch -= 360.0f;
-					clients[target].setPitch(temp_pitch);
-				}
-				else {
-					clients[target].setPitch(0.f);
-				}
-
-				// right, up, look 벡터 회전계산
-				MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
-					, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
-				MyVector3D rotate_result_y = calcRotate(basic_coordinate.y_coordinate
-					, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
-				MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
-					, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
-
-				// right, up, look 벡터 회전결과 적용
-				clients[target].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
-
-				sendPlayerUpdatePacket_toAllClient(target);
-
-				if (theta < 180.0f) {
-					setServerEvent(new_event->ev_type, new_event->ev_duration, new_event->ev_target, new_event->ev_target_detail, new_event->target_num,
-						new_event->ev_start_time, SetStartTimeToExInfo);
-				}
-				else {	// 연출 끝
+				if (SERVER_TIME >= new_event.ev_start_time + new_event.ev_duration) {
+					// 이벤트 시간이 끝났다면
+					EnterCriticalSection(&clients[target].m_cs);
 					clients[target].setLoseControl(false);
+					clients[target].setHitMotion(false);
+					LeaveCriticalSection(&clients[target].m_cs);
+				}
+				else { // 플레이어 객체를 제자리에서 y축기준으로 회전시킵니다.
+					// 처음엔 점점 빨라졌다 중간부터 서서히 느려지면서 멈추는 연출
+					float rot_scalar = 0.0f;
+					float cur_duration = SERVER_TIME - new_event.ev_start_time;
+					if (cur_duration < new_event.ev_duration / 2.f) {	// 지속시간의 절반 이전
+						rot_scalar = cur_duration / 5.5f;
+					}
+					else {	// 지속시간의 절반 이후
+						rot_scalar = (new_event.ev_start_time + new_event.ev_duration - SERVER_TIME) / 5.5f;
+					}
+
+					// pitch 설정
+					float theta_rad = rot_scalar * PI / 180.0f;
+					float temp_yaw = clients[target].getYaw() + theta_rad;
+
+					EnterCriticalSection(&clients[target].m_cs);
+					clients[target].setYaw(temp_yaw);
+					LeaveCriticalSection(&clients[target].m_cs);
+
+					// right, up, look 벡터 회전계산
+					MyVector3D rotate_result_x = calcRotate(basic_coordinate.x_coordinate
+						, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+					MyVector3D rotate_result_y = calcRotate(basic_coordinate.y_coordinate
+						, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+					MyVector3D rotate_result_z = calcRotate(basic_coordinate.z_coordinate
+						, clients[target].getRoll(), clients[target].getPitch(), clients[target].getYaw());
+
+					// right, up, look 벡터 회전결과 적용
+					EnterCriticalSection(&clients[target].m_cs);
+					clients[target].setCoordinate(rotate_result_x, rotate_result_y, rotate_result_z);
+					LeaveCriticalSection(&clients[target].m_cs);
+
+					sendPlayerUpdatePacket_toAllClient(target);
+
+					EnterCriticalSection(&cs_timer_event);
+					setServerEvent(new_event.ev_type, new_event.ev_duration, new_event.ev_target, new_event.ev_target_detail, new_event.target_num,
+						new_event.ev_start_time, SetStartTimeToExInfo);
+					LeaveCriticalSection(&cs_timer_event);
 				}
 			}
 			break;
@@ -1304,8 +1375,6 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 		//case end
 		}
 		//switch end
-
-		LeaveCriticalSection(&critical_section);	// 임계영역 탈출
 	}
 }
 //==================================================
@@ -1374,10 +1443,14 @@ void TerrainExitCollision(MyVector3D vec, float veclocity, float scarla)
 
 }
 
+// 1. Player - ItemBox 충돌체크
 void collisioncheck_Player2ItemBox(int client_id)
 {
 	for (int i = 0; i < ITEMBOXNUM; i++)
 	{
+		// 이미 누군가가 최근에 충돌한 적있는 아이템박스는 충돌체크 대상에서 제외합니다.
+		if (!ItemBoxArray[i].m_visible) continue;
+
 		// 플레이어에게서 너무 멀리 떨어져있는 아이템박스는 충돌체크 대상에서 제외합니다.
 		if (ItemBoxArray[i].m_pos.x < clients[client_id].getPos().x - 150
 			|| ItemBoxArray[i].m_pos.x > clients[client_id].getPos().x + 150) continue;
@@ -1385,41 +1458,46 @@ void collisioncheck_Player2ItemBox(int client_id)
 			|| ItemBoxArray[i].m_pos.y > clients[client_id].getPos().y + 100) continue;
 		if (ItemBoxArray[i].m_pos.z < clients[client_id].getPos().z - 150
 			|| ItemBoxArray[i].m_pos.z > clients[client_id].getPos().z + 150) continue;
-		// 이미 누군가가 최근에 충돌한 적있는 아이템박스는 충돌체크 대상에서 제외합니다.
-		if (!ItemBoxArray[i].m_visible) continue;
 
 		// 충돌체크 & 후처리
 		if (ItemBoxArray[i].xoobb.Intersects(clients[client_id].xoobb))
 		{
-			EnterCriticalSection(&critical_section);
 			// 아이템 박스를 안보이게 위치를 조정하고, 충돌체크 대상에서 제외되도록 설정합니다.
+			EnterCriticalSection(&ItemBoxArray[i].m_cs);
 			ItemBoxArray[i].m_pos.y = ItemBoxArray[i].m_pos.y - 500;
 			ItemBoxArray[i].m_visible = false;
+			LeaveCriticalSection(&ItemBoxArray[i].m_cs);
 
 			// 아이템 박스의 변경사항을 모든 클라이언트에게 전달합니다.
 			sendItemBoxUpdatePacket_toAllClient(i);
 
 			// 충돌한 아이템박스는 5.0초 후에 초기상태로 돌아옵니다.
+			EnterCriticalSection(&cs_timer_event);
 			setServerEvent(EV_TYPE_REFRESH, 5.0f, EV_TARGET_ITEMBOX, 0, i, 0, 0);
+			LeaveCriticalSection(&cs_timer_event);
 
 			// 충돌한 플레이어는 갖고 있는 아이템이 2개 미만일 때에만 새로운 아이템을 얻을 수 있습니다.
 			if (clients[client_id].getHowManyItem() < 2) {
 				srand(static_cast<unsigned int>(SERVER_TIME) * i);
-				int new_item = rand() % 3;
-				//	int new_item = 1;
+				//int new_item = rand() % 3;
+				int new_item = 1;
+
+				EnterCriticalSection(&clients[client_id].m_cs);
 				clients[client_id].setItemQueue(new_item);
+				LeaveCriticalSection(&clients[client_id].m_cs);
+
 				cout << "Collide ItemBox[" << i << "], and... ";
 				cout << "Get New Item(type: " << new_item << ")." << endl;
 			}
 			else {
-				cout << "You Have Too Many Items..." << endl;
+				cout << "Failed to Get New Item - You Have Too Many Items..." << endl;
 			}
-			LeaveCriticalSection(&critical_section);
 		}
 	}
 
 }
 
+// 2. Player - Player 충돌체크
 void collisioncheck_Player2Player(int client_id)
 {
 	for (int i{}; i < MAX_USER; i++)
@@ -1427,28 +1505,31 @@ void collisioncheck_Player2Player(int client_id)
 		// 자기 자신은 충돌체크 대상에서 제외합니다.
 		if (i == client_id) continue;
 
+		// 이미 충돌해서 제어불능 상태인 객체는 충돌체크 대상에서 제외합니다.
+		if (clients[client_id].getLoseControl() && clients[i].getLoseControl())
+			continue;
+
 		// 플레이어에게서 너무 멀리 떨어져있는 다른 플레이어의 객체는 충돌체크 대상에서 제외합니다.
-		if (clients[i].m_pos.x < clients[client_id].getPos().x - 150
-			|| clients[i].m_pos.x > clients[client_id].getPos().x + 150) continue;
-		if (clients[i].m_pos.y < clients[client_id].getPos().y - 100
-			|| clients[i].m_pos.y > clients[client_id].getPos().y + 100) continue;
-		if (clients[i].m_pos.z < clients[client_id].getPos().z - 150
-			|| clients[i].m_pos.z > clients[client_id].getPos().z + 150) continue;
+		if (clients[i].getPos().x < clients[client_id].getPos().x - 150
+			|| clients[i].getPos().x > clients[client_id].getPos().x + 150) continue;
+		if (clients[i].getPos().y < clients[client_id].getPos().y - 100
+			|| clients[i].getPos().y > clients[client_id].getPos().y + 100) continue;
+		if (clients[i].getPos().z < clients[client_id].getPos().z - 150
+			|| clients[i].getPos().z > clients[client_id].getPos().z + 150) continue;
 
 		// 충돌 체크 & 후처리
 		if (clients[client_id].xoobb.Intersects(clients[i].xoobb))
 		{
-			EnterCriticalSection(&critical_section);
-			if (clients[client_id].getLoseControl() && clients[i].getLoseControl())
-				continue;
-
 			cout << "Collide Player : " << client_id << "&" << i << endl;
 
-			// 두 객체의 제어권을 잠시 없앱니다.
+			// 객체의 제어권을 잠시 없앱니다.
+			EnterCriticalSection(&clients[client_id].m_cs);
 			clients[client_id].setLoseControl(true);
-			//clients[i].setLoseControl(true);
+			LeaveCriticalSection(&clients[client_id].m_cs);
+
+			EnterCriticalSection(&cs_timer_event);
 			setServerEvent(EV_TYPE_REFRESH, 0.7f, EV_TARGET_CLIENTS, EV_DTARGET_CONTROL, client_id, 0, 0);
-			//setServerEvent(EV_TYPE_REFRESH, 0.7f, EV_TARGET_CLIENTS, EV_DTARGET_CONTROL, i, 0, 0);
+			LeaveCriticalSection(&cs_timer_event);
 
 			// 충돌 연출
 			MyVector3D reflect_dir{ 0, 0, 0 };
@@ -1459,17 +1540,17 @@ void collisioncheck_Player2Player(int client_id)
 			MyVector3D reflect_Result{ 0,0,0 };
 			reflect_Result = calcMove(clients[client_id].getPos(), reflect_dir, REFLECT_SCALAR);
 
+			EnterCriticalSection(&clients[client_id].m_cs);
 			clients[client_id].setPos(reflect_Result);
-			clients[client_id].xoobb = BoundingOrientedBox(XMFLOAT3(clients[client_id].getPos().x, clients[client_id].getPos().y, clients[client_id].getPos().z),
-				XMFLOAT3(6.0f, 6.0f, 6.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+			LeaveCriticalSection(&clients[client_id].m_cs);
 
 			// 플레이어의 변경사항을 모든 클라이언트에게 전달합니다.
 			sendPlayerUpdatePacket_toAllClient(client_id);
-			LeaveCriticalSection(&critical_section);
 		}
 	}
 }
 
+// 3. Player - Missile 충돌체크
 void collisioncheck_Player2Missile(int client_id)
 {
 	for (int i = 0; i < MissileNum; i++) {
@@ -1478,6 +1559,9 @@ void collisioncheck_Player2Missile(int client_id)
 
 		// 자신을 생성한 플레이어는 공격하지 않습니다.
 		if (MissileArray[i].getObjOwner() == client_id) continue;
+
+		// 피격 모션 중인 플레이어는 공격하지 않습니다.
+		if (clients[client_id].getHitMotion()) continue;
 
 		// 플레이어에게서 너무 멀리 떨어져있는 미사일은 충돌체크 대상에서 제외합니다.
 		if (MissileArray[i].getPos().x < clients[client_id].getPos().x - 150
@@ -1491,15 +1575,35 @@ void collisioncheck_Player2Missile(int client_id)
 		// 충돌체크 & 후처리
 		if (MissileArray[i].xoobb.Intersects(clients[client_id].xoobb))
 		{
-			EnterCriticalSection(&critical_section);
+			EnterCriticalSection(&clients[client_id].m_cs);
 			// 피격모션
 			clients[client_id].setLoseControl(true);
-			setServerEvent(EV_TYPE_HIT, INFINITY, EV_TARGET_CLIENTS, 0, client_id, 0, NoCount);
-			LeaveCriticalSection(&critical_section);
+			clients[client_id].setHitMotion(true);
+			// 미사일 삭제
+			MissileArray[i].returnToInitialState();
+			LeaveCriticalSection(&clients[client_id].m_cs);
+
+			// 미사일 제거 패킷을 모든 클라이언트에게 전달합니다.
+			GS2C_REMOVE_OBJ_PACKET rm_missile_packet;
+			rm_missile_packet.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
+			rm_missile_packet.type = GS2C_REMOVE_OBJ;
+			rm_missile_packet.id = i;
+			rm_missile_packet.objtype = OBJ_TYPE_MISSILE;
+			for (int i = 0; i < MAX_USER; i++) {
+				if (clients[i].getState() == CL_STATE_EMPTY) continue;
+				clients[i].sendRemoveObjPacket(rm_missile_packet);
+			}
+
+			EnterCriticalSection(&cs_timer_event);
+			setServerEvent(EV_TYPE_HIT, 3.f, EV_TARGET_CLIENTS, 0, client_id, 0, 0);
+			LeaveCriticalSection(&cs_timer_event);
 		}
 	}
 }
 
+// 4. Player - Bomb 충돌체크
+
+// 5. Player - CheckPoint 충돌체크
 void collisioncheck_Player2CheckPointBox(int client_id)
 {
 	for (int i{}; i < CheckPointNum; i++) {
@@ -1515,9 +1619,11 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 			// 순서를 위해 이전 구역이 true인지 판단. 0->1, 1->2, 2->3, 3->0 순서
 			if (i == 0) {	// 0구역
 				if (clients[client_id].getCheckSection(3)) {
+					EnterCriticalSection(&clients[client_id].m_cs);
 					clients[client_id].setCheckSection(i, true);
 					clients[client_id].setCheckSection(3, false);
 					clients[client_id].setLapNum(clients[client_id].getLapNum() + 1);
+					LeaveCriticalSection(&clients[client_id].m_cs);
 					
 					GS2C_UPDATE_LAP_PACKET add_lap_packet;
 					add_lap_packet.size = sizeof(GS2C_UPDATE_LAP_PACKET);
@@ -1531,46 +1637,15 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 			}
 			else { // 1구역 부터 3구역까지만 해당 구간
 				if (clients[client_id].getCheckSection(i - 1)) {
+					EnterCriticalSection(&clients[client_id].m_cs);
 					clients[client_id].setCheckSection(i, true);
 					clients[client_id].setCheckSection(i - 1, false);
+					LeaveCriticalSection(&clients[client_id].m_cs);
 					break;
 				}
 			}
 		}
 	}
 }
-
-//void TrapCollision(MyVector3D vec)
-//{
-//
-//	if (AABB.TrapOOBB.Intersects(AABB.PlayerOOBB))
-//	{
-//		calcRotate(vec, 0.0, 20.0, 0.0);
-//	}
-//}
-//
-//void BoosterAnimate(MyVector3D vec, float elapsedtime)
-//{
-//	//logic -> to kiption
-//}
-//
-//void Animate(MyVector3D vec, float veclocity, float scarla, float elapsedtime)
-//{
-//	switch (iteminfo.item_value)
-//	{
-//	case 1:
-//		MissileCollision(vec, scarla, elapsedtime);
-//		break;
-//	case 2:
-//		TrapCollision(vec);
-//		break;
-//	case 3:
-//		BoosterAnimate(vec, elapsedtime);
-//		break;
-//	default:
-//		break;
-//	}
-//}
-
 //==================================================
 
