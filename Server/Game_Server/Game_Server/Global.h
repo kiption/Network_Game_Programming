@@ -8,7 +8,7 @@
 #define ITEM_VARIETY 3;					// 아이템 종류 수
 
 #define REFLECT_SCALAR 20.0f
-#define MISSILE_MOVE_SCALAR 0.08f
+#define MISSILE_MOVE_SCALAR 0.06f
 
 #define ROTATE_SCALAR 1.5f
 #define ITEMBOX_ROTATE_SCALAR 0.01f
@@ -17,8 +17,8 @@
 #define MiddleZ 1310
 
 #define ITEM_COOLDOWN_DURATION 1.0f
-#define MISSILE_DURATION 10.0f
-#define BOMB_DURATION 60.0f
+#define MISSILE_DURATION 5.0f
+#define BOMB_DURATION 20.0f
 #define BOOSTER_DURATION 0.8f
 
 #define	LIMIT_ACCELERATOR 4.0f

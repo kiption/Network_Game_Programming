@@ -857,11 +857,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 						}
 						case ITEM_Missile:
 						{
-							cout << "Use Item[Missile, " << used_item << "]." << endl;
-							EnterCriticalSection(&clients[client_id].m_cs);
-							clients[client_id].setItemRelease();
-							LeaveCriticalSection(&clients[client_id].m_cs);
-
 							// id 할당
 							int missile_id = -1;
 							for (int i = 0; i < MissileNum; i++) {
@@ -875,6 +870,12 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 								break;
 							}
 
+							// 아이템 사용
+							cout << "Use Item[Missile, " << used_item << "]." << endl;
+							EnterCriticalSection(&clients[client_id].m_cs);
+							clients[client_id].setItemRelease();
+							LeaveCriticalSection(&clients[client_id].m_cs);
+
 							// 새롭게 추가되는 미사일의 정보 저장
 							EnterCriticalSection(&MissileArray[missile_id].m_cs);
 							MissileArray[missile_id].setID(missile_id);
@@ -882,7 +883,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							MissileArray[missile_id].setObjOwner(client_id);
 							MyVector3D missile_first_pos = clients[client_id].getPos();
 							MyVector3D missile_lookvec = clients[client_id].getCoordinate().z_coordinate;
-							MyVector3D missile_final_pos = calcMove(missile_first_pos, missile_lookvec, 10.f);
+							MyVector3D missile_final_pos = calcMove(missile_first_pos, missile_lookvec, 50.f);
 							MissileArray[missile_id].setPos(missile_final_pos);
 							MissileArray[missile_id].setYaw(clients[client_id].getYaw());
 							MissileArray[missile_id].setRoll(clients[client_id].getRoll());
@@ -923,16 +924,13 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 							// 미사일의 타이머 설정
 							EnterCriticalSection(&cs_timer_event);
-							setServerEvent(EV_TYPE_MOVE, MISSILE_DURATION - 0.5f, EV_TARGET_MISSILE, 0, missile_id, 0, 0); // 미사일 이동
+							setServerEvent(EV_TYPE_MOVE, MISSILE_DURATION, EV_TARGET_MISSILE, 0, missile_id, 0, 0); // 미사일 이동
 							LeaveCriticalSection(&cs_timer_event);
 
 							break;
 						}
 						case ITEM_Bomb:
 						{
-							clients[client_id].setItemRelease();
-							cout << "Use Item[Bomb, " << used_item << "]." << endl;
-
 							// id 할당
 							int bomb_id = -1;
 							for (int i = 0; i < BombNum; i++) {
@@ -941,6 +939,16 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 									break;
 								}
 							}
+							if (bomb_id == -1) {
+								cout << "Failed to Install Bomb - Too Many Bomb in Game!" << endl;
+								break;
+							}
+
+							// 아이템 사용
+							EnterCriticalSection(&clients[client_id].m_cs);
+							clients[client_id].setItemRelease();
+							cout << "Use Item[Bomb, " << used_item << "]." << endl;
+							LeaveCriticalSection(&clients[client_id].m_cs);
 
 							// 새롭게 추가되는 지뢰의 정보 저장
 							EnterCriticalSection(&BombArray[bomb_id].m_cs);
@@ -949,7 +957,7 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							BombArray[bomb_id].setObjOwner(client_id);
 							MyVector3D bomb_first_pos = clients[client_id].getPos();
 							MyVector3D bomb_lookvec = clients[client_id].getCoordinate().z_coordinate;
-							MyVector3D bomb_final_pos = calcMove(bomb_first_pos, bomb_lookvec, 10.f);
+							MyVector3D bomb_final_pos = calcMove(bomb_first_pos, bomb_lookvec, -20.f);
 							BombArray[bomb_id].setPos(bomb_final_pos);
 							BombArray[bomb_id].setYaw(clients[client_id].getYaw());
 							BombArray[bomb_id].setRoll(clients[client_id].getRoll());
@@ -1479,8 +1487,7 @@ void collisioncheck_Player2ItemBox(int client_id)
 			// 충돌한 플레이어는 갖고 있는 아이템이 2개 미만일 때에만 새로운 아이템을 얻을 수 있습니다.
 			if (clients[client_id].getHowManyItem() < 2) {
 				srand(static_cast<unsigned int>(SERVER_TIME) * i);
-				//int new_item = rand() % 3;
-				int new_item = 1;
+				int new_item = rand() % 3;
 
 				EnterCriticalSection(&clients[client_id].m_cs);
 				clients[client_id].setItemQueue(new_item);
@@ -1589,9 +1596,9 @@ void collisioncheck_Player2Missile(int client_id)
 			rm_missile_packet.type = GS2C_REMOVE_OBJ;
 			rm_missile_packet.id = i;
 			rm_missile_packet.objtype = OBJ_TYPE_MISSILE;
-			for (int i = 0; i < MAX_USER; i++) {
-				if (clients[i].getState() == CL_STATE_EMPTY) continue;
-				clients[i].sendRemoveObjPacket(rm_missile_packet);
+			for (int j = 0; j < MAX_USER; j++) {
+				if (clients[j].getState() == CL_STATE_EMPTY) continue;
+				clients[j].sendRemoveObjPacket(rm_missile_packet);
 			}
 
 			EnterCriticalSection(&cs_timer_event);

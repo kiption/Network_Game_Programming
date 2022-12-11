@@ -39,11 +39,11 @@ struct ObjINFO
 	
 	void returnToInitialState() {	// 초기상태로 만드는 함수
 		m_id = -1;
-		m_pos = { 0.0f, 0.0f, 0.0f };
+		m_pos = { 0.0f, -100.0f, 0.0f };
 		m_right_vec = { 1.0f, 0.0f, 0.0f };
 		m_up_vec = { 0.0f, 1.0f, 0.0f };
 		m_look_vec = { 0.0f, 0.0f, 1.0f };
-		m_state = OBJ_ST_EMPTY;
+		m_state = OBJ_ST_LOGOUT;
 	}
 };
 ObjINFO objinfo;
