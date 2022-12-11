@@ -53,7 +53,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		Sleep(100);
 	}
 	gGameFramework.Login_ID = myID;
-	
+
 	//==================================================
 
 
@@ -132,14 +132,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				//gGameFramework.myFunc_SetOthersPosition(i, players_info[i].GetPosition());
 				//gGameFramework.myFunc_SetOthersVectors(players_info[myID].GetRightVector(), players_info[myID].GetUpVector(), players_info[myID].GetLookVector());
 			}
-			
+
 
 			//=====================================================
 			//			현재 LAP 숫자를 받아 넘겨줍니다.
 			//=====================================================
 			wchar_t mylapbuf[20];
 			_itow_s(myLapNum, mylapbuf, sizeof(mylapbuf) / 2, 10);
-			
+
 			wcscpy(gGameFramework.m_mylapnum, mylapbuf);
 			//gGameFramework.m_mylapnum = (WCHAR*)myLapNum;
 
@@ -152,31 +152,29 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->myFunc_SetVectors(itembox_arr[i].GetRightVector(), itembox_arr[i].GetUpVector(), itembox_arr[i].GetLookVector());
 				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetScale(15.0f, 15.0f, 15.0f);
 			}
-			for (int i = 0; i < MissileNum; i++) {
 
+			for (int i = 0; i < MissileNum; i++)
+			{
 				if (missile_arr[i].m_state == OBJ_ST_RUNNING)
 				{
 					
-						gGameFramework.m_pScene->m_ppGameObjects[188]->SetPosition(missile_arr[i].GetPosition());
-						gGameFramework.m_pScene->m_ppGameObjects[188]->myFunc_SetVectors(missile_arr[i].GetRightVector(), missile_arr[i].GetUpVector(), missile_arr[i].GetLookVector());
-						gGameFramework.m_pScene->m_ppGameObjects[188]->SetScale(50.0,50.0,80.0);
-						gGameFramework.m_pScene->m_ppGameObjects[188]->Rotate(90.0,0.0,0.0);
-
-					
+						gGameFramework.m_pScene->m_ppGameObjects[i+189]->SetPosition(missile_arr[i].GetPosition());
+						gGameFramework.m_pScene->m_ppGameObjects[i + 189]->myFunc_SetVectors(missile_arr[i].GetRightVector(), missile_arr[i].GetUpVector(), missile_arr[i].GetLookVector());
+						gGameFramework.m_pScene->m_ppGameObjects[i + 189]->SetScale(50.0, 50.0, 80.0);
+						gGameFramework.m_pScene->m_ppGameObjects[i + 189]->Rotate(90.0, 0.0, 0.0);
+				
 				}
 			}
 
-			for (int i = 0; i < BombNum; i++) {
-
+			for (int i = 0; i < BombNum; i++) 
+			{
 				if (bomb_arr[i].m_state == OBJ_ST_RUNNING)
 				{
 
-					gGameFramework.m_pScene->m_ppGameObjects[189]->SetPosition(bomb_arr[i].GetPosition());
-					gGameFramework.m_pScene->m_ppGameObjects[189]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
-					gGameFramework.m_pScene->m_ppGameObjects[189]->SetScale(0.1,0.1, 0.1);
-					gGameFramework.m_pScene->m_ppGameObjects[189]->Rotate(90.0, 0.0, 0.0);
-
-
+					gGameFramework.m_pScene->m_ppGameObjects[i+289]->SetPosition(bomb_arr[i].GetPosition());
+					gGameFramework.m_pScene->m_ppGameObjects[i+289]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
+					gGameFramework.m_pScene->m_ppGameObjects[i+289]->SetScale(0.1, 0.1, 0.1);
+					gGameFramework.m_pScene->m_ppGameObjects[i+289]->Rotate(90.0, 0.0, 0.0);
 				}
 			}
 

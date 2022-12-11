@@ -162,7 +162,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_pCollisionTerrain->SetMaterial(pCollisonMaterial);
 
 
-	m_nGameObjects = 191;
+	m_nGameObjects = 389;
 	m_ppGameObjects = new CGameObjcet * [m_nGameObjects];
 
 	CGameObjcet* pPlayerCars2 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race.bin");
@@ -246,28 +246,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	for (int i = 147; i < 188; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 138) * 45.0), 6.0f, 250.0);
 
 
-	CGameObjcet* pMissileModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Roket.bin");
-	CObstacleObject* pMissiles = NULL;
-	pMissiles = new CObstacleObject();
-	pMissiles->SetChild(pMissileModel, true);
-	pMissiles->OnInitialize();
-	pMissiles->SetScale(300.0f, 300.0f, 500.0f);
-	pMissiles->SetPosition(0.0f, 0.0f, 0.0f);
-	pMissiles->Rotate(90.0f, 0.0f, 0.0f);
-	m_ppGameObjects[188] = pMissiles;
-
-	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/stone_largeB.bin");
-	CObstacleObject* pTrap = NULL;
-	pTrap = new CObstacleObject();
-	pTrap->SetChild(pTrapModel, true);
-	pTrap->OnInitialize();
-	pTrap->SetScale(0.1, 0.1, 0.1);
-	pTrap->SetPosition(0.0f, 0.0f, 0.0f);
-	pTrap->Rotate(0.0f, 0.0f, 0.0f);
-	m_ppGameObjects[189] = pTrap;
-
-
-
 	CGameObjcet* pStartModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/startline.bin");
 	CObstacleObject* pStart = NULL;
 	pStart = new CObstacleObject();
@@ -276,7 +254,37 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pStart->SetScale(10.0, 10.0, 5.0);
 	pStart->SetPosition(310.0f, 10.0f, 1200.0f);
 	pStart->Rotate(0.0f, 0.0f, 0.0f);
-	m_ppGameObjects[190] = pStart;
+	m_ppGameObjects[188] = pStart;
+
+	CGameObjcet* pMissileModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Roket.bin");
+	CObstacleObject* pMissile = NULL;
+	for (int i = 189; i < 289; i++)
+	{
+		pMissile = new CObstacleObject();
+		pMissile->OnInitialize();
+		pMissile->SetChild(pMissileModel, true);
+		pMissile->SetScale(30.0f, 30.0f, 30.0f);
+		m_ppGameObjects[i] = pMissile;
+		
+	}
+
+
+	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/stone_largeB.bin");
+	CObstacleObject* pTrap = NULL;
+	for (int i = 289; i < 389; i++)
+	{
+		pTrap = new CObstacleObject();
+		pTrap->OnInitialize();
+		pTrap->SetChild(pTrapModel, true);
+		pTrap->SetScale(0.1f, 0.1f, 0.1f);
+		m_ppGameObjects[i] = pTrap;
+
+	}
+	
+
+
+
+
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
