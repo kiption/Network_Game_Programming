@@ -245,7 +245,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	for (int i = 106; i < 147; i++)m_ppGameObjects[i]->SetPosition(2300.0, 6.0f, 0.0f + 280.0 + (float)((i - 97) * 45));
 	for (int i = 147; i < 188; i++)m_ppGameObjects[i]->SetPosition(450.0 + (float)((i - 138) * 45.0), 6.0f, 250.0);
 
-
 	CGameObjcet* pStartModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/startline.bin");
 	CObstacleObject* pStart = NULL;
 	pStart = new CObstacleObject();
@@ -268,8 +267,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		
 	}
 
-
-	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/stone_largeB.bin");
+	CGameObjcet* pTrapModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/tnt.bin");
 	CObstacleObject* pTrap = NULL;
 	for (int i = 289; i < 389; i++)
 	{
@@ -280,11 +278,6 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 		m_ppGameObjects[i] = pTrap;
 
 	}
-	
-
-
-
-
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }

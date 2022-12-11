@@ -173,8 +173,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 					gGameFramework.m_pScene->m_ppGameObjects[i+289]->SetPosition(bomb_arr[i].GetPosition());
 					gGameFramework.m_pScene->m_ppGameObjects[i+289]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
-					gGameFramework.m_pScene->m_ppGameObjects[i+289]->SetScale(0.1, 0.1, 0.1);
-					gGameFramework.m_pScene->m_ppGameObjects[i+289]->Rotate(90.0, 0.0, 0.0);
+					gGameFramework.m_pScene->m_ppGameObjects[i+289]->SetScale(1.0f, 1.0f, 1.0f);
+					gGameFramework.m_pScene->m_ppGameObjects[i+289]->Rotate(0.0, 0.0, 0.0);
 				}
 			}
 
