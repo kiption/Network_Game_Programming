@@ -11,11 +11,18 @@ MyVector3D myNormalize(MyVector3D vec)
 	return vec;
 }
 
-MyVector3D calcMove(MyVector3D vec1, MyVector3D vec2, float Accelerator)
+MyVector3D calcMove(MyVector3D vec1, MyVector3D vec2, float Accelerator, bool Flooded)
 {
+	float acc = Accelerator;
+	// 침수되어있다면 이동속도가 1/3로 감소합니다.
+	if (Flooded) {
+		acc = acc / 3.f;
+	}
+
 	vec1.x = vec1.x + vec2.x * Accelerator;
 	vec1.y = vec1.y + vec2.y * Accelerator;
 	vec1.z = vec1.z + vec2.z * Accelerator;
+
 	return vec1;
 }
 
@@ -38,6 +45,7 @@ MyVector3D calcRotate(MyVector3D vec, float roll, float pitch, float yaw)
 
 	// Update
 	vec = { x2, y2, z2 };
+
 	return myNormalize(vec);
 }
 
