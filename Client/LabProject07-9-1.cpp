@@ -144,10 +144,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			//gGameFramework.m_mylapnum = (WCHAR*)myLapNum;
 
 			//_itow(gGameFramework.m_mylapnum, myLapNum, 10);
-			
+
 			//==================================================
 			// 서버로부터 받은 값대로 출력합니다.
 			//==================================================
+			
 			// 아이템 박스 출력
 			for (int i = 0; i < ITEMBOXNUM; i++) {
 				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetPosition(itembox_arr[i].GetPosition());
@@ -170,13 +171,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 					missile_arr[i].m_state = OBJ_ST_EMPTY;
 				}
 			}
+
 			// 지뢰 출력
 			for (int i = 0; i < BombNum; i++) {
 				if (bomb_arr[i].m_state == OBJ_ST_RUNNING) {
-					gGameFramework.m_pScene->m_ppGameObjects[i+289]->SetPosition(bomb_arr[i].GetPosition());
-					gGameFramework.m_pScene->m_ppGameObjects[i+289]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
-					gGameFramework.m_pScene->m_ppGameObjects[i+289]->SetScale(1.0f, 1.0f, 1.0f);
-					gGameFramework.m_pScene->m_ppGameObjects[i+289]->Rotate(0.0, 0.0, 0.0);
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetPosition(bomb_arr[i].GetPosition());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetScale(1.0f, 1.0f, 1.0f);
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->Rotate(0.0, 0.0, 0.0);
 				}
 				else if (bomb_arr[i].m_state == OBJ_ST_LOGOUT) {
 					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetPosition(bomb_arr[i].GetPosition());
@@ -187,7 +189,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				}
 			}
 
-			//gGameFramework.SetBoosterEffect(id,gGameFramework.m_bBoosterMode);
+		
+			gGameFramework.SetBoosterEffect(0,gGameFramework.m_bBoosterMode);
 
 			gGameFramework.FrameAdvance();
 

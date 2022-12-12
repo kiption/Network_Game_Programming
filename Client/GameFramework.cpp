@@ -935,11 +935,13 @@ void CGameFramework::SetBoosterEffect(int id, bool boostmode)
 	//id 별로 부스트 습득 체크
 		if (boostmode)
 		{
-			((CMyPlayer*)m_pPlayer)->m_pPlayerObejct->m_xmf4x4Transform._33 += 0.1f;
+			m_pScene->m_pLights[4].m_xmf4Ambient = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+			m_pScene->m_pLights[4].m_xmf4Diffuse = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.8f);
 		}
 		else
 		{
-			((CMyPlayer*)m_pPlayer)->m_pPlayerObejct->m_xmf4x4Transform._33 = PrevEffect;
+			m_pScene->m_pLights[4].m_xmf4Ambient = XMFLOAT4(0.5f, 0.5f, 0.0f, 1.0f);
+			m_pScene->m_pLights[4].m_xmf4Diffuse = XMFLOAT4(0.5f, 0.5f, 0.0f, 0.8f);
 		}
 }
 
