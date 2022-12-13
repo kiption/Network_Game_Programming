@@ -289,8 +289,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	pStart = new CObstacleObject();
 	pStart->SetChild(pStartModel, true);
 	pStart->OnInitialize();
-	pStart->SetScale(10.0, 10.0, 5.0);
-	pStart->SetPosition(310.0f, 10.0f, 1200.0f);
+	pStart->SetScale(20.0, 15.0, 5.0);
+	pStart->SetPosition(250.0f, 10.0f, 1200.0f);
 	pStart->Rotate(0.0f, 0.0f, 0.0f);
 	m_ppGameObjects[188] = pStart;
 
