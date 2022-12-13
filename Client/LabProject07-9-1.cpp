@@ -141,11 +141,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 			wcscpy(gGameFramework.m_mylapnum, mylapbuf);
 
-			/*if (myLapNum >= 3)
-			{
-				wcscpy(gGameFramework.m_endTime, myMsg);
-			}*/
-
 			if (myLapNum >= 3)
 			{
 
