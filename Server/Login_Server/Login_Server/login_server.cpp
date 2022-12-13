@@ -149,10 +149,21 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 				exit(100);
 			}
 
-			// 클라이언트로부터 받은 이름이 계정 정보에 존재하는 지 확인.
+			// 클라이언트로부터 받은 이름이 사용가능한 이름인지 확인합니다.
+			std::string recved_name = login_pack.name;
+			// 1. 이미 접속 중인 다른 클라이언트의 이름인지 확인.
+			bool name_already_used = false;
+			for (int i = 0; i < MAX_USER; i++) {
+				if (clients[i].getName().compare(recved_name) == 0) {
+					name_already_used = true;
+					break;
+				}
+			}
+
+			// 2. 계정 정보 데이터파일에 존재하는 지 확인.
 			bool name_exist = false;
 			std::string saved_name;
-			std::string recved_name = login_pack.name;
+			//std::string recved_name = login_pack.name;
 			while (fin >> saved_name) {
 				std::cout << "Saved name: " << saved_name << std::endl;
 				if (saved_name.compare(recved_name) == 0) {
@@ -166,6 +177,9 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			bool approval = true;
 			if (!name_exist) {
 				std::cout << "존재하지 않는 계정입니다. 등록 후 다시 시도해주세요." << std::endl;
+			}
+			else if (name_already_used) {
+				std::cout << "입력한 계정 [" << login_pack.name << "]은 이미 다른 플레이어가 사용 중입니다." << std::endl;
 			}
 			else {
 				// id 할당
@@ -190,12 +204,14 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			LS2C_GAMESTART_PACKET start_pack;
 			start_pack.size = sizeof(LS2C_GAMESTART_PACKET);
 			start_pack.type = LS2C_GAMESTART;
-			if (approval && name_exist)
+			if (approval && name_exist && !name_already_used)
 				start_pack.start = START_APPROVAL;
 			else if (!name_exist)	// 입력된 계정 이름이 존재하지 않는 이름일때
 				start_pack.start = START_DENY_UNKNOWNNAME;
 			else if (!approval)		// 서버가 포화상태일 때
 				start_pack.start = START_DENY_FULL;
+			else if (name_already_used)
+				start_pack.start = START_DENY_ALREADYUSED;
 			
 			std::cout << "Packet Size: " << sizeof(start_pack) << std::endl;
 			
