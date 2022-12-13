@@ -440,6 +440,15 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			myLapNum = update_pack.lap;
 			break;
 		}
+		case GS2C_UPDATE_BOOSTER:
+		{
+			GS2C_UPDATE_BOOSTER_PACKET boost_pack;
+			retval = recv(sock_forGS, (char*)&boost_pack, sizeof(GS2C_UPDATE_BOOSTER_PACKET), MSG_WAITALL);
+			if (retval == SOCKET_ERROR) {
+				err_display("recv()");
+			}
+			players_info[boost_pack.id].m_boost_on = boost_pack.boost_on;
+		}
 		default:
 			break;
 		}

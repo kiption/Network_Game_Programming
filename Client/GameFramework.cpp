@@ -498,9 +498,7 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 	case WM_MOUSEMOVE:
 		break;
 	case WM_KEYDOWN:
-		m_bBoosterMode = true;
 	case WM_KEYUP:
-		m_bBoosterMode = false;
 		OnProcessingKeyboardMessage(hWnd, nMessageID, wParam, lParam);
 		break;
 	}
@@ -639,7 +637,6 @@ void CGameFramework::ProcessInput()
 
 		if (pKeysBuffer[VK_SPACE] & 0xF0) {
 			keyValue += 0b10000;
-			m_bBoosterMode = true;
 		}
 
 		if (keyValue != 0b00000)
@@ -930,10 +927,10 @@ short CGameFramework::pop_keyUpvalue() {
 	return temp;
 }
 
-void CGameFramework::SetBoosterEffect(int id, bool boostmode)
+void CGameFramework::SetBoosterEffect(int id, bool boost_on)
 {
 	//id 별로 부스트 습득 체크
-		if (boostmode)
+		if (boost_on)
 		{
 			m_pScene->m_pLights[4].m_xmf4Ambient = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 			m_pScene->m_pLights[4].m_xmf4Diffuse = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.8f);

@@ -67,7 +67,7 @@ public:
 	bool is_KeyUp_Empty();
 	short pop_keyUpvalue();
 
-	void SetBoosterEffect(int id,bool boostmode);
+	void SetBoosterEffect(int id, bool boost_on);
 	float PrevEffect;
 	int Login_ID;
 	//==================================================
@@ -123,8 +123,6 @@ public:
 	IDWriteTextFormat* m_pdwFont = NULL;
 	IDWriteTextLayout* m_pdwTextLayout = NULL;
 	ID2D1SolidColorBrush* m_pd2dbrText = NULL;
-
-	bool m_bBoosterMode = false;
 
 #ifdef _WITH_DIRECT2D_IMAGE_EFFECT
 	IWICImagingFactory* m_pwicImagingFactory = NULL;

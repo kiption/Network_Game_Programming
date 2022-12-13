@@ -16,12 +16,13 @@ struct BoundingBoxInfo
 struct ObjINFO
 {
 	short m_id;
+	int m_state;
 	XMFLOAT3 m_pos;
 	XMFLOAT3 m_right_vec;
 	XMFLOAT3 m_up_vec;
 	XMFLOAT3 m_look_vec;
 	BoundingBoxInfo m_xoobb;
-	int m_state;
+	bool m_boost_on;
 
 	ObjINFO() {
 		m_id = -1;
@@ -30,6 +31,7 @@ struct ObjINFO
 		m_up_vec = { 0.0f, 1.0f, 0.0f };
 		m_look_vec = { 0.0f, 0.0f, 1.0f };
 		m_state = OBJ_ST_EMPTY;
+		m_boost_on = false;
 	}
 
 	XMFLOAT3 GetPosition() { return XMFLOAT3(m_pos.x, m_pos.y, m_pos.z); };
@@ -44,6 +46,7 @@ struct ObjINFO
 		m_up_vec = { 0.0f, 1.0f, 0.0f };
 		m_look_vec = { 0.0f, 0.0f, 1.0f };
 		m_state = OBJ_ST_LOGOUT;
+		m_boost_on = false;
 	}
 };
 ObjINFO objinfo;

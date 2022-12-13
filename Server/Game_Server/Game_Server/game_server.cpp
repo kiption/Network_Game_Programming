@@ -178,6 +178,7 @@ public:
 	void		sendUpdatePacket(GS2C_UPDATE_PACKET packet);
 	void		sendRemoveObjPacket(GS2C_REMOVE_OBJ_PACKET packet);
 	void		sendLapInfoPacket(GS2C_UPDATE_LAP_PACKET packet);
+	void		sendBoosterPacket(GS2C_UPDATE_BOOSTER_PACKET packet);
 };
 array<ClientINFO, MAX_USER> clients;
 //==================================================
@@ -368,6 +369,12 @@ void ClientINFO::sendRemoveObjPacket(GS2C_REMOVE_OBJ_PACKET packet) {
 }
 void ClientINFO::sendLapInfoPacket(GS2C_UPDATE_LAP_PACKET packet) {
 	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_UPDATE_LAP_PACKET), 0);
+	if (retval == SOCKET_ERROR) {
+		//err_display("send()");
+	}
+}
+void ClientINFO::sendBoosterPacket(GS2C_UPDATE_BOOSTER_PACKET packet) {
+	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_UPDATE_BOOSTER_PACKET), 0);
 	if (retval == SOCKET_ERROR) {
 		//err_display("send()");
 	}
@@ -860,6 +867,16 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							}
 							LeaveCriticalSection(&clients[client_id].m_cs);
 
+							// 부스터 연출을 위해 부스터를 사용한 사실을 모든 클라이언트에게 전송합니다.
+							GS2C_UPDATE_BOOSTER_PACKET boost_pack;
+							boost_pack.size = sizeof(GS2C_UPDATE_BOOSTER_PACKET);
+							boost_pack.type = GS2C_UPDATE_BOOSTER;
+							boost_pack.id = client_id;
+							boost_pack.boost_on = true;
+							for (int i = 0; i < MAX_USER; i++) {
+								clients[i].sendBoosterPacket(boost_pack);
+							}
+
 							EnterCriticalSection(&cs_timer_event);
 							setServerEvent(EV_TYPE_REFRESH, BOOSTER_DURATION, EV_TARGET_CLIENTS, EV_DTARGET_BOOSTER, client_id, 0, 0);	// 부스터 지속시간
 							LeaveCriticalSection(&cs_timer_event);
@@ -1113,6 +1130,19 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 							clients[target].setLimitAcc(limit_acc);
 							clients[target].setBoosterOn(false);	// 부스터를 꺼줍니다.
 							LeaveCriticalSection(&clients[target].m_cs);
+
+							// 부스터가 종료된 사실을 모든 클라이언트에게 알려줍니다.
+							GS2C_UPDATE_BOOSTER_PACKET boost_end_pack;
+							boost_end_pack.size = sizeof(GS2C_UPDATE_BOOSTER_PACKET);
+							boost_end_pack.type = GS2C_UPDATE_BOOSTER;
+							boost_end_pack.id = target;
+							boost_end_pack.boost_on = false;
+							for (int i = 0; i < MAX_USER; i++) {
+								if (clients[i].getState() == CL_STATE_EMPTY)
+									continue;
+
+								clients[i].sendBoosterPacket(boost_end_pack);
+							}
 						}
 						else {
 							EnterCriticalSection(&clients[target].m_cs);
@@ -1668,7 +1698,8 @@ void collisioncheck_Player2ItemBox(int client_id)
 			// 충돌한 플레이어는 갖고 있는 아이템이 2개 미만일 때에만 새로운 아이템을 얻을 수 있습니다.
 			if (clients[client_id].getHowManyItem() < 2) {
 				srand(static_cast<unsigned int>(SERVER_TIME) * i);
-				int new_item = rand() % 3;
+				//int new_item = rand() % 3;
+				int new_item = 0;
 
 				EnterCriticalSection(&clients[client_id].m_cs);
 				clients[client_id].setItemQueue(new_item);

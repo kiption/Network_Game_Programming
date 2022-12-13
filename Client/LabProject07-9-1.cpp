@@ -148,13 +148,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			//==================================================
 			// 서버로부터 받은 값대로 출력합니다.
 			//==================================================
-			
 			// 아이템 박스 출력
 			for (int i = 0; i < ITEMBOXNUM; i++) {
 				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetPosition(itembox_arr[i].GetPosition());
 				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->myFunc_SetVectors(itembox_arr[i].GetRightVector(), itembox_arr[i].GetUpVector(), itembox_arr[i].GetLookVector());
 				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetScale(15.0f, 15.0f, 15.0f);
 			}
+
 			// 미사일 출력
 			for (int i = 0; i < MissileNum; i++) {
 				if (missile_arr[i].m_state == OBJ_ST_RUNNING) {
@@ -189,8 +189,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				}
 			}
 
-		
-			gGameFramework.SetBoosterEffect(0,gGameFramework.m_bBoosterMode);
+			// 부스터 효과
+			for (int i = 0; i < MAX_USER; i++) {
+				if (players_info[i].m_state != OBJ_ST_RUNNING)
+					continue;
+
+				gGameFramework.SetBoosterEffect(i, players_info[i].m_boost_on);
+			}
 
 			gGameFramework.FrameAdvance();
 
