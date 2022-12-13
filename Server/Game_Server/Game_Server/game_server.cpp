@@ -1704,8 +1704,8 @@ void collisioncheck_Player2ItemBox(int client_id)
 			// 충돌한 플레이어는 갖고 있는 아이템이 2개 미만일 때에만 새로운 아이템을 얻을 수 있습니다.
 			if (clients[client_id].getHowManyItem() < 2) {
 				srand(static_cast<unsigned int>(SERVER_TIME) * i);
-				//int new_item = rand() % 3;
-				int new_item = 0;
+				int new_item = rand() % 3;
+				//int new_item = 0;
 
 				EnterCriticalSection(&clients[client_id].m_cs);
 				clients[client_id].setItemQueue(new_item);
@@ -1902,6 +1902,7 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 					add_lap_packet.objtype = OBJ_TYPE_LAP;
 
 					clients[client_id].sendLapInfoPacket(add_lap_packet);
+					break;
 
 					if ((clients[client_id].getLapNum() >= 3) && !clients[client_id].getLoseControl()) {
 						clients[client_id].setLoseControl(true);
@@ -1916,14 +1917,10 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 
 						clients[client_id].sendEndTimePacket(add_endtime_packet);
 					}
-
-
-
-					break;
 				}
 			
-				// 게임시간 UI에 쓰일 서버로그
-				if (clients[client_id].getLapNum() >= 0)
+				//// 게임시간 UI에 쓰일 서버로그
+				if (clients[client_id].getLapNum() >= 3)
 				{
 					GS2C_SERVER_TIME_PACKET add_endtime_packet;
 					add_endtime_packet.size = sizeof(GS2C_SERVER_TIME_PACKET);

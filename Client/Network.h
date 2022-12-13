@@ -87,7 +87,7 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 				if (start_pack.start == START_APPROVAL) {
 					cout << "로그인이 허가되었습니다.\n" << endl;
 					g_gamestart = true;
-					
+
 					mbstowcs(myname, input_name, 10);
 					closesocket(sock_forLS);
 					return 0;
@@ -451,23 +451,26 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 				err_display("recv()");
 			}
 			players_info[boost_pack.id].m_boost_on = boost_pack.boost_on;
-		}
-
-		case GS2C_SERVER_TIME:
-		{
-			GS2C_SERVER_TIME_PACKET update_time;
-			retval = recv(sock_forGS, (char*)&update_time, sizeof(GS2C_SERVER_TIME_PACKET), MSG_WAITALL);
-			if (retval == SOCKET_ERROR) {
-				err_display("recv()");
-			}
-			endTime = update_time.time;	
-			mbstowcs(myMsg, update_time.msg, 50);
 
 			break;
 		}
+		case GS2C_SERVER_TIME:
+			{
+				GS2C_SERVER_TIME_PACKET update_time;
+				retval = recv(sock_forGS, (char*)&update_time, sizeof(GS2C_SERVER_TIME_PACKET), MSG_WAITALL);
+				if (retval == SOCKET_ERROR) {
+					err_display("recv()");
+				}
+				endTime = update_time.time;
+				mbstowcs(myMsg, update_time.msg, 50);
+
+			}
+
 		default:
 			break;
+
 		}
+			
 	}
 	//====
 

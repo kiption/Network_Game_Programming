@@ -129,8 +129,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				gGameFramework.myFunc_SetBoundingBox(i, players_info[i].GetPosition());
 				gGameFramework.m_pPlayer->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 				gGameFramework.m_pScene->m_ppGameObjects[i]->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-				//gGameFramework.myFunc_SetOthersPosition(i, players_info[i].GetPosition());
-				//gGameFramework.myFunc_SetOthersVectors(players_info[myID].GetRightVector(), players_info[myID].GetUpVector(), players_info[myID].GetLookVector());
+			
 			}
 
 
@@ -142,9 +141,18 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 			wcscpy(gGameFramework.m_mylapnum, mylapbuf);
 
-			if (myLapNum >= 3)
+			/*if (myLapNum >= 3)
 			{
 				wcscpy(gGameFramework.m_endTime, myMsg);
+			}*/
+
+			if (myLapNum >= 3)
+			{
+
+				wchar_t endtimebuf[50];
+				_itow_s(endTime, endtimebuf, sizeof(endtimebuf) / 2, 10);
+
+				wcscpy(gGameFramework.m_endTime, endtimebuf);
 			}
 			//==================================================
 			// 서버로부터 받은 값대로 출력합니다.
