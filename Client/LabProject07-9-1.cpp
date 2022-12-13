@@ -233,6 +233,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	}
 	gGameFramework.OnDestroy();
 
+	closesocket(sock_forGS);
 	CloseHandle(h_networkLS_th);
 	return((int)msg.wParam);
 }

@@ -65,15 +65,28 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 	while (1) {
 		//test
-		Recv_Again:
 		PACKET_INFO recv_info;
 		retval = recv(client_sock, (char*)&recv_info, sizeof(PACKET_INFO), MSG_PEEK);	// MSG_PEEK을 사용하여 수신버퍼를 읽지만 가져오지는 않도록
 		if (retval == SOCKET_ERROR) {
-			err_display("recv()");
+			if (WSAGetLastError() == WSAECONNRESET) {
+				// 연결 해제 후처리
+				clients[client_id].clearSession();
+
+				// 소켓 닫기
+				closesocket(client_sock);
+				std::cout << "[TCP 서버] 클라이언트 비정상 종료: IP 주소= " << addr << ", 포트 번호 = " << ntohs(clientaddr.sin_port) << std::endl;
+				return 0;
+			}
+			else {
+				err_display("recv()");
+			}
 			break;
 		}
 		else if (retval == 0) {
-			goto Recv_Again;
+			// 소켓 닫기
+			closesocket(client_sock);
+			std::cout << "[TCP 서버] 클라이언트 정상 종료: IP 주소= " << addr << ", 포트 번호 = " << ntohs(clientaddr.sin_port) << std::endl;
+			return 0;
 		}
 
 		switch (recv_info.type) {

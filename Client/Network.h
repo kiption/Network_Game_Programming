@@ -99,7 +99,7 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 					cout << "현재 서버가 포화상태입니다. 잠시 후 다시 시도해 주세요.\n" << endl;
 				}
 				else if (start_pack.start == START_DENY_ALREADYUSED) {
-					cout << "이미 사용 중인 이름입니다. 등록 후 다시 로그인을 시도해주세요.\n" << endl;
+					cout << "이미 사용 중인 이름입니다. 다시 로그인을 시도해주세요.\n" << endl;
 				}
 				else {
 					cout << "알 수 없는 이유로 로그인 요청이 거절되었습니다. 다시 계정을 입력해주세요.\n" << endl;
@@ -161,6 +161,7 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 		}
 	}
 
+	closesocket(sock_forLS);
 	return 0;
 }
 
@@ -477,5 +478,6 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 	}
 	//====
 
+	closesocket(sock_forGS);
 	return 0;
 }
