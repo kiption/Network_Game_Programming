@@ -3,7 +3,7 @@
 #include "ObjINFO.h"
 
 char* SERVERIP = (char*)"127.0.0.1";	// 로컬 테스트용
-//char* SERVERIP = (char*)"192.168.20.51";	// 리모트 주소
+//char* SERVERIP = (char*)"192.168.0.30";	// 리모트 주소
 
 bool g_registerd = false;
 bool g_gamestart = false;
@@ -61,7 +61,6 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 
 			// 로그인 서버에 로그인 요청
 			C2LS_LOGIN_PACKET login_packet;
-			login_packet.size = sizeof(C2LS_LOGIN_PACKET);
 			login_packet.type = C2LS_LOGIN;
 			strcpy_s(login_packet.name, input_name);
 			retval = send(sock_forLS, (char*)&login_packet, sizeof(C2LS_LOGIN_PACKET), 0);
@@ -123,7 +122,6 @@ DWORD WINAPI Network_WithLS_ThreadFunc(LPVOID arg)
 
 			// 로그인 서버에 계정 등록 요청
 			C2LS_REGISTER_PACKET register_pack;
-			register_pack.size = sizeof(C2LS_REGISTER_PACKET);
 			register_pack.type = C2LS_REGISTER;
 			strcpy(register_pack.name, input_name);
 			retval = send(sock_forLS, (char*)&register_pack, sizeof(C2LS_REGISTER_PACKET), 0);

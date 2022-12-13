@@ -47,58 +47,49 @@ constexpr char GS2C_SERVER_TIME = 14;
 //===================================
 #pragma pack (push, 1)
 struct PACKET_INFO {
-	short size;
 	char type;
 };
 // 1. Client -> Login Server
 struct C2LS_REGISTER_PACKET {
-	short size;
 	char type;
 	char name[NAME_LEN];
 };
 
 struct C2LS_LOGIN_PACKET {
-	short size;
 	char type;
 	char name[NAME_LEN];
 };
 
 // 2. Login Server -> Client
 struct LS2C_REGISTER_PACKET {
-	short size;
 	char type;
 	bool result;
 };
 
 enum { START_DENY_UNKNOWNNAME, START_DENY_FULL, START_APPROVAL, START_DENY_ALREADYUSED };
 struct LS2C_GAMESTART_PACKET {
-	short size;
 	char type;
 	char start;
 };
 
 // 3. Client -> Game Server
 struct C2GS_LOGIN_PACKET {
-	short size;
 	char type;
 	char name[NAME_LEN];
 };
 
 struct C2GS_KEYVALUE_PACKET {
-	short size;
 	char type;
 	short key;
 };
 
 struct C2GS_KEYUPVALUE_PACKET {
-	short size;
 	char type;
 	short key;
 };
 
 // 4. Game Server -> Client
 struct GS2C_LOGIN_INFO_PACKET {
-	short size;
 	char type;
 	short id;
 	float pos_x, pos_y, pos_z;
@@ -109,7 +100,6 @@ struct GS2C_LOGIN_INFO_PACKET {
 
 enum { OBJ_TYPE_PLAYER, OBJ_TYPE_MISSILE, OBJ_TYPE_BOMB, OBJ_TYPE_ITEMBOX, OBJ_TYPE_LAP };
 struct GS2C_ADD_OBJ_PACKET {
-	short size;
 	char type;
 	short id;
 	short objtype;
@@ -120,14 +110,12 @@ struct GS2C_ADD_OBJ_PACKET {
 };
 
 struct GS2C_REMOVE_OBJ_PACKET {
-	short size;
 	char type;
 	short id;
 	short objtype;
 };
 
 struct GS2C_UPDATE_PACKET {
-	short size;
 	char type;
 	short id;
 	short objtype;
@@ -138,27 +126,23 @@ struct GS2C_UPDATE_PACKET {
 };
 
 struct GS2C_GET_ITME_PACKET {
-	short size;
 	char type;
 	short itemtype;
 };
 
 struct GS2C_UPDATE_LAP_PACKET {
-	short size;
 	char type;
 	int lap;
 	short objtype;
 };
 
 struct GS2C_UPDATE_BOOSTER_PACKET {
-	short size;
 	char type;
 	short id;
 	bool boost_on;
 };
 
 struct GS2C_SERVER_TIME_PACKET {
-	short size;
 	char type;
 	int time;
 	char msg[50];

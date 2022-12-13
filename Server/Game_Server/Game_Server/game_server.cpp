@@ -426,7 +426,6 @@ void ClientINFO::disconnectClient() {
 	cout << "클라이언트[" << m_id << "]의 연결 종료를 감지하였습니다." << endl;
 	// c_id번째 클라이언트의 연결해제 사실을 접속해있는 모든 클라이언트에게 전달합니다.
 	GS2C_REMOVE_OBJ_PACKET disconnect_pack;
-	disconnect_pack.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
 	disconnect_pack.type = GS2C_REMOVE_OBJ;
 	disconnect_pack.id = m_id;
 	disconnect_pack.objtype = OBJ_TYPE_PLAYER;
@@ -659,7 +658,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 	// 새로 접속한 클라이언트에게 자신의 초기 정보를 전달합니다.
 	GS2C_LOGIN_INFO_PACKET login_packet;
-	login_packet.size = sizeof(GS2C_LOGIN_INFO_PACKET);
 	login_packet.type = GS2C_LOGIN_INFO;
 	login_packet.id = clients[client_id].getId();
 
@@ -690,7 +688,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		if (i == client_id) continue;
 
 		GS2C_ADD_OBJ_PACKET add_others_packet;
-		add_others_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
 		add_others_packet.type = GS2C_ADD_OBJ;
 		add_others_packet.id = clients[i].getId();
 		add_others_packet.objtype = OBJ_TYPE_PLAYER;
@@ -716,7 +713,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 	// 현재 접속해 있는 모든 클라이언트들에게 새로 접속한 클라이언트의 객체 정보를 전달합니다.
 	GS2C_ADD_OBJ_PACKET add_me_packet;
-	add_me_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
 	add_me_packet.type = GS2C_ADD_OBJ;
 	add_me_packet.id = clients[client_id].getId();
 	add_me_packet.objtype = OBJ_TYPE_PLAYER;
@@ -748,7 +744,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 	for (int i{}; i < ITEMBOXNUM; i++) {
 
 		GS2C_ADD_OBJ_PACKET add_itembox_packet;
-		add_itembox_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
 		add_itembox_packet.type = GS2C_ADD_OBJ;
 		add_itembox_packet.id = i;
 		add_itembox_packet.objtype = OBJ_TYPE_ITEMBOX;
@@ -941,7 +936,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 							// 부스터 연출을 위해 부스터를 사용한 사실을 모든 클라이언트에게 전송합니다.
 							GS2C_UPDATE_BOOSTER_PACKET boost_pack;
-							boost_pack.size = sizeof(GS2C_UPDATE_BOOSTER_PACKET);
 							boost_pack.type = GS2C_UPDATE_BOOSTER;
 							boost_pack.id = client_id;
 							boost_pack.boost_on = true;
@@ -995,7 +989,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
 							GS2C_ADD_OBJ_PACKET add_missile_packet;
 
-							add_missile_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
 							add_missile_packet.type = GS2C_ADD_OBJ;
 							add_missile_packet.id = MissileArray[missile_id].getID();
 							add_missile_packet.objtype = used_item;
@@ -1069,7 +1062,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 							// 새롭게 추가되는 미사일 객체 정보를 모든 클라이언트에게 전달
 							GS2C_ADD_OBJ_PACKET add_bomb_packet;
 
-							add_bomb_packet.size = sizeof(GS2C_ADD_OBJ_PACKET);
 							add_bomb_packet.type = GS2C_ADD_OBJ;
 							add_bomb_packet.id = BombArray[bomb_id].getID();
 							add_bomb_packet.objtype = used_item;
@@ -1205,7 +1197,6 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 
 							// 부스터가 종료된 사실을 모든 클라이언트에게 알려줍니다.
 							GS2C_UPDATE_BOOSTER_PACKET boost_end_pack;
-							boost_end_pack.size = sizeof(GS2C_UPDATE_BOOSTER_PACKET);
 							boost_end_pack.type = GS2C_UPDATE_BOOSTER;
 							boost_end_pack.id = target;
 							boost_end_pack.boost_on = false;
@@ -1318,7 +1309,6 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 					// 제거 패킷을 보냅니다.
 					GS2C_REMOVE_OBJ_PACKET missile_remove_pack;
 
-					missile_remove_pack.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
 					missile_remove_pack.type = GS2C_REMOVE_OBJ;
 					missile_remove_pack.id = target;
 					missile_remove_pack.objtype = OBJ_TYPE_MISSILE;
@@ -1423,7 +1413,6 @@ DWORD WINAPI TimerThreadFunc(LPVOID arg)
 
 					// 제거 패킷을 모든 클라이언트에게 전달합니다.
 					GS2C_REMOVE_OBJ_PACKET rm_bomb_packet;
-					rm_bomb_packet.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
 					rm_bomb_packet.type = GS2C_REMOVE_OBJ;
 					rm_bomb_packet.id = target;
 					rm_bomb_packet.objtype = OBJ_TYPE_BOMB;
@@ -1875,7 +1864,6 @@ void collisioncheck_Player2Missile(int client_id)
 
 			// 미사일 제거 패킷을 모든 클라이언트에게 전달합니다.
 			GS2C_REMOVE_OBJ_PACKET rm_missile_packet;
-			rm_missile_packet.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
 			rm_missile_packet.type = GS2C_REMOVE_OBJ;
 			rm_missile_packet.id = i;
 			rm_missile_packet.objtype = OBJ_TYPE_MISSILE;
@@ -1923,7 +1911,6 @@ void collisioncheck_Player2Bomb(int client_id)
 
 			// 지뢰 제거 패킷을 모든 클라이언트에게 전달합니다.
 			GS2C_REMOVE_OBJ_PACKET rm_bomb_packet;
-			rm_bomb_packet.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
 			rm_bomb_packet.type = GS2C_REMOVE_OBJ;
 			rm_bomb_packet.id = i;
 			rm_bomb_packet.objtype = OBJ_TYPE_BOMB;
@@ -1962,7 +1949,6 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 					LeaveCriticalSection(&clients[client_id].m_cs);
 					
 					GS2C_UPDATE_LAP_PACKET add_lap_packet;
-					add_lap_packet.size = sizeof(GS2C_UPDATE_LAP_PACKET);
 					add_lap_packet.type = GS2C_UPDATE_LAP;
 					add_lap_packet.lap = clients[client_id].getLapNum();
 					add_lap_packet.objtype = OBJ_TYPE_LAP;
@@ -1976,7 +1962,6 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 				{
 					clients[client_id].setLoseControl(true);
 					GS2C_SERVER_TIME_PACKET add_endtime_packet;
-					add_endtime_packet.size = sizeof(GS2C_SERVER_TIME_PACKET);
 					add_endtime_packet.type = GS2C_SERVER_TIME;
 					add_endtime_packet.time = (int)SERVER_TIME;
 					char sendMSG[50]{ "Finished!" };

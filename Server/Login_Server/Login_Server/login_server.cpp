@@ -133,7 +133,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 
 			// 계정 등록 결과 전송
 			LS2C_REGISTER_PACKET result_pack;
-			result_pack.size = sizeof(LS2C_REGISTER_PACKET);
 			result_pack.type = LS2C_REGISTER;
 			if (usable_name)
 				result_pack.result = true;
@@ -215,7 +214,6 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 			}
 
 			LS2C_GAMESTART_PACKET start_pack;
-			start_pack.size = sizeof(LS2C_GAMESTART_PACKET);
 			start_pack.type = LS2C_GAMESTART;
 			if (approval && name_exist && !name_already_used)
 				start_pack.start = START_APPROVAL;
