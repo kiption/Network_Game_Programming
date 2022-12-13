@@ -452,6 +452,17 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			}
 			players_info[boost_pack.id].m_boost_on = boost_pack.boost_on;
 		}
+
+		case GS2C_SERVER_TIME:
+		{
+			GS2C_SERVER_TIME_PACKET update_time;
+			retval = recv(sock_forGS, (char*)&update_time, sizeof(GS2C_SERVER_TIME_PACKET), MSG_WAITALL);
+			if (retval == SOCKET_ERROR) {
+				err_display("recv()");
+			}
+			endTime = update_time.time;
+			break;
+		}
 		default:
 			break;
 		}

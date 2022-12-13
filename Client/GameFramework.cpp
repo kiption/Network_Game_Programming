@@ -47,6 +47,7 @@ CGameFramework::CGameFramework()
 	_tcscpy_s(m_pszFrameRate, _T("TexRider"));
 	_tcscpy_s(m_InputName, _T("t1"));
 	_tcscpy_s(m_lapmark, _T("LAP"));
+	_tcscpy_s(m_endTime, _T("TIME : "));
 }
 
 CGameFramework::~CGameFramework()
@@ -510,6 +511,7 @@ void CGameFramework::UpdateUI()
 	m_pUILayer->UpdateTextOutputs(1, m_InputName, NULL, NULL, NULL);
 	m_pUILayer->UpdateTextOutputs(2, m_mylapnum, NULL, NULL, NULL);
 	m_pUILayer->UpdateTextOutputs(3, m_lapmark, NULL, NULL, NULL);
+	m_pUILayer->UpdateTextOutputs(4,m_endTime, NULL, NULL, NULL);
 
 }
 
@@ -551,7 +553,7 @@ void CGameFramework::OnDestroy()
 
 void CGameFramework::BuildObjects()
 {
-	m_pUILayer = new UILayer(m_nSwapChainBuffers, 4, m_pd3dDevice, m_pd3dCommandQueue, m_ppd3dSwapChainBackBuffers, m_nWndClientWidth, m_nWndClientHeight);
+	m_pUILayer = new UILayer(m_nSwapChainBuffers,5, m_pd3dDevice, m_pd3dCommandQueue, m_ppd3dSwapChainBackBuffers, m_nWndClientWidth, m_nWndClientHeight);
 
 	ID2D1SolidColorBrush* pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
 	IDWriteTextFormat* pdwTextFormat = m_pUILayer->CreateTextFormat(L"µ¸¿òÃ¼", m_nWndClientHeight / 15.0f);
@@ -578,6 +580,11 @@ void CGameFramework::BuildObjects()
 	d2dRect = D2D1::RectF(800.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
 
 	m_pUILayer->UpdateTextOutputs(3, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
+
+	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
+	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 25.0f);
+	d2dRect = D2D1::RectF(-700.0f, 250.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+	m_pUILayer->UpdateTextOutputs(4, m_endTime, &d2dRect, pdwTextFormat, pd2dBrush);
 
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 

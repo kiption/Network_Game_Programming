@@ -149,6 +149,7 @@ public:
 	WCHAR						m_InputName[10];
 	WCHAR						m_lapmark[10];
 	WCHAR						m_mylapnum[20];
+	WCHAR						m_endTime[50];
 	_TCHAR						m_pszFrameRate[70];
 };
 

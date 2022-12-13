@@ -36,7 +36,7 @@ constexpr char GS2C_UPDATE = 10;
 constexpr char GS2C_GET_ITME = 11;
 constexpr char GS2C_UPDATE_LAP = 12;
 constexpr char GS2C_UPDATE_BOOSTER = 13;
-
+constexpr char GS2C_SERVER_TIME = 14;
 
 
 //===================================
@@ -155,5 +155,11 @@ struct GS2C_UPDATE_BOOSTER_PACKET {
 	char type;
 	short id;
 	bool boost_on;
+};
+
+struct GS2C_SERVER_TIME_PACKET {
+	short size;
+	char type;
+	int time;
 };
 #pragma pack (pop)

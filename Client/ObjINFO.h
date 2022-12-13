@@ -57,4 +57,5 @@ std::array<ObjINFO, ITEMBOXNUM> itembox_arr;
 std::array<ObjINFO, MissileNum> missile_arr;
 std::array<ObjINFO, BombNum> bomb_arr;
 int myLapNum = 0;
+int endTime = 0;
 WCHAR myname[10];

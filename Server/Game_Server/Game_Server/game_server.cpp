@@ -179,6 +179,7 @@ public:
 	void		sendRemoveObjPacket(GS2C_REMOVE_OBJ_PACKET packet);
 	void		sendLapInfoPacket(GS2C_UPDATE_LAP_PACKET packet);
 	void		sendBoosterPacket(GS2C_UPDATE_BOOSTER_PACKET packet);
+	void		sendEndTimePacket(GS2C_SERVER_TIME_PACKET packet);
 };
 array<ClientINFO, MAX_USER> clients;
 //==================================================
@@ -379,7 +380,12 @@ void ClientINFO::sendBoosterPacket(GS2C_UPDATE_BOOSTER_PACKET packet) {
 		//err_display("send()");
 	}
 }
-
+void ClientINFO::sendEndTimePacket(GS2C_SERVER_TIME_PACKET packet) {
+	int retval = send(m_sock, (char*)&packet, sizeof(GS2C_SERVER_TIME_PACKET), 0);
+	if (retval == SOCKET_ERROR) {
+		//err_display("send()");
+	}
+}
 void sendPlayerUpdatePacket_toAllClient(int c_id) {	// 모든 클라이언트에게 c_id번째 클라이언트의 업데이트 정보를 보내는 함수
 	GS2C_UPDATE_PACKET update_packet;
 	// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
@@ -1897,6 +1903,22 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 
 					clients[client_id].sendLapInfoPacket(add_lap_packet);
 					break;
+				}
+			
+				// 게임시간 UI에 쓰일 서버로그
+				if (clients[client_id].getLapNum() >= 0)
+				{
+					GS2C_SERVER_TIME_PACKET add_endtime_packet;
+					add_endtime_packet.size = sizeof(GS2C_SERVER_TIME_PACKET);
+					add_endtime_packet.type = GS2C_SERVER_TIME;
+					add_endtime_packet.time = (int)SERVER_TIME;
+					clients[client_id].sendEndTimePacket(add_endtime_packet);
+
+					if (clients[client_id].getLapNum() >= 3|| (int)SERVER_TIME > 240)
+					{
+						clients[client_id].setLoseControl(true);
+					}
+				
 				}
 			}
 			else { // 1구역 부터 3구역까지만 해당 구간

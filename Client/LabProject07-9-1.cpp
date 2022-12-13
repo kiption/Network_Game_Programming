@@ -141,9 +141,16 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			_itow_s(myLapNum, mylapbuf, sizeof(mylapbuf) / 2, 10);
 
 			wcscpy(gGameFramework.m_mylapnum, mylapbuf);
-			//gGameFramework.m_mylapnum = (WCHAR*)myLapNum;
 
-			//_itow(gGameFramework.m_mylapnum, myLapNum, 10);
+			if (myLapNum>=0)
+			{
+
+			wchar_t endtimebuf[50];
+			_itow_s(endTime, endtimebuf, sizeof(endtimebuf) / 2, 10);
+
+			wcscpy(gGameFramework.m_endTime, endtimebuf);
+			}
+
 
 			//==================================================
 			// 서버로부터 받은 값대로 출력합니다.
