@@ -1903,36 +1903,20 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 
 					clients[client_id].sendLapInfoPacket(add_lap_packet);
 					break;
-
-					if ((clients[client_id].getLapNum() >= 3) && !clients[client_id].getLoseControl()) {
-						clients[client_id].setLoseControl(true);
-						GS2C_SERVER_TIME_PACKET add_endtime_packet;
-						add_endtime_packet.size = sizeof(GS2C_SERVER_TIME_PACKET);
-						add_endtime_packet.type = GS2C_SERVER_TIME;
-						add_endtime_packet.time = (int)SERVER_TIME;
-						
-						char sendMSG[50]{"You Finished"};
-					
-						strcpy(add_endtime_packet.msg, sendMSG);
-
-						clients[client_id].sendEndTimePacket(add_endtime_packet);
-					}
 				}
 			
 				//// 게임시간 UI에 쓰일 서버로그
-				if (clients[client_id].getLapNum() >= 3)
+				if ((clients[client_id].getLapNum() >= 3) && !(clients[client_id].getLoseControl()))
 				{
+					clients[client_id].setLoseControl(true);
 					GS2C_SERVER_TIME_PACKET add_endtime_packet;
 					add_endtime_packet.size = sizeof(GS2C_SERVER_TIME_PACKET);
 					add_endtime_packet.type = GS2C_SERVER_TIME;
 					add_endtime_packet.time = (int)SERVER_TIME;
+					char sendMSG[50]{ "Finished!" };
+					strcpy(add_endtime_packet.msg, sendMSG);
+					
 					clients[client_id].sendEndTimePacket(add_endtime_packet);
-
-					if (clients[client_id].getLapNum() >= 3|| (int)SERVER_TIME > 240)
-					{
-						clients[client_id].setLoseControl(true);
-					}
-				
 				}
 			}
 			else { // 1구역 부터 3구역까지만 해당 구간

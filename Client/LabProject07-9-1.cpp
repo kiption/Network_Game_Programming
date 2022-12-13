@@ -72,7 +72,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 	hAccelTable = ::LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_LABPROJECT0791));
 
-	wcscpy(gGameFramework.m_InputName, myname);
+	bool already_print = false;
+
+	WCHAR UserName[20];
+	_tcscpy_s(UserName, _T("User's name: "));
+	wcscpy(gGameFramework.m_InputName, UserName);
+
+	wcscat(gGameFramework.m_InputName, myname);
 
 	while (1)
 	{
@@ -129,7 +135,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				gGameFramework.myFunc_SetBoundingBox(i, players_info[i].GetPosition());
 				gGameFramework.m_pPlayer->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
 				gGameFramework.m_pScene->m_ppGameObjects[i]->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-			
+
 			}
 
 
@@ -138,16 +144,33 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			//=====================================================
 			wchar_t mylapbuf[20];
 			_itow_s(myLapNum, mylapbuf, sizeof(mylapbuf) / 2, 10);
-
 			wcscpy(gGameFramework.m_mylapnum, mylapbuf);
 
-			if (myLapNum >= 3)
-			{
+			if (myLapNum == 3) {
+				WCHAR downLap[2];
+				_tcscpy_s(downLap, _T("2"));
 
+				wcscpy(gGameFramework.m_mylapnum, downLap);
+			}
+
+
+			if (myLapNum >= 3 && !already_print)
+			{
+				already_print = true;
 				wchar_t endtimebuf[50];
 				_itow_s(endTime, endtimebuf, sizeof(endtimebuf) / 2, 10);
 
-				wcscpy(gGameFramework.m_endTime, endtimebuf);
+				WCHAR UserTime[20];
+				_tcscpy_s(UserTime, _T("Finish Time: "));
+				wcscpy(gGameFramework.m_endTime, UserTime);
+
+				wcscat(gGameFramework.m_endTime, endtimebuf);
+
+				WCHAR msgTime[6];
+				_tcscpy_s(msgTime, _T("sec"));
+				wcscat(gGameFramework.m_endTime, msgTime);
+
+				wcscpy(gGameFramework.m_myMSG, myMsg);
 			}
 			//==================================================
 			// 서버로부터 받은 값대로 출력합니다.

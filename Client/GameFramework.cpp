@@ -46,8 +46,9 @@ CGameFramework::CGameFramework()
 
 	_tcscpy_s(m_pszFrameRate, _T("TexRider"));
 	_tcscpy_s(m_InputName, _T("t1"));
-	_tcscpy_s(m_lapmark, _T("LAP"));
+	_tcscpy_s(m_lapmark, _T("/2 LAP"));
 	//_tcscpy_s(m_endTime, _T("TIME : "));
+	_tcscpy_s(m_myMSG, _T("Start!"));
 }
 
 CGameFramework::~CGameFramework()
@@ -508,11 +509,11 @@ LRESULT CALLBACK CGameFramework::OnProcessingWindowMessage(HWND hWnd, UINT nMess
 
 void CGameFramework::UpdateUI()
 {
+	m_pUILayer->UpdateTextOutputs(0, m_myMSG, NULL, NULL, NULL);
 	m_pUILayer->UpdateTextOutputs(1, m_InputName, NULL, NULL, NULL);
 	m_pUILayer->UpdateTextOutputs(2, m_mylapnum, NULL, NULL, NULL);
 	m_pUILayer->UpdateTextOutputs(3, m_lapmark, NULL, NULL, NULL);
 	m_pUILayer->UpdateTextOutputs(4, m_endTime, NULL, NULL, NULL);
-
 }
 
 void CGameFramework::GetPosition()
@@ -555,36 +556,45 @@ void CGameFramework::BuildObjects()
 {
 	m_pUILayer = new UILayer(m_nSwapChainBuffers, 5, m_pd3dDevice, m_pd3dCommandQueue, m_ppd3dSwapChainBackBuffers, m_nWndClientWidth, m_nWndClientHeight);
 
-	ID2D1SolidColorBrush* pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
-	IDWriteTextFormat* pdwTextFormat = m_pUILayer->CreateTextFormat(L"돋움체", m_nWndClientHeight / 15.0f);
+	// ==========Start, Finish 메세지 출력=======
+	ID2D1SolidColorBrush* pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::Cyan, 1.0f));
+	IDWriteTextFormat* pdwTextFormat = m_pUILayer->CreateTextFormat(L"돋움체", m_nWndClientHeight / 10.0f);
 	D2D1_RECT_F d2dRect = D2D1::RectF(0.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
 
-	WCHAR pstrOutputText[256];
-	wcscpy_s(pstrOutputText, 256, L"GameStart!\n");
-	m_pUILayer->UpdateTextOutputs(0, pstrOutputText, &d2dRect, pdwTextFormat, pd2dBrush);
+	m_pUILayer->UpdateTextOutputs(0, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
+	// ==========================================
 
+	// ===============User 이름 출력=============
 	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
 	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 25.0f);
-	d2dRect = D2D1::RectF(-700.0f, 200.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+	d2dRect = D2D1::RectF(-600.0f, 750.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
 
 	m_pUILayer->UpdateTextOutputs(1, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
+	// ==========================================
 
+	// ==============User Lap 숫자 출력==========
 	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
 	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 25.0f);
 	d2dRect = D2D1::RectF(700.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
 
 	m_pUILayer->UpdateTextOutputs(2, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
+	// ==========================================
 
+	// ==============User Lap 글자 출력==========
 	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
 	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 25.0f);
-	d2dRect = D2D1::RectF(800.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+	d2dRect = D2D1::RectF(850.0f, 0.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
 
 	m_pUILayer->UpdateTextOutputs(3, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
+	// ==========================================
 
-	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::BlanchedAlmond, 1.0f));
-	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 10.0f);
-	d2dRect = D2D1::RectF(0.0f, 250.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
-	m_pUILayer->UpdateTextOutputs(4, m_endTime, &d2dRect, pdwTextFormat, pd2dBrush);
+	// ============도착 시 최종 시간 출력=======
+	pd2dBrush = m_pUILayer->CreateBrush(D2D1::ColorF(D2D1::ColorF::OrangeRed, 1.0f));
+	pdwTextFormat = m_pUILayer->CreateTextFormat(L"Verdana", m_nWndClientHeight / 15.0f);
+	d2dRect = D2D1::RectF(0.0f, 300.0f, (float)m_nWndClientWidth, (float)m_nWndClientHeight);
+
+	m_pUILayer->UpdateTextOutputs(4, NULL, &d2dRect, pdwTextFormat, pd2dBrush);
+	// ==========================================
 
 	m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 

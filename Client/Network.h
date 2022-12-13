@@ -455,22 +455,22 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			break;
 		}
 		case GS2C_SERVER_TIME:
-			{
-				GS2C_SERVER_TIME_PACKET update_time;
-				retval = recv(sock_forGS, (char*)&update_time, sizeof(GS2C_SERVER_TIME_PACKET), MSG_WAITALL);
-				if (retval == SOCKET_ERROR) {
-					err_display("recv()");
-				}
-				endTime = update_time.time;
-				mbstowcs(myMsg, update_time.msg, 50);
-
+		{
+			GS2C_SERVER_TIME_PACKET update_time;
+			retval = recv(sock_forGS, (char*)&update_time, sizeof(GS2C_SERVER_TIME_PACKET), MSG_WAITALL);
+			if (retval == SOCKET_ERROR) {
+				err_display("recv()");
 			}
-
+			endTime = update_time.time;
+			mbstowcs(myMsg, update_time.msg, 50);
+		
+			break;
+		}
 		default:
 			break;
 
 		}
-			
+
 	}
 	//====
 
