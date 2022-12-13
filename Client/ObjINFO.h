@@ -59,3 +59,4 @@ std::array<ObjINFO, BombNum> bomb_arr;
 int myLapNum = 0;
 int endTime = 0;
 WCHAR myname[10];
+WCHAR myMsg[50];

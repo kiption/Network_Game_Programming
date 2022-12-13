@@ -1902,6 +1902,23 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 					add_lap_packet.objtype = OBJ_TYPE_LAP;
 
 					clients[client_id].sendLapInfoPacket(add_lap_packet);
+
+					if ((clients[client_id].getLapNum() >= 3) && !clients[client_id].getLoseControl()) {
+						clients[client_id].setLoseControl(true);
+						GS2C_SERVER_TIME_PACKET add_endtime_packet;
+						add_endtime_packet.size = sizeof(GS2C_SERVER_TIME_PACKET);
+						add_endtime_packet.type = GS2C_SERVER_TIME;
+						add_endtime_packet.time = (int)SERVER_TIME;
+						
+						char sendMSG[50]{"You Finished"};
+					
+						strcpy(add_endtime_packet.msg, sendMSG);
+
+						clients[client_id].sendEndTimePacket(add_endtime_packet);
+					}
+
+
+
 					break;
 				}
 			

@@ -460,7 +460,9 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			if (retval == SOCKET_ERROR) {
 				err_display("recv()");
 			}
-			endTime = update_time.time;
+			endTime = update_time.time;	
+			mbstowcs(myMsg, update_time.msg, 50);
+
 			break;
 		}
 		default:

@@ -161,5 +161,7 @@ struct GS2C_SERVER_TIME_PACKET {
 	short size;
 	char type;
 	int time;
+	char msg[50];
 };
+
 #pragma pack (pop)
