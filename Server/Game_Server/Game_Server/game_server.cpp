@@ -67,7 +67,7 @@ public:
 public:
 	// Initialize
 	ClientINFO() {
-		m_id = 0;
+		m_id = -1;
 		m_sock = 0;
 		m_state = CL_STATE_EMPTY;
 		m_pos = { 0.f, 0.f, 0.f };
@@ -172,6 +172,9 @@ public:
 	void		setCheckSection(int num, bool b) { m_check_section[num] = b; }
 
 public:
+	void		resetInfo();
+
+public:
 	// Networking Func
 	void		sendLoginInfoPacket(GS2C_LOGIN_INFO_PACKET packet);
 	void		sendAddObjPacket(GS2C_ADD_OBJ_PACKET packet);
@@ -180,7 +183,39 @@ public:
 	void		sendLapInfoPacket(GS2C_UPDATE_LAP_PACKET packet);
 	void		sendBoosterPacket(GS2C_UPDATE_BOOSTER_PACKET packet);
 	void		sendEndTimePacket(GS2C_SERVER_TIME_PACKET packet);
+
+	void		disconnectClient();
 };
+void ClientINFO::resetInfo() {
+	m_id = -1;
+	m_sock = 0;
+	m_state = CL_STATE_EMPTY;
+	m_pos = { 0.f, 0.f, 0.f };
+	m_yaw = m_pitch = m_roll = 0.f;
+	MyVector3D tmp_rightvec = { 1.f, 0.f, 0.f };
+	MyVector3D tmp_upvec = { 0.f, 1.f, 0.f };
+	MyVector3D tmp_lookvec = { 0.f, 0.f, 1.f };
+	m_coordinate.x_coordinate = tmp_rightvec;
+	m_coordinate.y_coordinate = tmp_upvec;
+	m_coordinate.z_coordinate = tmp_lookvec;
+	m_accelerator = 0.0f;
+	m_limit_acc = LIMIT_ACCELERATOR;
+
+	m_item_cooldown = false;
+	m_booster_on = false;
+	m_lose_control = false;
+	m_hit_motion = false;
+	m_flooded = false;
+
+	for (int i{}; i < CheckPointNum; i++) {
+		m_check_section[i] = false;
+		if (i == 3) {
+			m_check_section[i] = true;
+		}
+	}
+	m_lap_num = 0;
+}
+
 array<ClientINFO, MAX_USER> clients;
 //==================================================
 
@@ -386,6 +421,26 @@ void ClientINFO::sendEndTimePacket(GS2C_SERVER_TIME_PACKET packet) {
 		//err_display("send()");
 	}
 }
+
+void ClientINFO::disconnectClient() {
+	cout << "클라이언트[" << m_id << "]의 연결 종료를 감지하였습니다." << endl;
+	// c_id번째 클라이언트의 연결해제 사실을 접속해있는 모든 클라이언트에게 전달합니다.
+	GS2C_REMOVE_OBJ_PACKET disconnect_pack;
+	disconnect_pack.size = sizeof(GS2C_REMOVE_OBJ_PACKET);
+	disconnect_pack.type = GS2C_REMOVE_OBJ;
+	disconnect_pack.id = m_id;
+	disconnect_pack.objtype = OBJ_TYPE_PLAYER;
+
+	for (int i = 0; i < MAX_USER; i++) {
+		if (clients[i].getState() == CL_STATE_EMPTY) continue;
+
+		clients[i].sendRemoveObjPacket(disconnect_pack);
+	}
+
+	// c_id번째 클라이언트의 정보를 초기화시킵니다.
+	resetInfo();
+}
+
 void sendPlayerUpdatePacket_toAllClient(int c_id) {	// 모든 클라이언트에게 c_id번째 클라이언트의 업데이트 정보를 보내는 함수
 	GS2C_UPDATE_PACKET update_packet;
 	// client_id번째 클라이언트 객체의 변경사항을 보낼 패킷에 담습니다.
@@ -721,7 +776,18 @@ DWORD WINAPI ProcessClient(LPVOID arg)
 		PACKET_INFO recv_info;
 		retval = recv(client_sock, (char*)&recv_info, sizeof(PACKET_INFO), MSG_PEEK);	// MSG_PEEK을 사용하여 수신버퍼를 읽지만 가져오지는 않도록
 		if (retval == SOCKET_ERROR) {
-			err_display("recv()");
+			if (WSAGetLastError() == WSAECONNRESET) {
+				// 연결 해제 후처리
+				clients[client_id].disconnectClient();
+
+				// 소켓 닫기
+				closesocket(client_sock);
+				cout << "[TCP 서버] 클라이언트 종료: IP 주소= " << addr << ", 포트 번호 = " << ntohs(clientaddr.sin_port) << endl;
+				return 0;
+			}
+			else {
+				err_display("recv()");
+			}
 		}
 		else if (retval == 0) {
 			break;

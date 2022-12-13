@@ -339,6 +339,9 @@ DWORD WINAPI Network_WithGS_ThreadFunc(LPVOID arg)
 			int rmID = remove_pack.id;
 			switch (remove_pack.objtype) {
 			case OBJ_TYPE_PLAYER:
+				if (players_info[rmID].m_state == OBJ_ST_RUNNING)
+					players_info[rmID].returnToInitialState();
+				cout << "Client[" << rmID << "] is Removed." << endl;
 				break;
 			case OBJ_TYPE_MISSILE:
 				if (missile_arr[rmID].m_state == OBJ_ST_RUNNING)

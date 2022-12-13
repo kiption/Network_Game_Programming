@@ -127,18 +127,72 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			//==================================================
 			//	    서버로부터 받은 값으로 최신화해줍니다.
 			//==================================================
-
+			// 클라이언트 정보 최신화
 			for (int i = 0; i < MAX_USER; i++) {
-				if (players_info[i].m_state != OBJ_ST_RUNNING) continue;
-				gGameFramework.myFunc_SetPosition(i, players_info[i].GetPosition());
-				gGameFramework.myFunc_SetVectors(i, players_info[i].GetRightVector(), players_info[i].GetUpVector(), players_info[i].GetLookVector());
-				gGameFramework.myFunc_SetBoundingBox(i, players_info[i].GetPosition());
-				gGameFramework.m_pPlayer->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-				gGameFramework.m_pScene->m_ppGameObjects[i]->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
-
+				if (players_info[i].m_state == OBJ_ST_RUNNING) {
+					gGameFramework.myFunc_SetPosition(i, players_info[i].GetPosition());
+					gGameFramework.myFunc_SetVectors(i, players_info[i].GetRightVector(), players_info[i].GetUpVector(), players_info[i].GetLookVector());
+					gGameFramework.myFunc_SetBoundingBox(i, players_info[i].GetPosition());
+					gGameFramework.m_pPlayer->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+					gGameFramework.m_pScene->m_ppGameObjects[i]->m_Boobb = objinfo.m_xoobb.PlayerOOBB = BoundingOrientedBox(players_info[i].GetPosition(), XMFLOAT3(20.0, 20.0, 20.0), XMFLOAT4(0.0, 0.0, 0.0, 1.0));
+				}
+				else if (players_info[i].m_state == OBJ_ST_LOGOUT) {
+					gGameFramework.myFunc_SetPosition(i, players_info[i].GetPosition());
+					gGameFramework.myFunc_SetVectors(i, players_info[i].GetRightVector(), players_info[i].GetUpVector(), players_info[i].GetLookVector());
+					players_info[i].m_state = OBJ_ST_EMPTY;
+				}
 			}
 
+			// 아이템 박스 정보 최신화
+			for (int i = 0; i < ITEMBOXNUM; i++) {
+				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetPosition(itembox_arr[i].GetPosition());
+				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->myFunc_SetVectors(itembox_arr[i].GetRightVector(), itembox_arr[i].GetUpVector(), itembox_arr[i].GetLookVector());
+				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetScale(15.0f, 15.0f, 15.0f);
+			}
 
+			// 미사일 정보 최신화
+			for (int i = 0; i < MissileNum; i++) {
+				if (missile_arr[i].m_state == OBJ_ST_RUNNING) {
+					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->SetPosition(missile_arr[i].GetPosition());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->myFunc_SetVectors(missile_arr[i].GetRightVector(), missile_arr[i].GetUpVector(), missile_arr[i].GetLookVector());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->SetScale(50.0, 50.0, 80.0);
+					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->Rotate(90.0, 0.0, 0.0);
+				}
+				else if (missile_arr[i].m_state == OBJ_ST_LOGOUT) {
+					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->SetPosition(missile_arr[i].GetPosition());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->myFunc_SetVectors(missile_arr[i].GetRightVector(), missile_arr[i].GetUpVector(), missile_arr[i].GetLookVector());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->SetScale(0.5, 0.5, 0.8);
+					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->Rotate(90.0, 0.0, 0.0);
+					missile_arr[i].m_state = OBJ_ST_EMPTY;
+				}
+			}
+
+			// 지뢰 정보 최신화
+			for (int i = 0; i < BombNum; i++) {
+				if (bomb_arr[i].m_state == OBJ_ST_RUNNING) {
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetPosition(bomb_arr[i].GetPosition());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetScale(1.0f, 1.0f, 1.0f);
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->Rotate(0.0, 0.0, 0.0);
+				}
+				else if (bomb_arr[i].m_state == OBJ_ST_LOGOUT) {
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetPosition(bomb_arr[i].GetPosition());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetScale(0.01, 0.01, 0.01);
+					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->Rotate(90.0, 0.0, 0.0);
+					bomb_arr[i].m_state = OBJ_ST_EMPTY;
+				}
+			}
+
+			// 부스터 효과 정보 최신화
+			for (int i = 0; i < MAX_USER; i++) {
+				if (players_info[i].m_state != OBJ_ST_RUNNING)
+					continue;
+
+				gGameFramework.SetBoosterEffect(i, players_info[i].m_boost_on);
+			}
+			//=====================================================
+			
 			//=====================================================
 			//			현재 LAP 숫자를 받아 넘겨줍니다.
 			//=====================================================
@@ -171,57 +225,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 				wcscat(gGameFramework.m_endTime, msgTime);
 
 				wcscpy(gGameFramework.m_myMSG, myMsg);
-			}
-			//==================================================
-			// 서버로부터 받은 값대로 출력합니다.
-			//==================================================
-			// 아이템 박스 출력
-			for (int i = 0; i < ITEMBOXNUM; i++) {
-				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetPosition(itembox_arr[i].GetPosition());
-				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->myFunc_SetVectors(itembox_arr[i].GetRightVector(), itembox_arr[i].GetUpVector(), itembox_arr[i].GetLookVector());
-				gGameFramework.m_pScene->m_ppGameObjects[i + 2]->SetScale(15.0f, 15.0f, 15.0f);
-			}
-
-			// 미사일 출력
-			for (int i = 0; i < MissileNum; i++) {
-				if (missile_arr[i].m_state == OBJ_ST_RUNNING) {
-					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->SetPosition(missile_arr[i].GetPosition());
-					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->myFunc_SetVectors(missile_arr[i].GetRightVector(), missile_arr[i].GetUpVector(), missile_arr[i].GetLookVector());
-					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->SetScale(50.0, 50.0, 80.0);
-					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->Rotate(90.0, 0.0, 0.0);
-				}
-				else if (missile_arr[i].m_state == OBJ_ST_LOGOUT) {
-					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->SetPosition(missile_arr[i].GetPosition());
-					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->myFunc_SetVectors(missile_arr[i].GetRightVector(), missile_arr[i].GetUpVector(), missile_arr[i].GetLookVector());
-					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->SetScale(0.5, 0.5, 0.8);
-					gGameFramework.m_pScene->m_ppGameObjects[i + 189]->Rotate(90.0, 0.0, 0.0);
-					missile_arr[i].m_state = OBJ_ST_EMPTY;
-				}
-			}
-
-			// 지뢰 출력
-			for (int i = 0; i < BombNum; i++) {
-				if (bomb_arr[i].m_state == OBJ_ST_RUNNING) {
-					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetPosition(bomb_arr[i].GetPosition());
-					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
-					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetScale(1.0f, 1.0f, 1.0f);
-					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->Rotate(0.0, 0.0, 0.0);
-				}
-				else if (bomb_arr[i].m_state == OBJ_ST_LOGOUT) {
-					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetPosition(bomb_arr[i].GetPosition());
-					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->myFunc_SetVectors(bomb_arr[i].GetRightVector(), bomb_arr[i].GetUpVector(), bomb_arr[i].GetLookVector());
-					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->SetScale(0.01, 0.01, 0.01);
-					gGameFramework.m_pScene->m_ppGameObjects[i + 289]->Rotate(90.0, 0.0, 0.0);
-					bomb_arr[i].m_state = OBJ_ST_EMPTY;
-				}
-			}
-
-			// 부스터 효과
-			for (int i = 0; i < MAX_USER; i++) {
-				if (players_info[i].m_state != OBJ_ST_RUNNING)
-					continue;
-
-				gGameFramework.SetBoosterEffect(i, players_info[i].m_boost_on);
 			}
 
 			gGameFramework.FrameAdvance();

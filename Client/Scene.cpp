@@ -210,7 +210,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	P2->SetChild(pPlayerCars2, true);
 	P2->OnInitialize();
 	pPlayerCars2->SetScale(0.95f, 0.95f, 0.95f);
-	P2->SetPosition(450.0f, 14.0f, 480.0f);
+	P2->SetPosition(450.0f, -100.0f, 480.0f);
 	m_ppGameObjects[0] = P2;
 
 	CGameObjcet* pPlayerCars3 = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/race.bin");
@@ -219,7 +219,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	P3->SetChild(pPlayerCars3, true);
 	P3->OnInitialize();
 	pPlayerCars3->SetScale(0.95f, 0.95f, 0.95f);
-	P3->SetPosition(500.0, 14.0, 480.0f);
+	P3->SetPosition(500.0, -100.0f, 480.0f);
 	m_ppGameObjects[1] = P3;
 
 	CGameObjcet* pBoxModel = CGameObjcet::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/Mystery_box.bin");
