@@ -6,6 +6,7 @@
 #include <vector>
 #include <queue>
 #include <time.h>
+#include "Costants.h"
 #include "CalcMove.h"
 #include "Global.h"
 #include "Collision.h"
@@ -1951,7 +1952,6 @@ void collisioncheck_Player2CheckPointBox(int client_id)
 					GS2C_UPDATE_LAP_PACKET add_lap_packet;
 					add_lap_packet.type = GS2C_UPDATE_LAP;
 					add_lap_packet.lap = clients[client_id].getLapNum();
-					add_lap_packet.objtype = OBJ_TYPE_LAP;
 
 					clients[client_id].sendLapInfoPacket(add_lap_packet);
 					break;

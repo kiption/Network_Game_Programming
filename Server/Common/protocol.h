@@ -33,10 +33,9 @@ constexpr char GS2C_LOGIN_INFO = 7;
 constexpr char GS2C_ADD_OBJ = 8;
 constexpr char GS2C_REMOVE_OBJ = 9;
 constexpr char GS2C_UPDATE = 10;
-constexpr char GS2C_GET_ITME = 11;
-constexpr char GS2C_UPDATE_LAP = 12;
-constexpr char GS2C_UPDATE_BOOSTER = 13;
-constexpr char GS2C_SERVER_TIME = 14;
+constexpr char GS2C_UPDATE_LAP = 11;
+constexpr char GS2C_UPDATE_BOOSTER = 12;
+constexpr char GS2C_SERVER_TIME = 13;
 
 
 //===================================
@@ -98,7 +97,7 @@ struct GS2C_LOGIN_INFO_PACKET {
 	float look_vec_x, look_vec_y, look_vec_z;
 };
 
-enum { OBJ_TYPE_PLAYER, OBJ_TYPE_MISSILE, OBJ_TYPE_BOMB, OBJ_TYPE_ITEMBOX, OBJ_TYPE_LAP };
+enum { OBJ_TYPE_PLAYER, OBJ_TYPE_MISSILE, OBJ_TYPE_BOMB, OBJ_TYPE_ITEMBOX };
 struct GS2C_ADD_OBJ_PACKET {
 	char type;
 	short id;
@@ -125,15 +124,9 @@ struct GS2C_UPDATE_PACKET {
 	float look_vec_x, look_vec_y, look_vec_z;
 };
 
-struct GS2C_GET_ITME_PACKET {
-	char type;
-	short itemtype;
-};
-
 struct GS2C_UPDATE_LAP_PACKET {
 	char type;
 	int lap;
-	short objtype;
 };
 
 struct GS2C_UPDATE_BOOSTER_PACKET {
