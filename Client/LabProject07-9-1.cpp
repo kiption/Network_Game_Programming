@@ -27,6 +27,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	//==================================================
 	//					Server Code
 	//==================================================
+	string tempIP;
+	cout << "접속할 서버의 IP주소를 입력해주세요: ";
+	cin >> tempIP;
+
+	SERVERIP = const_cast<char*>(tempIP.c_str());
+
 	int retval;
 
 	WSADATA wsa;

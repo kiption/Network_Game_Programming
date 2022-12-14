@@ -38,27 +38,28 @@ void collisioncheck_Player2CheckPointBox(int client_id);
 enum { CL_STATE_EMPTY, CL_STATE_RUNNING };
 class ClientINFO {
 private:
-	SOCKET		m_sock;
-
 	int			m_id = 0;
 	char		m_state;
+	SOCKET		m_sock;
+
+	MyVector3D	m_pos;
+	Coordinate	m_coordinate;
+	float		m_yaw, m_pitch, m_roll;
 
 	float		m_accelerator;
 	float		m_limit_acc;
-	Coordinate	m_coordinate;
-	queue<int>  m_myitem;
 
+	queue<int>  m_myitem;
 	bool		m_item_cooldown;	// 아이템 사용 쿨타임
 	bool		m_booster_on;		// 부스터 사용 여부
+
 	bool		m_lose_control;		// 조작 가능 여부 (true일때에는 조작이 불가능합니다.)
 	bool		m_hit_motion;		// 피격 모션 연출 중 여부
+
 	bool		m_flooded;			// 침수 여부
 
 	bool		m_check_section[CheckPointNum];
 	int			m_lap_num;
-
-	float		m_yaw, m_pitch, m_roll;
-	MyVector3D	m_pos;
 
 public:
 	CRITICAL_SECTION	m_cs;
@@ -135,7 +136,6 @@ public:
 	bool		getLoseControl() { return m_lose_control; }
 	bool		getHitMotion() { return m_hit_motion; }
 	bool		getFlooded() { return m_flooded; }
-
 
 	bool		getCheckSection(int num) { return m_check_section[num]; }
 
