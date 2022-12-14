@@ -54,12 +54,11 @@ public:
 	void myFunc_SetPosition(int n,XMFLOAT3 position);
 	void myFunc_SetVectors(int n,XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector);
 
-	void myFunc_SetOthersPosition(int n, XMFLOAT3 position);
-	void myFunc_SetOthersVectors(int n, XMFLOAT3 rightVector, XMFLOAT3 upVector, XMFLOAT3 lookVector);
+
 
 	void myFunc_SetBoundingBox(int n, XMFLOAT3 position);
 
-	void CollisionAnimate();
+
 
 	bool is_KeyInput_Empty();
 	short pop_keyvalue();

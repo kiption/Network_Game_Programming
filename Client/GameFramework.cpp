@@ -915,10 +915,6 @@ void CGameFramework::MissileMode(XMFLOAT3 position, XMFLOAT3 lookVector)
 		pBulletObject->SetScale(700.0, 200.0, 700.0);
 	}
 }
-void CGameFramework::CollisionAnimate()
-{
-
-}
 
 bool CGameFramework::is_KeyInput_Empty() {
 	return q_input_key.empty();
